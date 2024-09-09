@@ -33,7 +33,8 @@ class Client:
         try:
             with open(model_path, "rb") as file:
                 files = {"file": (os.path.basename(model_path), file)}
-                return self._make_request("POST", "upload", params={"stream": "true"}, files=files)
+                response = self._make_request("POST", "upload", params={"stream": "true"}, files=files)
+                return {"model_cid": response["cid"]} 
         except OpenGradientError as e:
             raise UploadError(f"Upload failed: {str(e)}")
 
