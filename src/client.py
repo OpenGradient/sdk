@@ -46,9 +46,9 @@ class Client:
             contract = self.w3.eth.contract(address=contract_address, abi=self.abi)
 
             # Prepare the transaction
-            tx = contract.functions.infer(model_cid, model_inputs).build_transaction({
+            tx = contract.functions.run(model_cid, model_inputs).build_transaction({
                 'from': self.w3.eth.account.from_key(self.api_key).address,
-                'gas': 2000000,  # You might want to estimate this
+                'gas': 0,  # You might want to estimate this
                 'gasPrice': self.w3.eth.gas_price,
                 'nonce': self.w3.eth.get_transaction_count(self.w3.eth.account.from_key(self.api_key).address),
             })
