@@ -5,6 +5,12 @@ import json
 from .exceptions import UploadError, InferenceError, InvalidInputError
 import web3
 from web3 import Web3
+from .types import ModelInput, InferenceMode, Abi, ModelOutput
+
+class InferenceMode:
+    VANILLA = 0
+    PRIVATE = 1
+    VERIFIED = 2
 
 class Client:
     def __init__(self, api_key, storage_url="http://localhost:5000", rpc_url=None):
@@ -13,7 +19,8 @@ class Client:
         self.rpc_url = rpc_url
         self.w3 = None  # We'll initialize this when needed
         with open(os.path.join(os.path.dirname(__file__), '..', 'abi', 'inference.abi'), 'r') as file:
-            self.abi = json.load(file)
+            abi_json = json.load(file)
+            self.abi = Abi.from_json(abi_json)
 
     def _initialize_web3(self):
         if self.w3 is None:
@@ -38,15 +45,19 @@ class Client:
         except requests.RequestException as e:
             raise UploadError(f"Upload failed: {str(e)}")
 
-    def infer(self, model_cid, model_inputs):
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> ModelOutput:
         self._initialize_web3()
 
         try:
             contract_address = "0x1234567890123456789012345678901234567890"  # Hardcoded contract address
-            contract = self.w3.eth.contract(address=contract_address, abi=self.abi)
+            contract = self.w3.eth.contract(address=contract_address, abi=self.abi.functions[0].__dict__)
 
             # Prepare the transaction
-            tx = contract.functions.run(model_cid, model_inputs).build_transaction({
+            tx = contract.functions.run(
+                model_id,
+                inference_mode,
+                model_input.__dict__
+            ).build_transaction({
                 'from': self.w3.eth.account.from_key(self.api_key).address,
                 'gas': 0,  # You might want to estimate this
                 'gasPrice': self.w3.eth.gas_price,
@@ -60,19 +71,25 @@ class Client:
             # Wait for the transaction receipt
             tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
 
-            # Return the transaction hash as the inference ID
-            return {'inference_id': tx_hash.hex()}
+            # Decode the output
+            output = contract.functions.run().call(
+                model_id,
+                inference_mode,
+                model_input.__dict__
+            )
+
+            return ModelOutput(**output)
 
         except Exception as e:
             raise InferenceError(f"Inference failed: {str(e)}")
 
-    def download(self, model_cid):
-        try:
-            response = requests.get(
-                f"{self.storage_url}/download/{model_cid}",
-                headers={"Authorization": f"Bearer {self.api_key}"}
-            )
-            response.raise_for_status()
-            return response.content
-        except requests.RequestException as e:
-            raise DownloadError(f"Download failed: {str(e)}")
+    # def download(self, model_cid):
+    #     try:
+    #         response = requests.get(
+    #             f"{self.storage_url}/download/{model_cid}",
+    #             headers={"Authorization": f"Bearer {self.api_key}"}
+    #         )
+    #         response.raise_for_status()
+    #         return response.content
+    #     except requests.RequestException as e:
+    #         raise DownloadError(f"Download failed: {str(e)}")
