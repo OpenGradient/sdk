@@ -3,8 +3,6 @@
 Python SDK for OpenGradient inference services.
 
 ## Installation
-
-- bash
 ```
 pip install opengradient
 ```
