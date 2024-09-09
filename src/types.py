@@ -2,46 +2,46 @@ from typing import List, Union
 from dataclasses import dataclass
 
 @dataclass
-class Number:
+class OGNumber:
     value: int
     decimals: int
 
 @dataclass
-class NumberTensor:
+class OGNumberTensor:
     name: str
-    values: List[Number]
+    values: List[OGNumber]
 
 @dataclass
-class StringTensor:
+class OGStringTensor:
     name: str
     values: List[str]
 
 @dataclass
-class ModelInput:
-    numbers: List[NumberTensor]
-    strings: List[StringTensor]
+class OGModelInput:
+    numbers: List[OGNumberTensor]
+    strings: List[OGStringTensor]
 
-class InferenceMode:
+class OGInferenceMode:
     VANILLA = 0
     PRIVATE = 1
     VERIFIED = 2
 
 @dataclass
-class ModelOutput:
-    numbers: List[NumberTensor]
-    strings: List[StringTensor]
+class OGModelOutput:
+    numbers: List[OGNumberTensor]
+    strings: List[OGStringTensor]
     is_simulation_result: bool
 
 @dataclass
-class AbiFunction:
+class OGAbiFunction:
     name: str
-    inputs: List[Union[str, 'AbiFunction']]
-    outputs: List[Union[str, 'AbiFunction']]
+    inputs: List[Union[str, 'OGAbiFunction']]
+    outputs: List[Union[str, 'OGAbiFunction']]
     stateMutability: str
 
 @dataclass
-class Abi:
-    functions: List[AbiFunction]
+class OGAbi:
+    functions: List[OGAbiFunction]
 
     @classmethod
     def from_json(cls, abi_json):
@@ -50,7 +50,7 @@ class Abi:
             if item['type'] == 'function':
                 inputs = cls._parse_inputs_outputs(item['inputs'])
                 outputs = cls._parse_inputs_outputs(item['outputs'])
-                functions.append(AbiFunction(
+                functions.append(OGAbiFunction(
                     name=item['name'],
                     inputs=inputs,
                     outputs=outputs,
@@ -63,14 +63,12 @@ class Abi:
         result = []
         for item in items:
             if 'components' in item:
-                result.append(AbiFunction(
+                result.append(OGAbiFunction(
                     name=item['name'],
-                    inputs=Abi._parse_inputs_outputs(item['components']),
+                    inputs=OGAbi._parse_inputs_outputs(item['components']),
                     outputs=[],
                     stateMutability=''
                 ))
             else:
                 result.append(f"{item['name']}:{item['type']}")
         return result
-
-# You might need more types depending on your ABI
