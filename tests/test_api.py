@@ -4,7 +4,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.client import Client
-from src.exceptions import FileNotFoundError, UploadError, InferenceError, ResultRetrievalError, AuthenticationError, RateLimitError
+from src.exceptions import FileNotFoundError, UploadError, InferenceError, ResultRetrievalError, AuthenticationError, RateLimitError, InvalidInputError
 
 import pytest
 from unittest.mock import patch, Mock, mock_open
@@ -83,3 +83,28 @@ def test_upload_authentication_error(client):
 
 #         with pytest.raises(InferenceError, match="Inference failed: Test error"):
 #             client.get_results("test_inference_cid")
+
+def test_infer_success(client):
+    with patch('src.client.requests.request') as mock_request:
+        mock_response = Mock()
+        mock_response.json.return_value = {"inference_cid": "test_inference_cid"}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        result = client.infer("test_model_cid", {"input": [1, 2, 3]})
+        assert result == {"inference_cid": "test_inference_cid"}
+
+        mock_request.assert_called_once_with(
+            "POST",
+            "http://localhost:5002/infer",
+            json={
+                "model_cid": "test_model_cid",
+                "model_inputs": {"input": [1, 2, 3]},
+                "contract_address": "0x1234567890123456789012345678901234567890"
+            },
+            headers={"Authorization": "Bearer test_api_key"}
+        )
+
+def test_infer_invalid_input(client):
+    with pytest.raises(InvalidInputError):
+        client.infer("test_model_cid", {"invalid_input": "value"})
