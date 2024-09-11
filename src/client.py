@@ -7,7 +7,7 @@ import web3
 from web3 import Web3
 from web3.auto import w3
 from eth_account import Account
-from src.types import ModelInput, InferenceMode, Abi, ModelOutput
+from src.types import ModelInput, InferenceMode, Abi, ModelOutput, Number, NumberTensor
 import pickle
 import onnx
 from skl2onnx import convert_sklearn
@@ -15,6 +15,8 @@ from skl2onnx.common.data_types import FloatTensorType
 import numpy as np
 import logging
 import secrets
+from typing import Tuple
+from web3.exceptions import ContractLogicError
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -62,28 +64,30 @@ class Client:
         except requests.RequestException as e:
             raise UploadError(f"Upload failed: {str(e)}")
 
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> ModelOutput:
-        logging.debug("Entering infer method")
-        self._initialize_web3()
-        logging.debug(f"Web3 initialized. Connected: {self.w3.is_connected()}")
-
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> Tuple[ModelOutput, str, str]:
         try:
+            logging.debug("Entering infer method")
+            self._initialize_web3()
+            logging.debug(f"Web3 initialized. Connected: {self.w3.is_connected()}")
+
             logging.debug(f"Creating contract instance. Address: {self.contract_address}")
             contract = self.w3.eth.contract(address=self.contract_address, abi=self.abi)
             logging.debug("Contract instance created successfully")
 
             logging.debug(f"Model ID: {model_id}")
             logging.debug(f"Inference Mode: {inference_mode}")
-            logging.debug(f"Model Input: {model_input.__dict__}")
+            logging.debug(f"Model Input: {model_input}")
 
             # Convert InferenceMode to uint8
             inference_mode_uint8 = int(inference_mode)
 
             # Prepare ModelInput struct
-            number_tensors = [("", [(int(v), 0) for v in model_input.numbers])]
-            string_tensors = []  # Assuming no string inputs are required
+            number_tensors = [(tensor.name, [(number.value, number.decimals) for number in tensor.values]) for tensor in model_input.numbers]
+            string_tensors = [(tensor.name, tensor.values) for tensor in model_input.strings]
 
             model_input_struct = (number_tensors, string_tensors)
+
+            logging.debug(f"Prepared model input struct: {model_input_struct}")
 
             logging.debug("Preparing run function")
             run_function = contract.functions.run(
@@ -93,21 +97,91 @@ class Client:
             )
             logging.debug("Run function prepared successfully")
 
-            logging.debug("Calling run function")
+            # Build transaction
+            nonce = self.w3.eth.get_transaction_count(self.wallet_address)
+            
+            # Get the latest block to check for EIP-1559 support
+            latest_block = self.w3.eth.get_block('latest')
+            
+            if 'baseFeePerGas' in latest_block:
+                # EIP-1559 transaction
+                max_priority_fee_per_gas = self.w3.eth.max_priority_fee
+                max_fee_per_gas = 2 * latest_block['baseFeePerGas'] + max_priority_fee_per_gas
+                
+                transaction = run_function.build_transaction({
+                    'from': self.wallet_address,
+                    'nonce': nonce,
+                    'maxFeePerGas': max_fee_per_gas,
+                    'maxPriorityFeePerGas': max_priority_fee_per_gas,
+                    'gas': 2000000,  # Adjust this value as needed
+                })
+            else:
+                # Legacy transaction
+                transaction = run_function.build_transaction({
+                    'from': self.wallet_address,
+                    'nonce': nonce,
+                    'gasPrice': self.w3.eth.gas_price,
+                    'gas': 2000000,  # Adjust this value as needed
+                })
+
+            logging.debug(f"Transaction built: {transaction}")
+
+            # Sign transaction
+            signed_tx = self.w3.eth.account.sign_transaction(transaction, self.private_key)
+            logging.debug("Transaction signed successfully")
+
+            # Send transaction
+            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
+
+            # Wait for transaction receipt with a timeout and retry mechanism
+            max_attempts = 10
+            wait_time = 5  # seconds
+            for attempt in range(max_attempts):
+                try:
+                    tx_receipt = self.w3.eth.get_transaction_receipt(tx_hash)
+                    if tx_receipt is not None:
+                        logging.debug(f"Transaction receipt received: {tx_receipt}")
+                        break
+                except web3.exceptions.TransactionNotFound:
+                    logging.warning(f"Transaction receipt not found. Attempt {attempt + 1}/{max_attempts}")
+                    time.sleep(wait_time)
+            else:
+                raise TimeoutError("Transaction receipt not found after maximum attempts")
+
+            # Check if the transaction was successful
+            if tx_receipt['status'] == 0:
+                raise ContractLogicError("Transaction failed")
+
+            logging.debug("Calling run function to get output")
             try:
                 output = run_function.call({'from': self.wallet_address})
                 logging.debug(f"Run function call successful. Raw output: {output}")
-                
-                # Parse the output
+            except Exception as call_error:
+                logging.error(f"Error calling run function: {str(call_error)}")
+                raise InferenceError(f"Failed to call run function: {str(call_error)}")
+
+            if output is not None:
                 parsed_output = self._parse_output(output)
                 logging.debug(f"Parsed output: {parsed_output}")
                 
-                return ModelOutput(**parsed_output)
-            except Exception as call_error:
-                logging.error(f"Error calling run function: {str(call_error)}")
-                logging.debug(f"Function arguments: model_id={model_id}, inference_mode={inference_mode_uint8}, model_input={model_input_struct}")
-                raise
+                # Extract inference ID from the output
+                inference_id = parsed_output.get('inference_id', '')
+                if not inference_id:
+                    logging.warning("Inference ID not found in the output")
+                    inference_id = f"{model_id}_{tx_hash.hex()}"  # Fallback to generated ID
+                
+                return ModelOutput(**parsed_output), tx_hash.hex(), inference_id
+            else:
+                logging.warning("Unable to get output from run function")
+                raise InferenceError("No output received from run function")
 
+        except TimeoutError as e:
+            logging.error(f"Timeout error: {str(e)}", exc_info=True)
+            raise InferenceError(f"Inference timed out: {str(e)}")
+        except ContractLogicError as e:
+            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
+            raise InferenceError(f"Inference failed due to contract logic error: {str(e)}")
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise InferenceError(f"Inference failed: {str(e)}")
