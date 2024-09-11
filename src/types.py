@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Tuple, Union
 from dataclasses import dataclass
 
 @dataclass
@@ -9,7 +9,7 @@ class Number:
 @dataclass
 class NumberTensor:
     name: str
-    values: List[Number]
+    values: List[Tuple[int, int]]  # (int128, int128)[]
 
 @dataclass
 class StringTensor:

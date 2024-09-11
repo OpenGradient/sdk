@@ -14,13 +14,9 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 import numpy as np
 import logging
+import secrets
 
 logging.basicConfig(level=logging.DEBUG)
-
-class InferenceMode:
-    VANILLA = 0
-    PRIVATE = 1
-    VERIFIED = 2
 
 class Client:
     def __init__(self, wallet_address, private_key):
@@ -29,6 +25,11 @@ class Client:
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = None
         self.contract_address = "0x2EFf2e5e706f895B1d86E4C5d24DF29A976070A4"
+        self.storage_url = "http://18.222.64.142:5000"
+
+        with open('abi/inference.abi', 'r') as abi_file:
+            inference_abi = json.load(abi_file)
+        self.abi = inference_abi
 
     @property
     def w3(self):
@@ -54,7 +55,7 @@ class Client:
                 response = requests.post(
                     f"{self.storage_url}/upload",
                     files=files,
-                    headers={"Authorization": f"Bearer {self.api_key}"}
+                    headers={"Content-Type": f"multipart/form-data"}
                 )
                 response.raise_for_status()
                 return {"model_cid": response.json()["cid"]}
@@ -62,41 +63,79 @@ class Client:
             raise UploadError(f"Upload failed: {str(e)}")
 
     def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> ModelOutput:
+        logging.debug("Entering infer method")
         self._initialize_web3()
+        logging.debug(f"Web3 initialized. Connected: {self.w3.is_connected()}")
 
         try:
+            logging.debug(f"Creating contract instance. Address: {self.contract_address}")
             contract = self.w3.eth.contract(address=self.contract_address, abi=self.abi)
+            logging.debug("Contract instance created successfully")
 
-            # Prepare the transaction
-            tx = contract.functions.run(
+            logging.debug(f"Model ID: {model_id}")
+            logging.debug(f"Inference Mode: {inference_mode}")
+            logging.debug(f"Model Input: {model_input.__dict__}")
+
+            # Convert InferenceMode to uint8
+            inference_mode_uint8 = int(inference_mode)
+
+            # Prepare ModelInput struct
+            number_tensors = [("", [(int(v), 0) for v in model_input.numbers])]
+            string_tensors = []  # Assuming no string inputs are required
+
+            model_input_struct = (number_tensors, string_tensors)
+
+            logging.debug("Preparing run function")
+            run_function = contract.functions.run(
                 model_id,
-                inference_mode,
-                model_input.__dict__
-            ).build_transaction({
-                'from': self.wallet_address,
-                'gas': 0,  # You might want to estimate this
-                'gasPrice': self.w3.eth.gas_price,
-                'nonce': self.w3.eth.get_transaction_count(self.wallet_address),
-            })
-
-            # Sign and send the transaction
-            signed_tx = self.w3.eth.account.sign_transaction(tx, self.private_key)
-            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-
-            # Wait for the transaction receipt
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
-
-            # Decode the output
-            output = contract.functions.run().call(
-                model_id,
-                inference_mode,
-                model_input.__dict__
+                inference_mode_uint8,
+                model_input_struct
             )
+            logging.debug("Run function prepared successfully")
 
-            return ModelOutput(**output)
+            logging.debug("Calling run function")
+            try:
+                output = run_function.call({'from': self.wallet_address})
+                logging.debug(f"Run function call successful. Raw output: {output}")
+                
+                # Parse the output
+                parsed_output = self._parse_output(output)
+                logging.debug(f"Parsed output: {parsed_output}")
+                
+                return ModelOutput(**parsed_output)
+            except Exception as call_error:
+                logging.error(f"Error calling run function: {str(call_error)}")
+                logging.debug(f"Function arguments: model_id={model_id}, inference_mode={inference_mode_uint8}, model_input={model_input_struct}")
+                raise
 
         except Exception as e:
+            logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise InferenceError(f"Inference failed: {str(e)}")
+
+    def _parse_output(self, raw_output):
+        logging.debug(f"Parsing raw output: {raw_output}")
+        parsed_output = {
+            'numbers': [],
+            'strings': [],
+            'is_simulation_result': False
+        }
+        
+        if isinstance(raw_output, tuple) and len(raw_output) >= 2:
+            number_tensors, string_tensors = raw_output[:2]
+            
+            logging.debug(f"Number tensors: {number_tensors}")
+            logging.debug(f"String tensors: {string_tensors}")
+            
+            for name, values in number_tensors:
+                parsed_output['numbers'].append({'name': name, 'values': values})
+            
+            for name, values in string_tensors:
+                parsed_output['strings'].append({'name': name, 'values': values})
+        else:
+            logging.warning(f"Unexpected raw output format: {raw_output}")
+        
+        logging.debug(f"Parsed output: {parsed_output}")
+        return parsed_output
 
     # def download(self, model_cid):
     #     try:
@@ -169,3 +208,21 @@ class Client:
     def _convert_general_model(self, model):
         logging.error("General model conversion not yet implemented")
         raise NotImplementedError("General model conversion not yet implemented")
+
+    def generate_ethereum_account():
+        # Generate a random private key
+        private_key = secrets.token_hex(32)
+        
+        # Create an account from the private key
+        account = Account.from_key(private_key)
+        
+        return {
+            'private_key': private_key,
+            'address': account.address
+        }
+
+    # Generate a new account
+    new_account = generate_ethereum_account()
+
+    print(f"Private Key: {new_account['private_key']}")
+    print(f"Ethereum Address: {new_account['address']}")
