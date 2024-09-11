@@ -3,15 +3,15 @@ from setuptools import setup, find_packages
 setup(
     name="opengradient",
     version="0.1.0",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
+    packages=['opengradient'],
+    package_dir={'opengradient': 'src'},
     install_requires=[
         "requests",
         "onnx",
         # other dependencies
     ],
     author="OpenGradient",
-    author_email="oliver@vannalabs.ai",
+    author_email="oliver@opengradient.ai",
     description="A Python SDK for OpenGradient inference services",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
