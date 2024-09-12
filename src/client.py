@@ -7,7 +7,7 @@ import web3
 from web3 import Web3
 from web3.auto import w3
 from eth_account import Account
-from src.types import ModelInput, InferenceMode, Abi, ModelOutput, Number, NumberTensor
+from src.types import ModelInput, InferenceMode, Abi, ModelOutput, Number, NumberTensor, StringTensor
 import pickle
 import onnx
 from skl2onnx import convert_sklearn
@@ -138,7 +138,7 @@ class Client:
             logging.debug(f"Estimated gas: {estimated_gas}")
 
             # Increase gas limit by 20%
-            gas_limit = int(estimated_gas * 1.2)
+            gas_limit = int(estimated_gas * 3)
             logging.debug(f"Gas limit set to: {gas_limit}")
 
             transaction = run_function.build_transaction({
