@@ -17,6 +17,7 @@ import logging
 import secrets
 from typing import Tuple
 from web3.exceptions import ContractLogicError
+from web3.datastructures import AttributeDict
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -26,7 +27,7 @@ class Client:
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = None
-        self.contract_address = "0x350E0A430b2B1563481833a99523Cfd17a530e4e"
+        self.contract_address = "0xD06aBA37d08Bd2307728DcedBEf0aa4522B22ce7"
         self.storage_url = "http://18.222.64.142:5000"
 
         with open('abi/inference.abi', 'r') as abi_file:
@@ -95,7 +96,7 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}")
             raise UploadError(f"Upload failed due to unexpected error: {str(e)}")
     
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> str:
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> Tuple[str, ModelOutput]:
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
@@ -130,18 +131,21 @@ class Client:
 
             # Build transaction
             nonce = self.w3.eth.get_transaction_count(self.wallet_address)
-            logging.debug(nonce)
-            print(nonce)
-            
-            # Get the latest block to check for EIP-1559 support
-            latest_block = self.w3.eth.get_block('latest')
-            
-            # Legacy transaction
+            logging.debug(f"Nonce: {nonce}")
+
+            # Estimate gas
+            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            logging.debug(f"Estimated gas: {estimated_gas}")
+
+            # Increase gas limit by 20%
+            gas_limit = int(estimated_gas * 1.2)
+            logging.debug(f"Gas limit set to: {gas_limit}")
+
             transaction = run_function.build_transaction({
                 'from': self.wallet_address,
                 'nonce': nonce,
-                'gasPrice': 1,
-                'gas': 100000,
+                'gas': gas_limit,
+                'gasPrice': self.w3.eth.gas_price,
             })
 
             logging.debug(f"Transaction built: {transaction}")
@@ -160,9 +164,35 @@ class Client:
 
             # Check if the transaction was successful
             if tx_receipt['status'] == 0:
-                raise ContractLogicError("Transaction failed")
+                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
-            return tx_hash.hex()
+            # Process the InferenceResult event
+            inference_result = None
+            for log in tx_receipt['logs']:
+                try:
+                    decoded_log = contract.events.InferenceResult().process_log(log)
+                    inference_result = decoded_log
+                    break
+                except:
+                    continue
+
+            if inference_result is None:
+                logging.error("InferenceResult event not found in transaction logs")
+                logging.debug(f"Transaction receipt logs: {tx_receipt['logs']}")
+                raise InferenceError("InferenceResult event not found in transaction logs")
+
+            # Extract the ModelOutput from the event
+            event_data = inference_result['args']
+            logging.debug(f"Raw event data: {event_data}")
+
+            try:
+                model_output = self._parse_event_data(event_data)
+                logging.debug(f"Parsed ModelOutput: {model_output}")
+            except Exception as e:
+                logging.error(f"Error parsing event data: {str(e)}", exc_info=True)
+                raise InferenceError(f"Failed to parse event data: {str(e)}")
+
+            return tx_hash.hex(), model_output
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
@@ -170,6 +200,50 @@ class Client:
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise InferenceError(f"Inference failed: {str(e)}")
+
+    def _parse_event_data(self, event_data) -> ModelOutput:
+        logging.debug(f"Parsing event data: {event_data}")
+        
+        numbers = []
+        strings = []
+        is_simulation_result = False
+
+        if isinstance(event_data, AttributeDict):
+            output = event_data.get('output', {})
+            logging.debug(f"Output data: {output}")
+
+            if isinstance(output, AttributeDict):
+                # Parse numbers
+                for tensor in output.get('numbers', []):
+                    logging.debug(f"Processing number tensor: {tensor}")
+                    if isinstance(tensor, AttributeDict):
+                        name = tensor.get('name')
+                        values = []
+                        for v in tensor.get('values', []):
+                            if isinstance(v, AttributeDict):
+                                values.append(Number(value=v.get('value'), decimals=v.get('decimals')))
+                        numbers.append(NumberTensor(name=name, values=values))
+
+                # Parse strings
+                for tensor in output.get('strings', []):
+                    logging.debug(f"Processing string tensor: {tensor}")
+                    if isinstance(tensor, AttributeDict):
+                        name = tensor.get('name')
+                        values = tensor.get('values', [])
+                        strings.append(StringTensor(name=name, values=values))
+
+                is_simulation_result = output.get('is_simulation_result', False)
+            else:
+                logging.warning(f"Unexpected output type: {type(output)}")
+        else:
+            logging.warning(f"Unexpected event_data type: {type(event_data)}")
+
+        logging.debug(f"Parsed numbers: {numbers}")
+        logging.debug(f"Parsed strings: {strings}")
+        logging.debug(f"Is simulation result: {is_simulation_result}")
+
+        return ModelOutput(numbers=numbers, strings=strings, is_simulation_result=is_simulation_result)
+
     def _parse_output(self, raw_output):
         logging.debug(f"Parsing raw output: {raw_output}")
         parsed_output = {
@@ -194,17 +268,6 @@ class Client:
         
         logging.debug(f"Parsed output: {parsed_output}")
         return parsed_output
-
-    # def download(self, model_cid):
-    #     try:
-    #         response = requests.get(
-    #             f"{self.storage_url}/download/{model_cid}",
-    #             headers={"Authorization": f"Bearer {self.api_key}"}
-    #         )
-    #         response.raise_for_status()
-    #         return response.content
-    #     except requests.RequestException as e:
-    #         raise DownloadError(f"Download failed: {str(e)}")
 
     def convert_pickle_to_onnx(self, pickle_path):
         logging.debug(f"Attempting to load pickle file from {pickle_path}")
