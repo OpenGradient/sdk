@@ -26,7 +26,7 @@ class Client:
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = None
-        self.contract_address = "0x2EFf2e5e706f895B1d86E4C5d24DF29A976070A4"
+        self.contract_address = "0x350E0A430b2B1563481833a99523Cfd17a530e4e"
         self.storage_url = "http://18.222.64.142:5000"
 
         with open('abi/inference.abi', 'r') as abi_file:
@@ -47,24 +47,55 @@ class Client:
         if self._w3 is None:
             self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
-    def upload(self, model_path):
+    def upload(self, model_path: str) -> dict:
         if not os.path.exists(model_path):
-            raise FileNotFoundError(f"File not found: {model_path}")
+            raise FileNotFoundError(f"Model file not found: {model_path}")
 
         try:
-            with open(model_path, "rb") as file:
-                files = {"file": (os.path.basename(model_path), file)}
+            with open(model_path, 'rb') as file:
+                filename = os.path.basename(model_path)
+                files = {'file': (filename, file, 'application/octet-stream')}
+                headers = {
+                    # Remove Content-Type header, let requests set it automatically
+                }
+                params = {
+                    # Add any query parameters required by the server
+                }
+
+                logging.info(f"Uploading file: {model_path}")
+                logging.debug(f"Upload URL: {self.storage_url}/upload")
+                logging.debug(f"Headers: {headers}")
+                logging.debug(f"Params: {params}")
+
                 response = requests.post(
                     f"{self.storage_url}/upload",
                     files=files,
-                    headers={"Content-Type": f"multipart/form-data"}
+                    headers=headers,
+                    params=params
                 )
-                response.raise_for_status()
-                return {"model_cid": response.json()["cid"]}
-        except requests.RequestException as e:
-            raise UploadError(f"Upload failed: {str(e)}")
 
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> Tuple[ModelOutput, str, str]:
+                logging.debug(f"Response status code: {response.status_code}")
+                logging.debug(f"Response headers: {response.headers}")
+                logging.debug(f"Response content: {response.text}")
+
+                response.raise_for_status()
+
+                json_response = response.json()
+                logging.info(f"Upload successful. CID: {json_response.get('cid', 'N/A')}")
+                return {"model_cid": json_response["cid"]}
+
+        except requests.RequestException as e:
+            logging.error(f"Upload failed: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logging.error(f"Response status code: {e.response.status_code}")
+                logging.error(f"Response headers: {e.response.headers}")
+                logging.error(f"Response content: {e.response.text}")
+            raise UploadError(f"Upload failed: {str(e)}")
+        except Exception as e:
+            logging.error(f"Unexpected error during upload: {str(e)}")
+            raise UploadError(f"Upload failed due to unexpected error: {str(e)}")
+    
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> str:
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
@@ -99,30 +130,19 @@ class Client:
 
             # Build transaction
             nonce = self.w3.eth.get_transaction_count(self.wallet_address)
+            logging.debug(nonce)
+            print(nonce)
             
             # Get the latest block to check for EIP-1559 support
             latest_block = self.w3.eth.get_block('latest')
             
-            if 'baseFeePerGas' in latest_block:
-                # EIP-1559 transaction
-                max_priority_fee_per_gas = self.w3.eth.max_priority_fee
-                max_fee_per_gas = 2 * latest_block['baseFeePerGas'] + max_priority_fee_per_gas
-                
-                transaction = run_function.build_transaction({
-                    'from': self.wallet_address,
-                    'nonce': nonce,
-                    'maxFeePerGas': max_fee_per_gas,
-                    'maxPriorityFeePerGas': max_priority_fee_per_gas,
-                    'gas': 2000000,  # Adjust this value as needed
-                })
-            else:
-                # Legacy transaction
-                transaction = run_function.build_transaction({
-                    'from': self.wallet_address,
-                    'nonce': nonce,
-                    'gasPrice': self.w3.eth.gas_price,
-                    'gas': 2000000,  # Adjust this value as needed
-                })
+            # Legacy transaction
+            transaction = run_function.build_transaction({
+                'from': self.wallet_address,
+                'nonce': nonce,
+                'gasPrice': 1,
+                'gas': 100000,
+            })
 
             logging.debug(f"Transaction built: {transaction}")
 
@@ -134,58 +154,22 @@ class Client:
             tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
             logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
 
-            # Wait for transaction receipt with a timeout and retry mechanism
-            max_attempts = 10
-            wait_time = 5  # seconds
-            for attempt in range(max_attempts):
-                try:
-                    tx_receipt = self.w3.eth.get_transaction_receipt(tx_hash)
-                    if tx_receipt is not None:
-                        logging.debug(f"Transaction receipt received: {tx_receipt}")
-                        break
-                except web3.exceptions.TransactionNotFound:
-                    logging.warning(f"Transaction receipt not found. Attempt {attempt + 1}/{max_attempts}")
-                    time.sleep(wait_time)
-            else:
-                raise TimeoutError("Transaction receipt not found after maximum attempts")
+            # Wait for transaction receipt
+            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            logging.debug(f"Transaction receipt received: {tx_receipt}")
 
             # Check if the transaction was successful
             if tx_receipt['status'] == 0:
                 raise ContractLogicError("Transaction failed")
 
-            logging.debug("Calling run function to get output")
-            try:
-                output = run_function.call({'from': self.wallet_address})
-                logging.debug(f"Run function call successful. Raw output: {output}")
-            except Exception as call_error:
-                logging.error(f"Error calling run function: {str(call_error)}")
-                raise InferenceError(f"Failed to call run function: {str(call_error)}")
+            return tx_hash.hex()
 
-            if output is not None:
-                parsed_output = self._parse_output(output)
-                logging.debug(f"Parsed output: {parsed_output}")
-                
-                # Extract inference ID from the output
-                inference_id = parsed_output.get('inference_id', '')
-                if not inference_id:
-                    logging.warning("Inference ID not found in the output")
-                    inference_id = f"{model_id}_{tx_hash.hex()}"  # Fallback to generated ID
-                
-                return ModelOutput(**parsed_output), tx_hash.hex(), inference_id
-            else:
-                logging.warning("Unable to get output from run function")
-                raise InferenceError("No output received from run function")
-
-        except TimeoutError as e:
-            logging.error(f"Timeout error: {str(e)}", exc_info=True)
-            raise InferenceError(f"Inference timed out: {str(e)}")
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
             raise InferenceError(f"Inference failed due to contract logic error: {str(e)}")
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise InferenceError(f"Inference failed: {str(e)}")
-
     def _parse_output(self, raw_output):
         logging.debug(f"Parsing raw output: {raw_output}")
         parsed_output = {
