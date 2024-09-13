@@ -18,7 +18,7 @@ import secrets
 from typing import Tuple
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
-import pyrebase
+import firebase
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -29,6 +29,7 @@ class Client:
         "projectId": "vanna-portal-418018",
         "storageBucket": "vanna-portal-418018.appspot.com",
         "appId": "1:487761246229:web:259af6423a504d2316361c",
+        "databaseURL": ""
     }
 
     def __init__(self, wallet_address, private_key):
@@ -38,8 +39,8 @@ class Client:
         self._w3 = None
         self.contract_address = "0xD06aBA37d08Bd2307728DcedBEf0aa4522B22ce7"
         self.storage_url = "http://18.222.64.142:5000"
-        self.firebase = pyrebase.initialize_app(self.FIREBASE_CONFIG)
-        self.auth = self.firebase.auth()
+        self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
+        self.auth = self.firebase_app.auth()
         self.user = None
 
         with open('abi/inference.abi', 'r') as abi_file:
@@ -61,11 +62,18 @@ class Client:
             self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
     def sign_in_with_email_and_password(self, email, password):
-        self.user = self.auth.sign_in_with_email_and_password(email, password)
-        return self.user
+        try:
+            self.user = self.auth.sign_in_with_email_and_password(email, password)
+            return self.user
+        except Exception as e:
+            logging.error(f"Authentication failed: {str(e)}")
+            raise
 
     def refresh_token(self):
-        self.user = self.auth.refresh(self.user['refreshToken'])
+        if self.user:
+            self.user = self.auth.refresh(self.user['refreshToken'])
+        else:
+            logging.error("No user is currently signed in")
 
     def upload(self, model_path: str) -> dict:
         if not self.user:
