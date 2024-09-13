@@ -18,23 +18,29 @@ import secrets
 from typing import Tuple
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
-import firebase_admin
-from firebase_admin import credentials, auth
+import pyrebase
 
 logging.basicConfig(level=logging.DEBUG)
 
 class Client:
-    def __init__(self, wallet_address, private_key, firebase_token):
+    # Firebase configuration (replace with your actual config)
+    FIREBASE_CONFIG = {
+        "apiKey": "your_api_key",
+        "authDomain": "your_project_id.firebaseapp.com",
+        "databaseURL": "https://your_project_id.firebaseio.com",
+        "storageBucket": "your_project_id.appspot.com"
+    }
+
+    def __init__(self, wallet_address, private_key):
         self.wallet_address = wallet_address
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = None
         self.contract_address = "0xD06aBA37d08Bd2307728DcedBEf0aa4522B22ce7"
         self.storage_url = "http://18.222.64.142:5000"
-        self.firebase_token = firebase_token
-        self.firebase_user_id = None
-        self._initialize_firebase()
-        self._verify_firebase_token()
+        self.firebase = pyrebase.initialize_app(self.FIREBASE_CONFIG)
+        self.auth = self.firebase.auth()
+        self.user = None
 
         with open('abi/inference.abi', 'r') as abi_file:
             inference_abi = json.load(abi_file)
@@ -54,22 +60,15 @@ class Client:
         if self._w3 is None:
             self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
-    def _initialize_firebase(self):
-        try:
-            firebase_admin.get_app()
-        except ValueError:
-            cred = credentials.Certificate("path/to/firebase-credentials.json")
-            firebase_admin.initialize_app(cred)
+    def sign_in_with_email_and_password(self, email, password):
+        self.user = self.auth.sign_in_with_email_and_password(email, password)
+        return self.user
 
-    def _verify_firebase_token(self):
-        try:
-            decoded_token = auth.verify_id_token(self.firebase_token)
-            self.firebase_user_id = decoded_token['uid']
-        except Exception as e:
-            raise ValueError(f"Invalid Firebase token: {str(e)}")
+    def refresh_token(self):
+        self.user = self.auth.refresh(self.user['refreshToken'])
 
     def upload(self, model_path: str) -> dict:
-        if not self.firebase_user_id:
+        if not self.user:
             raise ValueError("User not authenticated")
 
         if not os.path.exists(model_path):
@@ -120,7 +119,7 @@ class Client:
             raise UploadError(f"Upload failed due to unexpected error: {str(e)}")
     
     def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> Tuple[str, ModelOutput]:
-        if not self.firebase_user_id:
+        if not self.user:
             raise ValueError("User not authenticated")
 
         try:
