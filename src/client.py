@@ -75,7 +75,7 @@ class Client:
         else:
             logging.error("No user is currently signed in")
 
-    def upload(self, model_path: str) -> dict:
+    def upload(self, model_path: str, model_id: str) -> dict:
         if not self.user:
             raise ValueError("User not authenticated")
 
@@ -87,22 +87,17 @@ class Client:
                 filename = os.path.basename(model_path)
                 files = {'file': (filename, file, 'application/octet-stream')}
                 headers = {
-                    # Remove Content-Type header, let requests set it automatically
-                }
-                params = {
-                    # Add any query parameters required by the server
+                    'Authorization': f'Bearer {self.user.id_token}'
                 }
 
                 logging.info(f"Uploading file: {model_path}")
-                logging.debug(f"Upload URL: {self.storage_url}/upload")
+                logging.debug(f"Upload URL: https://api.opengradient.ai/api/v1/models/{model_id}/upload")
                 logging.debug(f"Headers: {headers}")
-                logging.debug(f"Params: {params}")
 
                 response = requests.post(
-                    f"{self.storage_url}/upload",
+                    f"https://api.opengradient.ai/api/v1/models/{model_id}/upload",
                     files=files,
-                    headers=headers,
-                    params=params
+                    headers=headers
                 )
 
                 logging.debug(f"Response status code: {response.status_code}")
