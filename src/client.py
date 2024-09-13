@@ -37,7 +37,7 @@ class Client:
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = None
-        self.contract_address = "0xD06aBA37d08Bd2307728DcedBEf0aa4522B22ce7"
+        self.contract_address = "0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE"
         self.storage_url = "http://18.222.64.142:5000"
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
@@ -87,7 +87,7 @@ class Client:
                 filename = os.path.basename(model_path)
                 files = {'file': (filename, file, 'application/octet-stream')}
                 headers = {
-                    'Authorization': f'Bearer {self.user.id_token}'
+                    'Authorization': f'Bearer {self.user["idToken"]}'
                 }
 
                 logging.info(f"Uploading file: {model_path}")
