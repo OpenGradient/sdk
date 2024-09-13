@@ -23,12 +23,12 @@ import pyrebase
 logging.basicConfig(level=logging.DEBUG)
 
 class Client:
-    # Firebase configuration (replace with your actual config)
     FIREBASE_CONFIG = {
-        "apiKey": "your_api_key",
-        "authDomain": "your_project_id.firebaseapp.com",
-        "databaseURL": "https://your_project_id.firebaseio.com",
-        "storageBucket": "your_project_id.appspot.com"
+        "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
+        "authDomain": "vanna-portal-418018.firebaseapp.com",
+        "projectId": "vanna-portal-418018",
+        "storageBucket": "vanna-portal-418018.appspot.com",
+        "appId": "1:487761246229:web:259af6423a504d2316361c",
     }
 
     def __init__(self, wallet_address, private_key):
