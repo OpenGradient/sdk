@@ -5,5 +5,6 @@ from .api_exceptions import (
     InferenceError,
     ResultRetrievalError,
     AuthenticationError,
-    RateLimitError
+    RateLimitError,
+    InvalidInputError
 )
