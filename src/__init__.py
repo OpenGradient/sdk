@@ -10,10 +10,20 @@ def init(wallet_address, private_key):
     global _client
     _client = Client(wallet_address=wallet_address, private_key=private_key)
 
-def upload(model_path, model_id):
+def upload(model_path, model_id, version_id):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.upload(model_path, model_id)
+    return _client.upload(model_path, model_id, version_id)
+
+def create_model(model_name, model_desc):
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.create_model(model_name,model_desc)
+
+def create_version(model_id, notes=None, is_major=False):
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.create_version(model_id, notes, is_major)
 
 def infer(model_id, inference_mode, model_input):
     if _client is None:

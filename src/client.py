@@ -2,7 +2,7 @@ import requests
 import os
 import time
 import json
-from src.exceptions import UploadError, InferenceError, InvalidInputError
+from src.exceptions import OpenGradientError
 import web3
 from web3 import Web3
 from web3.auto import w3
@@ -74,41 +74,175 @@ class Client:
             self.user = self.auth.refresh(self.user['refreshToken'])
         else:
             logging.error("No user is currently signed in")
+    
+    def create_model(self, model_name: str, model_desc: str, version_id: str = "1.00") -> dict:
+        """
+        Create a new model with the given model_name and model_desc, and a specified version ID.
 
-    def upload(self, model_path: str, model_id: str) -> dict:
+        Args:
+            model_name (str): The name of the model.
+            model_desc (str): The description of the model.
+            version_id (str): The version identifier (default is "1.00").
+
+        Returns:
+            dict: The server response containing model details.
+
+        Raises:
+            CreateModelError: If the model creation fails.
+        """
+        if not self.user:
+            raise ValueError("User not authenticated")
+
+        url = f"https://api.opengradient.ai/api/v1/models/"
+        headers = {
+            'Authorization': f'Bearer {self.user["idToken"]}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            'name': model_name,
+            'description': model_desc
+        }
+
+        try:
+            logging.debug(f"Create Model URL: {url}")
+            logging.debug(f"Headers: {headers}")
+            logging.debug(f"Payload: {payload}")
+
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+
+            json_response = response.json()
+            model_id = json_response.get('id')
+            if not model_id:
+                raise Exception(f"Model creation response missing 'id'. Full response: {json_response}")
+            logging.info(f"Model creation successful. Model ID: {model_id}")
+
+            # Create the specified version for the newly created model
+            try:
+                version_response = self.create_version(model_id, version_id)
+                logging.info(f"Version creation successful. Version ID: {version_response['version_id']}")
+            except Exception as ve:
+                logging.error(f"Version creation failed, but model was created. Error: {str(ve)}")
+                return {"id": model_id, "version_id": None, "version_error": str(ve)}
+
+            return {"id": model_id, "version_id": version_response["version_id"]}
+
+        except requests.RequestException as e:
+            logging.error(f"Model creation failed: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logging.error(f"Response status code: {e.response.status_code}")
+                logging.error(f"Response headers: {e.response.headers}")
+                logging.error(f"Response content: {e.response.text}")
+            raise Exception(f"Model creation failed: {str(e)}")
+        except Exception as e:
+            logging.error(f"Unexpected error during model creation: {str(e)}")
+            raise
+
+    def create_version(self, model_id: str, notes: str = None, is_major: bool = False) -> dict:
+        """
+        Create a new version for the specified model.
+
+        Args:
+            model_id (str): The unique identifier for the model.
+            notes (str, optional): Notes for the new version.
+            is_major (bool, optional): Whether this is a major version update. Defaults to False.
+
+        Returns:
+            dict: The server response containing version details.
+
+        Raises:
+            Exception: If the version creation fails.
+        """
+        if not self.user:
+            raise ValueError("User not authenticated")
+
+        url = f"https://api.opengradient.ai/api/v1/models/{model_id}/versions"
+        headers = {
+            'Authorization': f'Bearer {self.user["idToken"]}',
+            'Content-Type': 'application/json'
+        }
+        payload = {
+            "notes": notes,
+            "is_major": is_major
+        }
+
+        try:
+            logging.debug(f"Create Version URL: {url}")
+            logging.debug(f"Headers: {headers}")
+            logging.debug(f"Payload: {payload}")
+
+            response = requests.post(url, json=payload, headers=headers, allow_redirects=True)
+            response.raise_for_status()
+
+            json_response = response.json()
+
+            logging.debug(f"Full server response: {json_response}")
+
+            if isinstance(json_response, list) and not json_response:
+                logging.info(f"Server returned an empty list. Assuming version was created successfully.")
+                return {"version_id": "Unknown", "note": "Created based on empty response"}
+            elif isinstance(json_response, dict):
+                version_id = json_response.get('version_id') or json_response.get('id')
+                if not version_id:
+                    logging.warning(f"'version_id' not found in response. Response: {json_response}")
+                    return {"version_id": "Unknown", "note": "Version ID not provided in response"}
+                logging.info(f"Version creation successful. Version ID: {version_id}")
+                return {"version_id": version_id}
+            else:
+                logging.error(f"Unexpected response type: {type(json_response)}. Content: {json_response}")
+                raise Exception(f"Unexpected response type: {type(json_response)}")
+
+        except requests.RequestException as e:
+            logging.error(f"Version creation failed: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logging.error(f"Response status code: {e.response.status_code}")
+                logging.error(f"Response headers: {e.response.headers}")
+                logging.error(f"Response content: {e.response.text}")
+            raise Exception(f"Version creation failed: {str(e)}")
+        except Exception as e:
+            logging.error(f"Unexpected error during version creation: {str(e)}")
+            raise
+
+    def upload(self, model_path: str, model_id: str, version_id: str) -> dict:
         if not self.user:
             raise ValueError("User not authenticated")
 
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
+        url = f"https://api.opengradient.ai/api/v1/models/{model_id}/versions/{version_id}/files"
+        headers = {
+            'Authorization': f'Bearer {self.user["idToken"]}'
+        }
+
         try:
             with open(model_path, 'rb') as file:
-                filename = os.path.basename(model_path)
-                files = {'file': (filename, file, 'application/octet-stream')}
-                headers = {
-                    'Authorization': f'Bearer {self.user["idToken"]}'
-                }
-
+                files = {'file': (os.path.basename(model_path), file)}
                 logging.info(f"Uploading file: {model_path}")
-                logging.debug(f"Upload URL: https://api.opengradient.ai/api/v1/models/{model_id}/upload")
+                logging.debug(f"Upload URL: {url}")
                 logging.debug(f"Headers: {headers}")
 
-                response = requests.post(
-                    f"https://api.opengradient.ai/api/v1/models/{model_id}/upload",
-                    files=files,
-                    headers=headers
-                )
-
+                response = requests.post(url, files=files, headers=headers)
+                
                 logging.debug(f"Response status code: {response.status_code}")
                 logging.debug(f"Response headers: {response.headers}")
                 logging.debug(f"Response content: {response.text}")
 
-                response.raise_for_status()
-
-                json_response = response.json()
-                logging.info(f"Upload successful. CID: {json_response.get('cid', 'N/A')}")
-                return {"model_cid": json_response["cid"]}
+                if response.status_code == 201:
+                    if response.content and response.content != b'null':
+                        json_response = response.json()
+                        logging.info(f"Upload successful. CID: {json_response.get('cid', 'N/A')}")
+                        return {"model_cid": json_response.get("ipfs_cid"), "size": json_response.get("size")}
+                    else:
+                        logging.warning("Empty or null response content received. Assuming upload was successful.")
+                        return {"model_cid": None, "size": None}
+                elif response.status_code == 500:
+                    error_message = "Internal server error occurred. Please try again later or contact support."
+                    logging.error(error_message)
+                    raise OpenGradientError(error_message, status_code=500)
+                else:
+                    error_message = response.json().get('detail', 'Unknown error occurred')
+                    raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
         except requests.RequestException as e:
             logging.error(f"Upload failed: {str(e)}")
@@ -116,10 +250,10 @@ class Client:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response headers: {e.response.headers}")
                 logging.error(f"Response content: {e.response.text}")
-            raise UploadError(f"Upload failed: {str(e)}")
+            raise OpenGradientError(f"Upload failed: {str(e)}", status_code=e.response.status_code if hasattr(e, 'response') else None)
         except Exception as e:
             logging.error(f"Unexpected error during upload: {str(e)}")
-            raise UploadError(f"Upload failed due to unexpected error: {str(e)}")
+            raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
     def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> Tuple[str, ModelOutput]:
         if not self.user:
@@ -334,44 +468,3 @@ class Client:
                 logging.debug(f"Found potential model in key: {key}")
                 return value
         raise ValueError("No suitable model found in the dictionary")
-
-    def _convert_sklearn_model(self, model):
-        logging.debug("Converting scikit-learn model to ONNX")
-        if hasattr(model, 'n_features_in_'):
-            n_features = model.n_features_in_
-        else:
-            n_features = 10
-            logging.warning(f"n_features_in_ not found. Using default value: {n_features}")
-
-        initial_type = [('float_input', FloatTensorType([None, n_features]))]
-        onnx_model = convert_sklearn(model, initial_types=initial_type)
-        onnx_path = 'model.onnx'
-        onnx.save_model(onnx_model, onnx_path)
-        logging.debug(f"ONNX model saved at: {onnx_path}")
-        return onnx_path
-
-    def _convert_pytorch_model(self, model):
-        logging.error("PyTorch conversion not yet implemented")
-        raise NotImplementedError("PyTorch conversion not yet implemented")
-
-    def _convert_general_model(self, model):
-        logging.error("General model conversion not yet implemented")
-        raise NotImplementedError("General model conversion not yet implemented")
-
-    def generate_ethereum_account():
-        # Generate a random private key
-        private_key = secrets.token_hex(32)
-        
-        # Create an account from the private key
-        account = Account.from_key(private_key)
-        
-        return {
-            'private_key': private_key,
-            'address': account.address
-        }
-
-    # Generate a new account
-    new_account = generate_ethereum_account()
-
-    print(f"Private Key: {new_account['private_key']}")
-    print(f"Ethereum Address: {new_account['address']}")
