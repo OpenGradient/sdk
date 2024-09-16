@@ -1,6 +1,6 @@
 from src.client import Client
 from src.exceptions import OpenGradientError, FileNotFoundError, UploadError, InferenceError, ResultRetrievalError
-from src.types import ModelInput, InferenceMode, Number, NumberTensor, ModelOutput
+from src.types import ModelInput, InferenceMode, Number, NumberTensor, StringTensor, ModelOutput
 
 __version__ = "0.1.0"
 
