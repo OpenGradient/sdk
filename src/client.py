@@ -19,10 +19,20 @@ from typing import Dict, Tuple
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
 import src.utils
+import firebase
 
 logging.basicConfig(level=logging.DEBUG)
 
 class Client:
+    FIREBASE_CONFIG = {
+        "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
+        "authDomain": "vanna-portal-418018.firebaseapp.com",
+        "projectId": "vanna-portal-418018",
+        "storageBucket": "vanna-portal-418018.appspot.com",
+        "appId": "1:487761246229:web:259af6423a504d2316361c",
+        "databaseURL": ""
+    }
+
     def __init__(self, wallet_address, private_key):
         self.wallet_address = wallet_address
         self.private_key = private_key
@@ -30,6 +40,9 @@ class Client:
         self._w3 = None
         self.contract_address = "0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE"
         self.storage_url = "http://18.222.64.142:5000"
+        self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
+        self.auth = self.firebase_app.auth()
+        self.user = None
 
         with open('abi/inference.abi', 'r') as abi_file:
             inference_abi = json.load(abi_file)
@@ -49,7 +62,24 @@ class Client:
         if self._w3 is None:
             self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
+    def sign_in_with_email_and_password(self, email, password):
+        try:
+            self.user = self.auth.sign_in_with_email_and_password(email, password)
+            return self.user
+        except Exception as e:
+            logging.error(f"Authentication failed: {str(e)}")
+            raise
+
+    def refresh_token(self):
+        if self.user:
+            self.user = self.auth.refresh(self.user['refreshToken'])
+        else:
+            logging.error("No user is currently signed in")
+
     def upload(self, model_path: str) -> dict:
+        if not self.user:
+            raise ValueError("User not authenticated")
+
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
@@ -98,6 +128,9 @@ class Client:
             raise UploadError(f"Upload failed due to unexpected error: {str(e)}")
     
     def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, np.ndarray]) -> Tuple[str, ModelOutput]:
+        if not self.user:
+            raise ValueError("User not authenticated")
+
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
