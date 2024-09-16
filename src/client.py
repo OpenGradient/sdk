@@ -15,9 +15,10 @@ from skl2onnx.common.data_types import FloatTensorType
 import numpy as np
 import logging
 import secrets
-from typing import Tuple
+from typing import Dict, Tuple
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
+import src.utils
 import firebase
 
 logging.basicConfig(level=logging.DEBUG)
@@ -255,7 +256,7 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}")
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: ModelInput) -> Tuple[str, ModelOutput]:
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, np.ndarray]) -> Tuple[str, ModelOutput]:
         if not self.user:
             raise ValueError("User not authenticated")
 
@@ -275,19 +276,15 @@ class Client:
             # Convert InferenceMode to uint8
             inference_mode_uint8 = int(inference_mode)
 
-            # Prepare ModelInput struct
-            number_tensors = [(tensor.name, [(number.value, number.decimals) for number in tensor.values]) for tensor in model_input.numbers]
-            string_tensors = [(tensor.name, tensor.values) for tensor in model_input.strings]
-
-            model_input_struct = (number_tensors, string_tensors)
-
-            logging.debug(f"Prepared model input struct: {model_input_struct}")
+            # Prepare ModelInput tuple
+            converted_model_input = src.utils.convert_to_model_input(model_input)
+            logging.debug(f"Prepared model input tuple: {converted_model_input}")
 
             logging.debug("Preparing run function")
             run_function = contract.functions.run(
                 model_id,
                 inference_mode_uint8,
-                model_input_struct
+                converted_model_input
             )
             logging.debug("Run function prepared successfully")
 
