@@ -36,7 +36,8 @@ class Client:
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.wallet_address = self._w3.eth.account.from_key(private_key)
+        self.wallet_account = self._w3.eth.account.from_key(private_key)
+        self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         self.contract_address = "0x350E0A430b2B1563481833a99523Cfd17a530e4e"
         self.storage_url = "http://18.222.64.142:5000"
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
