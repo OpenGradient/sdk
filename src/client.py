@@ -32,12 +32,11 @@ class Client:
         "appId": "1:487761246229:web:259af6423a504d2316361c",
         "databaseURL": ""
     }
-
-    def __init__(self, wallet_address, private_key):
-        self.wallet_address = wallet_address
+    def __init__(self, private_key):
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
-        self._w3 = None
+        self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+        self.wallet_address = self._w3.eth.account.from_key(private_key)
         self.contract_address = "0x350E0A430b2B1563481833a99523Cfd17a530e4e"
         self.storage_url = "http://18.222.64.142:5000"
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
@@ -50,8 +49,6 @@ class Client:
 
     @property
     def w3(self):
-        if self._w3 is None:
-            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
         return self._w3
 
     @w3.setter
@@ -338,7 +335,7 @@ class Client:
             if inference_result is None:
                 logging.error("InferenceResult event not found in transaction logs")
                 logging.debug(f"Transaction receipt logs: {tx_receipt['logs']}")
-                raise InferenceError("InferenceResult event not found in transaction logs")
+                raise OpenGradientError("InferenceResult event not found in transaction logs")
 
             # Extract the ModelOutput from the event
             event_data = inference_result['args']
@@ -349,16 +346,16 @@ class Client:
                 logging.debug(f"Parsed ModelOutput: {model_output}")
             except Exception as e:
                 logging.error(f"Error parsing event data: {str(e)}", exc_info=True)
-                raise InferenceError(f"Failed to parse event data: {str(e)}")
+                raise OpenGradientError(f"Failed to parse event data: {str(e)}")
 
             return tx_hash.hex(), model_output
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
-            raise InferenceError(f"Inference failed due to contract logic error: {str(e)}")
+            raise OpenGradientError(f"Inference failed due to contract logic error: {str(e)}")
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
-            raise InferenceError(f"Inference failed: {str(e)}")
+            raise OpenGradientError(f"Inference failed: {str(e)}")
 
     def convert_pickle_to_onnx(self, pickle_path):
         logging.debug(f"Attempting to load pickle file from {pickle_path}")

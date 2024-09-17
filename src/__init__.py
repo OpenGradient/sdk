@@ -6,9 +6,9 @@ __version__ = "0.1.0"
 
 _client = None
 
-def init(wallet_address, private_key):
+def init(private_key):
     global _client
-    _client = Client(wallet_address=wallet_address, private_key=private_key)
+    _client = Client(private_key=private_key)
 
 def upload(model_path, model_id, version_id):
     if _client is None:
