@@ -15,7 +15,7 @@ from skl2onnx.common.data_types import FloatTensorType
 import numpy as np
 import logging
 import secrets
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
 import src.utils
@@ -254,7 +254,7 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}")
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, np.ndarray]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
         if not self.user:
             raise ValueError("User not authenticated")
 

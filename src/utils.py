@@ -48,6 +48,16 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     number_tensors = []
     string_tensors = []
     for tensor_name, tensor_data in inputs.items():
+        # Convert to NP array if list or single object
+        if isinstance(tensor_data, list):
+            logging.debug(f"\tConverting {tensor_data} to np array")
+            tensor_data = np.array(tensor_data)
+
+        if isinstance(tensor_data, (str, int, float)):
+            logging.debug(f"\tConverting single entry {tensor_data} to a list")
+            tensor_data = np.array([tensor_data])
+
+        # Parse into number and string tensors
         if issubclass(tensor_data.dtype.type, np.floating):
             input = (tensor_name, [convert_to_fixed_point(i) for i in tensor_data])
             logging.debug("\tFloating tensor input: %s", input)
@@ -92,6 +102,8 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
                     else:
                         logging.warning(f"Unexpected number type: {type(v)}")
                 output_dict[name] = np.array(values)
+            else:
+                logging.warning(f"Unexpected tensor type: {type(tensor)}")
 
         # Parse strings
         for tensor in output.get('strings', []):
@@ -100,6 +112,8 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
                 name = tensor.get('name')
                 values = tensor.get('values', [])
                 output_dict[name] = values
+            else:
+                    logging.warning(f"Unexpected tensor type: {type(tensor)}")
     else:
         logging.warning(f"Unexpected output type: {type(output)}")
 
