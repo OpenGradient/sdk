@@ -49,9 +49,13 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     string_tensors = []
     for tensor_name, tensor_data in inputs.items():
         if issubclass(tensor_data.dtype.type, np.floating):
-            # Convert each integer to a fixed point
-            input = (tensor_name, [convert_to_fixed_point(i) for (i) in tensor_data])
+            input = (tensor_name, [convert_to_fixed_point(i) for i in tensor_data])
             logging.debug("\tFloating tensor input: %s", input)
+
+            number_tensors.append(input)
+        elif issubclass(tensor_data.dtype.type, np.integer):
+            input = (tensor_name, [convert_to_fixed_point(int(i)) for i in tensor_data])
+            logging.debug("\tInteger tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.str_):
