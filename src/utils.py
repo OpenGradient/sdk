@@ -1,12 +1,13 @@
-# from src.types import ModelInput, InferenceMode, Abi, ModelOutput, Number, NumberTensor, StringTensor
 import numpy as np
 import logging
 from decimal import Decimal
 from typing import Dict, List, Tuple
+from web3.datastructures import AttributeDict
 
 def convert_to_fixed_point(number: float) -> Tuple[int, int]:
     """
     Converts input number to the Number tensor used by the sequencer.
+    Also ensures that decimal is returned as a positive number.
 
     Returns a tuple of (value, decimal)
     """
@@ -15,8 +16,23 @@ def convert_to_fixed_point(number: float) -> Tuple[int, int]:
     value = int(''.join(map(str, digits)))
     if sign:
         value = -value
-    decimals = int(-exponent)
+    
+    if exponent >= 0:
+        value *= 10 ** exponent
+        decimals = 0
+    else:
+        decimals = -exponent
+    
+    logging.debug(f"Converted number {number} to fixed point value={value} decimals={decimals}")
     return value, decimals
+
+def convert_to_float32(value: int, decimals: int) -> np.float32:
+    """
+    Converts fixed point back into floating point
+
+    Returns an np.float32 type
+    """
+    return np.float32(Decimal(value) / (10 ** Decimal(decimals)))
 
 def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[str, List[Tuple[int, int]]]], List[Tuple[str, List[str]]]]:
     """
@@ -49,3 +65,40 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     logging.debug("Number tensors: %s", number_tensors)
     logging.debug("String tensors: %s", string_tensors)
     return number_tensors, string_tensors 
+
+def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
+    logging.debug(f"Parsing event data: {event_data}")
+        
+    output_dict = {}
+
+    output = event_data.get('output', {})
+    logging.debug(f"Output data: {output}")
+
+    if isinstance(output, AttributeDict):
+        # Parse numbers
+        for tensor in output.get('numbers', []):
+            logging.debug(f"Processing number tensor: {tensor}")
+            if isinstance(tensor, AttributeDict):
+                name = tensor.get('name')
+                values = []
+                # Convert from fixed point back into np.float32
+                for v in tensor.get('values', []):
+                    if isinstance(v, AttributeDict):
+                        values.append(convert_to_float32(value=int(v.get('value')), decimals=int(v.get('decimals'))))
+                    else:
+                        logging.warning(f"Unexpected number type: {type(v)}")
+                output_dict[name] = np.array(values)
+
+        # Parse strings
+        for tensor in output.get('strings', []):
+            logging.debug(f"Processing string tensor: {tensor}")
+            if isinstance(tensor, AttributeDict):
+                name = tensor.get('name')
+                values = tensor.get('values', [])
+                output_dict[name] = values
+    else:
+        logging.warning(f"Unexpected output type: {type(output)}")
+
+    logging.debug(f"Parsed output: {output_dict}")
+
+    return output_dict

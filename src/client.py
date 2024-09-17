@@ -38,7 +38,7 @@ class Client:
         self.private_key = private_key
         self.rpc_url = "http://18.218.115.248:8545"
         self._w3 = None
-        self.contract_address = "0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE"
+        self.contract_address = "0x350E0A430b2B1563481833a99523Cfd17a530e4e"
         self.storage_url = "http://18.222.64.142:5000"
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
@@ -256,7 +256,7 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}")
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, np.ndarray]) -> Tuple[str, ModelOutput]:
+    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, np.ndarray]) -> Tuple[str, Dict[str, np.ndarray]]:
         if not self.user:
             raise ValueError("User not authenticated")
 
@@ -345,7 +345,7 @@ class Client:
             logging.debug(f"Raw event data: {event_data}")
 
             try:
-                model_output = self._parse_event_data(event_data)
+                model_output = src.utils.convert_to_model_output(event_data)
                 logging.debug(f"Parsed ModelOutput: {model_output}")
             except Exception as e:
                 logging.error(f"Error parsing event data: {str(e)}", exc_info=True)
@@ -359,74 +359,6 @@ class Client:
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise InferenceError(f"Inference failed: {str(e)}")
-
-    def _parse_event_data(self, event_data) -> ModelOutput:
-        logging.debug(f"Parsing event data: {event_data}")
-        
-        numbers = []
-        strings = []
-        is_simulation_result = False
-
-        if isinstance(event_data, AttributeDict):
-            output = event_data.get('output', {})
-            logging.debug(f"Output data: {output}")
-
-            if isinstance(output, AttributeDict):
-                # Parse numbers
-                for tensor in output.get('numbers', []):
-                    logging.debug(f"Processing number tensor: {tensor}")
-                    if isinstance(tensor, AttributeDict):
-                        name = tensor.get('name')
-                        values = []
-                        for v in tensor.get('values', []):
-                            if isinstance(v, AttributeDict):
-                                values.append(Number(value=v.get('value'), decimals=v.get('decimals')))
-                        numbers.append(NumberTensor(name=name, values=values))
-
-                # Parse strings
-                for tensor in output.get('strings', []):
-                    logging.debug(f"Processing string tensor: {tensor}")
-                    if isinstance(tensor, AttributeDict):
-                        name = tensor.get('name')
-                        values = tensor.get('values', [])
-                        strings.append(StringTensor(name=name, values=values))
-
-                is_simulation_result = output.get('is_simulation_result', False)
-            else:
-                logging.warning(f"Unexpected output type: {type(output)}")
-        else:
-            logging.warning(f"Unexpected event_data type: {type(event_data)}")
-
-        logging.debug(f"Parsed numbers: {numbers}")
-        logging.debug(f"Parsed strings: {strings}")
-        logging.debug(f"Is simulation result: {is_simulation_result}")
-
-        return ModelOutput(numbers=numbers, strings=strings, is_simulation_result=is_simulation_result)
-
-    def _parse_output(self, raw_output):
-        logging.debug(f"Parsing raw output: {raw_output}")
-        parsed_output = {
-            'numbers': [],
-            'strings': [],
-            'is_simulation_result': False
-        }
-        
-        if isinstance(raw_output, tuple) and len(raw_output) >= 2:
-            number_tensors, string_tensors = raw_output[:2]
-            
-            logging.debug(f"Number tensors: {number_tensors}")
-            logging.debug(f"String tensors: {string_tensors}")
-            
-            for name, values in number_tensors:
-                parsed_output['numbers'].append({'name': name, 'values': values})
-            
-            for name, values in string_tensors:
-                parsed_output['strings'].append({'name': name, 'values': values})
-        else:
-            logging.warning(f"Unexpected raw output format: {raw_output}")
-        
-        logging.debug(f"Parsed output: {parsed_output}")
-        return parsed_output
 
     def convert_pickle_to_onnx(self, pickle_path):
         logging.debug(f"Attempting to load pickle file from {pickle_path}")
