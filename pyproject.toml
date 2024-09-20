@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opengradient"
+version = "0.1.0"
+description = "A Python SDK for OpenGradient inference services"
+authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "requests",
+    "onnx",
+    "pytest",
+    "web3",
+    "skl2onnx",
+    "firebase-rest-api",
+    "onnxmltools",
+    "pyarrow",
+    "fastparquet",
+    "onnxruntime",
+]
+
+[project.urls]
+Homepage = "https://github.com/OpenGradient"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["opengradient"]
+
+[tool.setuptools.package-data]
+opengradient = ["*.py"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.ipynb", "*.pyc", "*.pyo", ".gitignore", "requirements.txt", "conftest.py"]
+opengradient = ["opengradient.egg-info/*"]
