@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.1.4"
+version = "0.1.2"
 description = "A Python SDK for OpenGradient inference services"
 authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
 license = {file = "LICENSE"}
@@ -40,11 +40,11 @@ dependencies = [
 Homepage = "https://github.com/OpenGradient"
 
 [tool.setuptools]
-package-dir = {"opengradient" = "src"}
+package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["*"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
