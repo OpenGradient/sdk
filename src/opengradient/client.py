@@ -2,12 +2,12 @@ import requests
 import os
 import time
 import json
-from src.exceptions import OpenGradientError
+from .exceptions import OpenGradientError
 import web3
 from web3 import Web3
 from web3.auto import w3
 from eth_account import Account
-from src.types import ModelInput, InferenceMode, Abi, ModelOutput, Number, NumberTensor, StringTensor
+from .types import ModelInput, InferenceMode, Abi, ModelOutput, Number, NumberTensor, StringTensor
 import pickle
 import onnx
 from skl2onnx import convert_sklearn
@@ -18,7 +18,7 @@ import secrets
 from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
-import src.utils
+import .utils
 import firebase
 
 logging.basicConfig(level=logging.DEBUG) # make sure not emitted by default (Change to INFO)
@@ -285,7 +285,7 @@ class Client:
             inference_mode_uint8 = int(inference_mode)
 
             # Prepare ModelInput tuple
-            converted_model_input = src.utils.convert_to_model_input(model_input)
+            converted_model_input = utils.convert_to_model_input(model_input)
             logging.debug(f"Prepared model input tuple: {converted_model_input}")
 
             logging.debug("Preparing run function")
@@ -353,7 +353,7 @@ class Client:
             logging.debug(f"Raw event data: {event_data}")
 
             try:
-                model_output = src.utils.convert_to_model_output(event_data)
+                model_output = utils.convert_to_model_output(event_data)
                 logging.debug(f"Parsed ModelOutput: {model_output}")
             except Exception as e:
                 logging.error(f"Error parsing event data: {str(e)}", exc_info=True)

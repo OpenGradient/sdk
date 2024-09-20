@@ -10,7 +10,7 @@ pip install opengradient
 ## Quick Start
 ```
 import opengradient as og
-og.init(wallet_address="x", private_key="y")
+og.init(private_key="x", rpc_url="y", contract_address="z")
 ```
 
 ### Sign in with Email
@@ -37,4 +37,8 @@ og.upload(model_path, model_id, version=2)
 ```
 inference_mode = og.InferenceMode.VANILLA
 inference_cid = og.infer(model_cid, model_inputs, inference_mode)
+```
+
+```
+og.infer(model_id, inference_mode, model_input)
 ```

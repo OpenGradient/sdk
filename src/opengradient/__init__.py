@@ -1,14 +1,14 @@
-from src.client import Client
-from src.exceptions import OpenGradientError, FileNotFoundError, UploadError, InferenceError, ResultRetrievalError
-from src.types import ModelInput, InferenceMode, Number, NumberTensor, StringTensor, ModelOutput
+from .client import Client
+from .exceptions import OpenGradientError, FileNotFoundError, UploadError, InferenceError, ResultRetrievalError
+from .types import ModelInput, InferenceMode, Number, NumberTensor, StringTensor, ModelOutput
 
-__version__ = "0.1.0"
+__version__ = "0.1.4"
 
 _client = None
 
-def init(private_key):
+def init(private_key, rpc_url, contract_address):
     global _client
-    _client = Client(private_key=private_key)
+    _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address)
 
 def upload(model_path, model_id, version_id):
     if _client is None:
