@@ -1,7 +1,5 @@
 fastparquet
 firebase-rest-api
-onnxmltools
-onnxruntime
 pyarrow
 skl2onnx
 web3

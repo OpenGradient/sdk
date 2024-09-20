@@ -2,7 +2,7 @@ from .client import Client
 from .exceptions import OpenGradientError, FileNotFoundError, UploadError, InferenceError, ResultRetrievalError
 from .types import ModelInput, InferenceMode, Number, NumberTensor, StringTensor, ModelOutput
 
-__version__ = "0.1.2"
+__version__ = "0.1.5"
 
 _client = None
 

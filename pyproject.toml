@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.1.2"
+version = "0.1.5"
 description = "A Python SDK for OpenGradient inference services"
 authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
 license = {file = "LICENSE"}
@@ -26,18 +26,14 @@ dependencies = [
     "click",
     "requests",
     "onnx",
-    "pytest",
     "web3",
-    "skl2onnx",
-    "firebase-rest-api",
-    "onnxmltools",
     "pyarrow",
+    "firebase-rest-api",
     "fastparquet",
-    "onnxruntime",
 ]
 
 [project.urls]
-Homepage = "https://github.com/OpenGradient"
+Homepage = "https://opengradient.ai"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -48,7 +44,8 @@ where = ["src"]
 exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.py"]
+"*" = ["*.py", "*.abi"]
+"opengradient" = ["abi/*.abi"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.ipynb", "*.pyc", "*.pyo", ".gitignore", "requirements.txt", "conftest.py"]

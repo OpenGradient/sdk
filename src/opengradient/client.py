@@ -44,7 +44,8 @@ class Client:
         self.auth = self.firebase_app.auth()
         self.user = None
 
-        with open('abi/inference.abi', 'r') as abi_file:
+        abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
+        with open(abi_path, 'r') as abi_file:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
@@ -271,10 +272,10 @@ class Client:
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
-            logging.debug(f"Web3 initialized. Connected: {self.w3.is_connected()}")
+            logging.debug(f"Web3 initialized. Connected: {self._w3.is_connected()}")
 
             logging.debug(f"Creating contract instance. Address: {self.contract_address}")
-            contract = self.w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
             logging.debug("Contract instance created successfully")
 
             logging.debug(f"Model ID: {model_id}")
@@ -297,7 +298,7 @@ class Client:
             logging.debug("Run function prepared successfully")
 
             # Build transaction
-            nonce = self.w3.eth.get_transaction_count(self.wallet_address)
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
             logging.debug(f"Nonce: {nonce}")
 
             # Estimate gas
@@ -312,21 +313,21 @@ class Client:
                 'from': self.wallet_address,
                 'nonce': nonce,
                 'gas': gas_limit,
-                'gasPrice': self.w3.eth.gas_price,
+                'gasPrice': self._w3.eth.gas_price,
             })
 
             logging.debug(f"Transaction built: {transaction}")
 
             # Sign transaction
-            signed_tx = self.w3.eth.account.sign_transaction(transaction, self.private_key)
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
             logging.debug("Transaction signed successfully")
 
             # Send transaction
-            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
             logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
 
             # Wait for transaction receipt
-            tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
             logging.debug(f"Transaction receipt received: {tx_receipt}")
 
             # Check if the transaction was successful
