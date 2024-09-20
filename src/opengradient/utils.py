@@ -11,7 +11,8 @@ def convert_to_fixed_point(number: float) -> Tuple[int, int]:
 
     Returns a tuple of (value, decimal)
     """
-    decimal_val = Decimal(number).normalize()
+    # Converting number to string in case this is a numpy float
+    decimal_val = Decimal(str(number)).normalize()
     sign, digits, exponent = decimal_val.as_tuple()
     value = int(''.join(map(str, digits)))
     if sign:

@@ -9,13 +9,8 @@ from eth_account import Account
 from opengradient.exceptions import OpenGradientError
 from opengradient.types import InferenceMode
 from opengradient import utils
-import pickle
-import onnx
-from skl2onnx import convert_sklearn
-from skl2onnx.common.data_types import FloatTensorType
 import numpy as np
 import logging
-import secrets
 from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict

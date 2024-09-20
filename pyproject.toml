@@ -32,6 +32,9 @@ dependencies = [
     "fastparquet",
 ]
 
+[project.scripts]
+opengradient = "opengradient.cli:cli"
+
 [project.urls]
 Homepage = "https://opengradient.ai"
 
