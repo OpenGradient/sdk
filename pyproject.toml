@@ -39,12 +39,15 @@ dependencies = [
 Homepage = "https://github.com/OpenGradient"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
-packages = ["opengradient"]
+package-dir = {"opengradient" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = ["tests*"]
 
 [tool.setuptools.package-data]
-opengradient = ["*.py"]
+"*" = ["*.py"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.ipynb", "*.pyc", "*.pyo", ".gitignore", "requirements.txt", "conftest.py"]
-opengradient = ["opengradient.egg-info/*"]
