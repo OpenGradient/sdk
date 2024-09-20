@@ -2,3 +2,7 @@ pytest
 web3
 skl2onnx
 firebase-rest-api
+onnxmltools
+pyarrow
+fastparquet
+onnxruntime

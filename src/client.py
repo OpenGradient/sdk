@@ -21,7 +21,7 @@ from web3.datastructures import AttributeDict
 import src.utils
 import firebase
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG) # make sure not emitted by default (Change to INFO)
 
 class Client:
     FIREBASE_CONFIG = {
@@ -32,14 +32,14 @@ class Client:
         "appId": "1:487761246229:web:259af6423a504d2316361c",
         "databaseURL": ""
     }
-    def __init__(self, private_key):
+    
+    def __init__(self, private_key, rpc_url, contract_address):
         self.private_key = private_key
-        self.rpc_url = "http://18.218.115.248:8545"
+        self.rpc_url = rpc_url
+        self.contract_address = contract_address
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
         self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
-        self.contract_address = "0x350E0A430b2B1563481833a99523Cfd17a530e4e"
-        self.storage_url = "http://18.222.64.142:5000"
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
@@ -47,14 +47,6 @@ class Client:
         with open('abi/inference.abi', 'r') as abi_file:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
-
-    @property
-    def w3(self):
-        return self._w3
-
-    @w3.setter
-    def w3(self, value):
-        self._w3 = value
 
     def _initialize_web3(self):
         if self._w3 is None:
@@ -92,7 +84,7 @@ class Client:
         if not self.user:
             raise ValueError("User not authenticated")
 
-        url = f"https://api.opengradient.ai/api/v1/models/"
+        url = f"https://api.opengradient.ai/api/v0/models/"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}',
             'Content-Type': 'application/json'
@@ -155,7 +147,7 @@ class Client:
         if not self.user:
             raise ValueError("User not authenticated")
 
-        url = f"https://api.opengradient.ai/api/v1/models/{model_id}/versions"
+        url = f"https://api.opengradient.ai/api/v0/models/{model_id}/versions"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}',
             'Content-Type': 'application/json'
@@ -203,29 +195,45 @@ class Client:
             raise
 
     def upload(self, model_path: str, model_id: str, version_id: str) -> dict:
+        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
+
         if not self.user:
             raise ValueError("User not authenticated")
 
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
-        url = f"https://api.opengradient.ai/api/v1/models/{model_id}/versions/{version_id}/files"
+        url = f"https://api.opengradient.ai/api/v0/models/{model_id}/versions/{version_id}/files"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}'
         }
 
+        logging.info(f"Starting upload for file: {model_path}")
+        logging.info(f"File size: {os.path.getsize(model_path)} bytes")
+        logging.debug(f"Upload URL: {url}")
+        logging.debug(f"Headers: {headers}")
+
+        def create_callback(encoder):
+            encoder_len = encoder.len
+            def callback(monitor):
+                progress = (monitor.bytes_read / encoder_len) * 100
+                logging.info(f"Upload progress: {progress:.2f}%")
+            return callback
+
         try:
             with open(model_path, 'rb') as file:
-                files = {'file': (os.path.basename(model_path), file)}
-                logging.info(f"Uploading file: {model_path}")
-                logging.debug(f"Upload URL: {url}")
-                logging.debug(f"Headers: {headers}")
+                encoder = MultipartEncoder(
+                    fields={'file': (os.path.basename(model_path), file, 'application/octet-stream')}
+                )
+                monitor = MultipartEncoderMonitor(encoder, create_callback(encoder))
+                headers['Content-Type'] = monitor.content_type
 
-                response = requests.post(url, files=files, headers=headers)
+                logging.info("Sending POST request...")
+                response = requests.post(url, data=monitor, headers=headers, timeout=3600)  # 1 hour timeout
                 
-                logging.debug(f"Response status code: {response.status_code}")
+                logging.info(f"Response received. Status code: {response.status_code}")
                 logging.debug(f"Response headers: {response.headers}")
-                logging.debug(f"Response content: {response.text}")
+                logging.debug(f"Response content: {response.text[:1000]}...")  # Log first 1000 characters
 
                 if response.status_code == 201:
                     if response.content and response.content != b'null':
@@ -241,17 +249,19 @@ class Client:
                     raise OpenGradientError(error_message, status_code=500)
                 else:
                     error_message = response.json().get('detail', 'Unknown error occurred')
+                    logging.error(f"Upload failed with status code {response.status_code}: {error_message}")
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
         except requests.RequestException as e:
-            logging.error(f"Upload failed: {str(e)}")
+            logging.error(f"Request exception during upload: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response headers: {e.response.headers}")
-                logging.error(f"Response content: {e.response.text}")
-            raise OpenGradientError(f"Upload failed: {str(e)}", status_code=e.response.status_code if hasattr(e, 'response') else None)
+                logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
+            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}", 
+                                    status_code=e.response.status_code if hasattr(e, 'response') else None)
         except Exception as e:
-            logging.error(f"Unexpected error during upload: {str(e)}")
+            logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
     def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
@@ -357,41 +367,3 @@ class Client:
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
-
-    def convert_pickle_to_onnx(self, pickle_path):
-        logging.debug(f"Attempting to load pickle file from {pickle_path}")
-        try:
-            with open(pickle_path, 'rb') as f:
-                data = pickle.load(f)
-            logging.debug(f"Pickle file loaded successfully. Type: {type(data)}")
-        except Exception as e:
-            logging.error(f"Failed to load pickle file: {str(e)}")
-            raise
-
-        if isinstance(data, dict):
-            logging.debug("Loaded data is a dictionary. Searching for model...")
-            model = self._find_model_in_dict(data)
-        else:
-            model = data
-
-        logging.debug(f"Model type: {type(model)}")
-
-        try:
-            if hasattr(model, 'predict'):
-                return self._convert_sklearn_model(model)
-            elif hasattr(model, 'forward'):
-                return self._convert_pytorch_model(model)
-            elif hasattr(model, '__call__'):
-                return self._convert_general_model(model)
-            else:
-                raise ValueError(f"Unsupported model type: {type(model)}")
-        except Exception as e:
-            logging.error(f"Error during model conversion: {str(e)}")
-            raise
-
-    def _find_model_in_dict(self, data):
-        for key, value in data.items():
-            if hasattr(value, 'predict') or hasattr(value, 'forward') or hasattr(value, '__call__'):
-                logging.debug(f"Found potential model in key: {key}")
-                return value
-        raise ValueError("No suitable model found in the dictionary")
