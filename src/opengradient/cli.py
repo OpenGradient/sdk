@@ -1,19 +1,24 @@
 import click
 import os
 import opengradient
-from opengradient import init, upload, create_model, create_version, infer, sign_in_with_email_and_password
+# from opengradient import init, upload, create_model, create_version, infer, sign_in_with_email_and_password
 from opengradient.types import InferenceMode, ModelInput
 
 @click.group()
-@click.option('--private-key', envvar='OG_PRIVATE_KEY', help='Your OpenGradient private key')
-@click.option('--contract-address', envvar='OG_CONTRACT_ADDRESS', help='OpenGradient contract address')
+@click.option('--private_key', envvar='OG_PRIVATE_KEY', help='Your OpenGradient private key')
+@click.option('--rpc_url', envvar='OG_RPC_URL', help='OpenGradient RPC URL address')
+@click.option('--contract_address', envvar='OG_CONTRACT_ADDRESS', help='OpenGradient contract address')
 @click.pass_context
-def cli(ctx, private_key, contract_address):
+def cli(ctx, private_key, rpc_url, contract_address):
     """CLI for OpenGradient SDK"""
-    if not private_key or not contract_address:
-        click.echo("Please provide private key and contract address via options or environment variables.")
+    if not private_key or not rpc_url or not contract_address:
+        click.echo("Please provide private key, rpc url, and contract address via options or environment variables.")
         ctx.exit(1)
-    init(private_key, contract_address)
+    # Debugging
+    print("Private key: ", private_key)
+    print("RPC URL: ", rpc_url)
+    print("contract address: ", contract_address)
+    opengradient.init(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address)
 
 @cli.command()
 @click.argument('model_path')
@@ -57,9 +62,9 @@ def create_version(model_id, notes, is_major):
 def infer(model_id, inference_mode, input_data):
     """Run inference on a model"""
     try:
-        mode = InferenceMode(inference_mode)
-        model_input = ModelInput(input_data)
-        result = opengradient.infer(model_id, mode, model_input)
+        # mode = InferenceMode(inference_mode)
+        # model_input = ModelInput(input_data)
+        result = opengradient.infer(model_id=model_id, inference_mode=inference_mode, model_input=input_data)
         click.echo(f"Inference result: {result}")
     except Exception as e:
         click.echo(f"Error running inference: {str(e)}")
@@ -67,7 +72,7 @@ def infer(model_id, inference_mode, input_data):
 @cli.command()
 @click.argument('email')
 @click.argument('password')
-def sign_in_with_email_and_password(email, password):
+def sign_in(email, password):
     """Sign in with email and password"""
     try:
         result = opengradient.sign_in_with_email_and_password(email, password)
