@@ -21,7 +21,7 @@ from web3.exceptions import ContractLogicError
 from web3.datastructures import AttributeDict
 import firebase
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class Client:
     FIREBASE_CONFIG = {
