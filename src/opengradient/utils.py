@@ -25,6 +25,7 @@ def convert_to_fixed_point(number: float) -> Tuple[int, int]:
         decimals = -exponent
     
     logging.debug(f"Converted number {number} to fixed point value={value} decimals={decimals}")
+    logging.debug(f"Types value={type(value)} decimals={type(decimals)}")
     return value, decimals
 
 def convert_to_float32(value: int, decimals: int) -> np.float32:
@@ -78,8 +79,10 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
             raise TypeError(f"Data type {tensor_data.dtype.type} not recognized")
         
     logging.debug("Number tensors: %s", number_tensors)
+    logging.debug("Number tensor types: %s", [type(item) for item in number_tensors])
     logging.debug("String tensors: %s", string_tensors)
-    return number_tensors, string_tensors 
+    logging.debug("String tensor types: %s", [type(item) for item in string_tensors])
+    return number_tensors, string_tensors
 
 def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
     logging.debug(f"Parsing event data: {event_data}")

@@ -1,11 +1,7 @@
 import requests
 import os
-import time
 import json
-import web3
 from web3 import Web3
-from web3.auto import w3
-from eth_account import Account
 from opengradient.exceptions import OpenGradientError
 from opengradient.types import InferenceMode
 from opengradient import utils
@@ -13,10 +9,9 @@ import numpy as np
 import logging
 from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
-from web3.datastructures import AttributeDict
 import firebase
 
-logging.basicConfig(level=logging.DEBUG) # make sure not emitted by default (Change to INFO)
+logging.basicConfig(level=logging.INFO)
 
 class Client:
     FIREBASE_CONFIG = {
@@ -28,7 +23,17 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key, rpc_url, contract_address):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test123"):
+        """
+        Initialize the Client with private key, RPC URL, and contract address.
+
+        Args:
+            private_key (str): The private key for the wallet.
+            rpc_url (str): The RPC URL for the Ethereum node.
+            contract_address (str): The contract address for the smart contract.
+            email (str, optional): Email for authentication. Defaults to "test@test.com".
+            password (str, optional): Password for authentication. Defaults to "Test123".
+        """
         self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
@@ -44,24 +49,24 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
+        self.sign_in_with_email_and_password(email, password)
+
     def _initialize_web3(self):
+        """
+        Initialize the Web3 instance if it is not already initialized.
+        """
         if self._w3 is None:
             self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
-    def sign_in_with_email_and_password(self, email, password):
-        try:
-            self.user = self.auth.sign_in_with_email_and_password(email, password)
-            return self.user
-        except Exception as e:
-            logging.error(f"Authentication failed: {str(e)}")
-            raise
-
-    def refresh_token(self):
+    def refresh_token(self) -> None:
+        """
+        Refresh the authentication token for the current user.
+        """
         if self.user:
             self.user = self.auth.refresh(self.user['refreshToken'])
         else:
             logging.error("No user is currently signed in")
-    
+
     def create_model(self, model_name: str, model_desc: str, version_id: str = "1.00") -> dict:
         """
         Create a new model with the given model_name and model_desc, and a specified version ID.
@@ -191,6 +196,20 @@ class Client:
             raise
 
     def upload(self, model_path: str, model_id: str, version_id: str) -> dict:
+        """
+        Upload a model file to the server.
+
+        Args:
+            model_path (str): The path to the model file.
+            model_id (str): The unique identifier for the model.
+            version_id (str): The version identifier for the model.
+
+        Returns:
+            dict: The server response containing the model CID and size.
+
+        Raises:
+            OpenGradientError: If the upload fails.
+        """
         from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
         if not self.user:
@@ -260,10 +279,21 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_id: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
-        if not self.user:
-            raise ValueError("User not authenticated")
+    def infer(self, model_cid: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
+        """
+        Perform inference on a model.
 
+        Args:
+            model_id (str): The unique identifier for the model.
+            inference_mode (InferenceMode): The inference mode.
+            model_input (Dict[str, Union[str, int, float, List, np.ndarray]]): The input data for the model.
+
+        Returns:
+            Tuple[str, Dict[str, np.ndarray]]: The transaction hash and the model output.
+
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
@@ -273,7 +303,7 @@ class Client:
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
             logging.debug("Contract instance created successfully")
 
-            logging.debug(f"Model ID: {model_id}")
+            logging.debug(f"Model ID: {model_cid}")
             logging.debug(f"Inference Mode: {inference_mode}")
             logging.debug(f"Model Input: {model_input}")
 
@@ -286,7 +316,7 @@ class Client:
 
             logging.debug("Preparing run function")
             run_function = contract.functions.run(
-                model_id,
+                model_cid,
                 inference_mode_uint8,
                 converted_model_input
             )
@@ -363,3 +393,11 @@ class Client:
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
+        
+    def sign_in_with_email_and_password(self, email, password):
+        try:
+            self.user = self.auth.sign_in_with_email_and_password(email, password)
+            return self.user
+        except Exception as e:
+            logging.error(f"Authentication failed: {str(e)}")
+            raise
