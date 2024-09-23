@@ -392,3 +392,11 @@ class Client:
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
+        
+    def sign_in_with_email_and_password(self, email, password):
+        try:
+            self.user = self.auth.sign_in_with_email_and_password(email, password)
+            return self.user
+        except Exception as e:
+            logging.error(f"Authentication failed: {str(e)}")
+            raise
