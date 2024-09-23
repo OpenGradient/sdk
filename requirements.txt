@@ -1,5 +1,4 @@
 fastparquet
 firebase-rest-api
 pyarrow
-skl2onnx
 web3
