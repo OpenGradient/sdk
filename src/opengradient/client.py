@@ -23,7 +23,7 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test123"):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -31,6 +31,8 @@ class Client:
             private_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
             contract_address (str): The contract address for the smart contract.
+            email (str, optional): Email for authentication. Defaults to "test@test.com".
+            password (str, optional): Password for authentication. Defaults to "Test123".
         """
         self.private_key = private_key
         self.rpc_url = rpc_url
@@ -46,6 +48,8 @@ class Client:
         with open(abi_path, 'r') as abi_file:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
+
+        self.sign_in_with_email_and_password(email, password)
 
     def _initialize_web3(self):
         """
@@ -290,9 +294,6 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        if not self.user:
-            raise ValueError("User not authenticated")
-
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()

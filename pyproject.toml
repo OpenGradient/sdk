@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.1.5"
+version = "0.1.6"
 description = "A Python SDK for OpenGradient inference services"
 authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
 license = {file = "LICENSE"}
