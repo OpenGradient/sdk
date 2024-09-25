@@ -23,7 +23,7 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test123"):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -32,7 +32,7 @@ class Client:
             rpc_url (str): The RPC URL for the Ethereum node.
             contract_address (str): The contract address for the smart contract.
             email (str, optional): Email for authentication. Defaults to "test@test.com".
-            password (str, optional): Password for authentication. Defaults to "Test123".
+            password (str, optional): Password for authentication. Defaults to "Test-123".
         """
         self.private_key = private_key
         self.rpc_url = rpc_url
