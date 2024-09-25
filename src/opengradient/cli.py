@@ -93,11 +93,11 @@ def cli(ctx, api_key, rpc_url, contract_address, email, password):
 def client_settings(client):
     """Display OpenGradient client settings"""
     click.echo("Settings for OpenGradient client:")
-    click.echo(f"\tAPI key: {client.private_key}")
-    click.echo(f"\tRPC URL: {client.rpc_url}")
-    click.echo(f"\tContract address: {client.contract_address}")
+    click.echo(f"\tAPI key ({API_KEY_ENV}): {client.private_key}")
+    click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
+    click.echo(f"\tContract address ({CONTRACT_ADDRESS_ENV}): {client.contract_address}")
     if client.user:
-        click.echo(f"\tUser: {client.user["email"]}")
+        click.echo(f"\tEmail ({EMAIL_ENV}): {client.user["email"]}")
     else:
         click.echo(f"\tEmail: not set")
 
