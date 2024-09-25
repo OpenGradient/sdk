@@ -151,8 +151,13 @@ def infer(ctx, model_id, inference_mode, input_data, input_file):
     """Run inference on a model"""
     client = ctx.obj
     try:
-        if (not input_data and not input_file) or (input_data and input_file):
+        if not input_data and not input_file:
             click.echo("Must specify either input_data or input_file")
+            ctx.exit(1)
+            return
+        
+        if input_data and input_file:
+            click.echo("Cannot have both input_data and input_file")
             ctx.exit(1)
             return
         
