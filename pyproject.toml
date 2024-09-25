@@ -29,6 +29,7 @@ dependencies = [
     "pyarrow",
     "firebase-rest-api",
     "fastparquet",
+    "pathlib",
 ]
 
 [project.scripts]
