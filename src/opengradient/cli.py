@@ -166,8 +166,9 @@ def infer(ctx, model_id, inference_mode, input_data, input_file):
         # Parse input data from string to dict
         click.echo(f"Running {inference_mode} inference for {model_id}...")
         tx_hash, model_output = client.infer(model_cid=model_id, inference_mode=InferenceModes[inference_mode], model_input=model_input)
-        click.echo(f"Transaction Hash: \n{tx_hash}")
-        click.echo(f"Inference result: \n{model_output}")
+        click.secho("Success!", fg="green")
+        click.echo(f"\nTransaction Hash: \n{tx_hash}")
+        click.echo(f"\nInference result: \n{model_output}")
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)
