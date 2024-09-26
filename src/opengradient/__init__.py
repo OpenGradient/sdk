@@ -2,13 +2,13 @@ from .client import Client
 from .exceptions import OpenGradientError, FileNotFoundError, UploadError, InferenceError, ResultRetrievalError
 from .types import ModelInput, InferenceMode, Number, NumberTensor, StringTensor, ModelOutput
 
-__version__ = "0.1.9"
+__version__ = "0.2.1"
 
 _client = None
 
-def init(api_key, rpc_url, contract_address, email="test@test.com", password="Test-123"):
+def init(private_key, rpc_url, contract_address, email="test@test.com", password="Test-123"):
     global _client
-    _client = Client(api_key=api_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
+    _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
 
 def upload(model_path, model_name, version):
     if _client is None:

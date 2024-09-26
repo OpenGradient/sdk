@@ -23,22 +23,22 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, api_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
         Args:
-            api_key (str): The private key for the wallet.
+            private_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
             contract_address (str): The contract address for the smart contract.
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.api_key = api_key
+        self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.wallet_account = self._w3.eth.account.from_key(api_key)
+        self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
@@ -344,7 +344,7 @@ class Client:
             logging.debug(f"Transaction built: {transaction}")
 
             # Sign transaction
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.api_key)
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
             logging.debug("Transaction signed successfully")
 
             # Send transaction
