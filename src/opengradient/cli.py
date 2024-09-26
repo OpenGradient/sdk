@@ -89,9 +89,14 @@ def cli(ctx, api_key, rpc_url, contract_address, email, password):
         click.echo(f"Failed to create OpenGradient client: {str(e)}")
 
 @cli.command()
-@click.pass_obj
-def client_settings(client):
+@click.pass_context
+def client_settings(ctx):
     """Display OpenGradient client settings"""
+    client = ctx.obj
+    if not client:
+        click.echo("Client not initialized")
+        ctx.exit(1)
+        
     click.echo("Settings for OpenGradient client:")
     click.echo(f"\tAPI key ({API_KEY_ENV}): {client.private_key}")
     click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
@@ -140,14 +145,14 @@ def create_version(client, model_id, notes, is_major):
         click.echo(f"Error creating version: {str(e)}")
 
 @cli.command()
-@click.argument('model_id', type=str)
+@click.argument('model_cid', type=str)
 @click.argument('inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA")
 @click.argument('input_data', type=Dict, required=False)
 @click.option('--input_file',
               type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
               help="Optional file input for model inference -- must be JSON") 
 @click.pass_context
-def infer(ctx, model_id, inference_mode, input_data, input_file):
+def infer(ctx, model_cid, inference_mode, input_data, input_file):
     """Run inference on a model"""
     client = ctx.obj
     try:
@@ -169,8 +174,8 @@ def infer(ctx, model_id, inference_mode, input_data, input_file):
                 model_input = json.load(file)
             
         # Parse input data from string to dict
-        click.echo(f"Running {inference_mode} inference for {model_id}...")
-        tx_hash, model_output = client.infer(model_cid=model_id, inference_mode=InferenceModes[inference_mode], model_input=model_input)
+        click.echo(f"Running {inference_mode} inference for {model_cid}...")
+        tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
         click.secho("Success!", fg="green")
         click.echo(f"\nTransaction Hash: \n{tx_hash}")
         click.echo(f"\nInference result: \n{model_output}")
