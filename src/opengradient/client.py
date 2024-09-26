@@ -279,12 +279,12 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_name: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def infer(self, model_cid: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
 
         Args:
-            model_name (str): The unique identifier for the model.
+            model_cid (str): The unique content identifier for the model from IPFS.
             inference_mode (InferenceMode): The inference mode.
             model_input (Dict[str, Union[str, int, float, List, np.ndarray]]): The input data for the model.
 
@@ -303,7 +303,7 @@ class Client:
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
             logging.debug("Contract instance created successfully")
 
-            logging.debug(f"Model ID: {model_name}")
+            logging.debug(f"Model ID: {model_cid}")
             logging.debug(f"Inference Mode: {inference_mode}")
             logging.debug(f"Model Input: {model_input}")
 
@@ -316,7 +316,7 @@ class Client:
 
             logging.debug("Preparing run function")
             run_function = contract.functions.run(
-                model_name,
+                model_cid,
                 inference_mode_uint8,
                 converted_model_input
             )

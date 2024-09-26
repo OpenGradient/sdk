@@ -25,10 +25,10 @@ def create_version(model_name, notes=None, is_major=False):
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.create_version(model_name, notes, is_major)
 
-def infer(model_name, inference_mode, model_input):
+def infer(model_cid, inference_mode, model_input):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.infer(model_name, inference_mode, model_input)
+    return _client.infer(model_cid, inference_mode, model_input)
 
 def sign_in_with_email_and_password(email: str, password: str):
     if _client is None:
