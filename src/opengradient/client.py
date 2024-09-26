@@ -23,22 +23,22 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
+    def __init__(self, api_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
         Args:
-            private_key (str): The private key for the wallet.
+            api_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
             contract_address (str): The contract address for the smart contract.
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.private_key = private_key
+        self.api_key = api_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.wallet_account = self._w3.eth.account.from_key(private_key)
+        self.wallet_account = self._w3.eth.account.from_key(api_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
@@ -130,12 +130,12 @@ class Client:
             logging.error(f"Unexpected error during model creation: {str(e)}")
             raise
 
-    def create_version(self, model_id: str, notes: str = None, is_major: bool = False) -> dict:
+    def create_version(self, model_name: str, notes: str = None, is_major: bool = False) -> dict:
         """
         Create a new version for the specified model.
 
         Args:
-            model_id (str): The unique identifier for the model.
+            model_name (str): The unique identifier for the model.
             notes (str, optional): Notes for the new version.
             is_major (bool, optional): Whether this is a major version update. Defaults to False.
 
@@ -148,7 +148,7 @@ class Client:
         if not self.user:
             raise ValueError("User not authenticated")
 
-        url = f"https://api.opengradient.ai/api/v0/models/{model_id}/versions"
+        url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}',
             'Content-Type': 'application/json'
@@ -195,14 +195,14 @@ class Client:
             logging.error(f"Unexpected error during version creation: {str(e)}")
             raise
 
-    def upload(self, model_path: str, model_id: str, version_id: str) -> dict:
+    def upload(self, model_path: str, model_name: str, version: str) -> dict:
         """
         Upload a model file to the server.
 
         Args:
             model_path (str): The path to the model file.
-            model_id (str): The unique identifier for the model.
-            version_id (str): The version identifier for the model.
+            model_name (str): The unique identifier for the model.
+            version (str): The version identifier for the model.
 
         Returns:
             dict: The server response containing the model CID and size.
@@ -218,7 +218,7 @@ class Client:
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
-        url = f"https://api.opengradient.ai/api/v0/models/{model_id}/versions/{version_id}/files"
+        url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}'
         }
@@ -279,12 +279,12 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_cid: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def infer(self, model_name: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
 
         Args:
-            model_id (str): The unique identifier for the model.
+            model_name (str): The unique identifier for the model.
             inference_mode (InferenceMode): The inference mode.
             model_input (Dict[str, Union[str, int, float, List, np.ndarray]]): The input data for the model.
 
@@ -303,7 +303,7 @@ class Client:
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
             logging.debug("Contract instance created successfully")
 
-            logging.debug(f"Model ID: {model_cid}")
+            logging.debug(f"Model ID: {model_name}")
             logging.debug(f"Inference Mode: {inference_mode}")
             logging.debug(f"Model Input: {model_input}")
 
@@ -316,7 +316,7 @@ class Client:
 
             logging.debug("Preparing run function")
             run_function = contract.functions.run(
-                model_cid,
+                model_name,
                 inference_mode_uint8,
                 converted_model_input
             )
@@ -344,7 +344,7 @@ class Client:
             logging.debug(f"Transaction built: {transaction}")
 
             # Sign transaction
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.api_key)
             logging.debug("Transaction signed successfully")
 
             # Send transaction
