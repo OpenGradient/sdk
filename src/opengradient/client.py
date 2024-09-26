@@ -23,22 +23,22 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, api_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
         Args:
-            api_key (str): The private key for the wallet.
+            private_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
             contract_address (str): The contract address for the smart contract.
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.api_key = api_key
+        self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.wallet_account = self._w3.eth.account.from_key(api_key)
+        self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
@@ -67,14 +67,14 @@ class Client:
         else:
             logging.error("No user is currently signed in")
 
-    def create_model(self, model_name: str, model_desc: str, version_id: str = "1.00") -> dict:
+    def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
-        Create a new model with the given model_name and model_desc, and a specified version ID.
+        Create a new model with the given model_name and model_desc, and a specified version.
 
         Args:
             model_name (str): The name of the model.
             model_desc (str): The description of the model.
-            version_id (str): The version identifier (default is "1.00").
+            version (str): The version identifier (default is "1.00").
 
         Returns:
             dict: The server response containing model details.
@@ -111,7 +111,7 @@ class Client:
 
             # Create the specified version for the newly created model
             try:
-                version_response = self.create_version(model_id, version_id)
+                version_response = self.create_version(model_id, version)
                 logging.info(f"Version creation successful. Version ID: {version_response['version_id']}")
             except Exception as ve:
                 logging.error(f"Version creation failed, but model was created. Error: {str(ve)}")
@@ -344,7 +344,7 @@ class Client:
             logging.debug(f"Transaction built: {transaction}")
 
             # Sign transaction
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.api_key)
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
             logging.debug("Transaction signed successfully")
 
             # Send transaction
