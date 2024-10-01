@@ -6,7 +6,11 @@ __version__ = "0.2.1"
 
 _client = None
 
-def init(private_key, rpc_url, contract_address, email="test@test.com", password="Test-123"):
+def init(private_key="cd09980ef6e280afc3900d2d6801f9e9c5d858a5deaeeab74a65643f5ff1a4c1",
+         rpc_url="http://18.218.115.248:8545",
+         contract_address="0x350E0A430b2B1563481833a99523Cfd17a530e4e",
+         email="test@test.com",
+         password="Test-123"):
     global _client
     _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
 
