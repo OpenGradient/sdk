@@ -40,8 +40,8 @@ Dict = DictParamType()
 # Support inference modes
 InferenceModes = {
     "VANILLA": opengradient.InferenceMode.VANILLA,
-    "ZKML": opengradient.InferenceMode.PRIVATE,
-    "TEE": opengradient.InferenceMode.VERIFIED,
+    "ZKML": opengradient.InferenceMode.ZKML,
+    "TEE": opengradient.InferenceMode.TEE,
 }
 
 # TODO (Kyle): Once we're farther into development, we should remove the defaults for these options
