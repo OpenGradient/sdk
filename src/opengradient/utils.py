@@ -59,19 +59,34 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
             logging.debug(f"\tConverting single entry {tensor_data} to a list")
             tensor_data = np.array([tensor_data])
 
+        # Check if type is np array
+        if not isinstance(tensor_data, np.ndarray):
+            raise TypeError("Inference input must be list, numpy array, or (str, int, float): %s" % type(tensor_data))
+
+        # logging.debug("What original array would look like: %s", [convert_to_fixed_point(i) for i in tensor_data])
+
+        # Flatten list and retain shape
+        shape = tensor_data.shape
+        flat_data = tensor_data.flatten()
+        logging.debug("Shape and flattened data: %s, %s", shape, flat_data)
+
         # Parse into number and string tensors
         if issubclass(tensor_data.dtype.type, np.floating):
-            input = (tensor_name, [convert_to_fixed_point(i) for i in tensor_data])
+            data_type = np.dtype([('value', int), ('decimal', int)])
+
+            logging.debug("YO YO YO YO YO: %s", np.array([convert_to_fixed_point(i) for i in flat_data], dtype=data_type))
+            converted_tensor_data = np.array([convert_to_fixed_point(i) for i in flat_data], dtype=data_type).reshape(shape)
+            input = (tensor_name, converted_tensor_data.tolist())
             logging.debug("\tFloating tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.integer):
-            input = (tensor_name, [convert_to_fixed_point(int(i)) for i in tensor_data])
+            input = (tensor_name, [convert_to_fixed_point(int(i)) for i in flat_data])
             logging.debug("\tInteger tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.str_):
-            input = (tensor_name, [s for s in tensor_data])
+            input = (tensor_name, [s for s in flat_data])
             logging.debug("\tString tensor input: %s", input)
 
             string_tensors.append(input)
@@ -85,6 +100,15 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     return number_tensors, string_tensors
 
 def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
+    """
+    Converts inference output into a user-readable output. 
+    Expects the inference node to return a dict with the format:
+        key: output_name (str)
+        value: (output_array (list), shape (list)) (tuple)
+
+    We need to reshape each output array using the shape parameter in order to get the array
+    back into its original shape.
+    """
     logging.debug(f"Parsing event data: {event_data}")
         
     output_dict = {}
