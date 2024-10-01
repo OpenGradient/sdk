@@ -34,7 +34,7 @@ def infer(model_cid, inference_mode, model_input):
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.infer(model_cid, inference_mode, model_input)
 
-def sign_in_with_email_and_password(email: str, password: str):
+def login(email: str, password: str):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.sign_in_with_email_and_password(email, password)
+    return _client.login(email, password)

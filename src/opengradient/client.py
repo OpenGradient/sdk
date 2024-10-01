@@ -49,7 +49,7 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
-        self.sign_in_with_email_and_password(email, password)
+        self.login(email, password)
 
     def _initialize_web3(self):
         """
@@ -394,7 +394,7 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def sign_in_with_email_and_password(self, email, password):
+    def login(self, email, password):
         try:
             self.user = self.auth.sign_in_with_email_and_password(email, password)
             return self.user
