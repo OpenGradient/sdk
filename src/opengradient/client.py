@@ -112,12 +112,12 @@ class Client:
             # Create the specified version for the newly created model
             try:
                 version_response = self.create_version(model_id, version)
-                logging.info(f"Version creation successful. Version ID: {version_response['version_id']}")
+                logging.info(f"Version creation successful. Version ID: {version_response['versionString']}")
             except Exception as ve:
                 logging.error(f"Version creation failed, but model was created. Error: {str(ve)}")
-                return {"id": model_id, "version_id": None, "version_error": str(ve)}
+                return {"id": model_id, "versionString": None, "version_error": str(ve)}
 
-            return {"id": model_id, "version_id": version_response["version_id"]}
+            return {"id": model_id, "versionString": version_response["versionString"]}
 
         except requests.RequestException as e:
             logging.error(f"Model creation failed: {str(e)}")
@@ -172,14 +172,14 @@ class Client:
 
             if isinstance(json_response, list) and not json_response:
                 logging.info(f"Server returned an empty list. Assuming version was created successfully.")
-                return {"version_id": "Unknown", "note": "Created based on empty response"}
+                return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
-                version_id = json_response.get('version_id') or json_response.get('id')
-                if not version_id:
-                    logging.warning(f"'version_id' not found in response. Response: {json_response}")
-                    return {"version_id": "Unknown", "note": "Version ID not provided in response"}
-                logging.info(f"Version creation successful. Version ID: {version_id}")
-                return {"version_id": version_id}
+                versionString = json_response.get('versionString')
+                if not versionString:
+                    logging.warning(f"'versionString' not found in response. Response: {json_response}")
+                    return {"versionString": "Unknown", "note": "Version ID not provided in response"}
+                logging.info(f"Version creation successful. Version ID: {versionString}")
+                return {"versionString": versionString}
             else:
                 logging.error(f"Unexpected response type: {type(json_response)}. Content: {json_response}")
                 raise Exception(f"Unexpected response type: {type(json_response)}")
@@ -205,7 +205,7 @@ class Client:
             version (str): The version identifier for the model.
 
         Returns:
-            dict: The server response containing the model CID and size.
+            dict: The processed result.
 
         Raises:
             OpenGradientError: If the upload fails.
@@ -247,17 +247,17 @@ class Client:
                 response = requests.post(url, data=monitor, headers=headers, timeout=3600)  # 1 hour timeout
                 
                 logging.info(f"Response received. Status code: {response.status_code}")
-                logging.debug(f"Response headers: {response.headers}")
-                logging.debug(f"Response content: {response.text[:1000]}...")  # Log first 1000 characters
+                logging.info(f"Full response content: {response.text}")  # Log the full response content
 
                 if response.status_code == 201:
                     if response.content and response.content != b'null':
                         json_response = response.json()
-                        logging.info(f"Upload successful. CID: {json_response.get('cid', 'N/A')}")
-                        return {"model_cid": json_response.get("ipfs_cid"), "size": json_response.get("size")}
+                        logging.info(f"JSON response: {json_response}")  # Log the parsed JSON response
+                        logging.info(f"Upload successful. CID: {json_response.get('ipfsCid', 'N/A')}")
+                        result = {"model_cid": json_response.get("ipfsCid"), "size": json_response.get("size")}
                     else:
                         logging.warning("Empty or null response content received. Assuming upload was successful.")
-                        return {"model_cid": None, "size": None}
+                        result = {"model_cid": None, "size": None}
                 elif response.status_code == 500:
                     error_message = "Internal server error occurred. Please try again later or contact support."
                     logging.error(error_message)
@@ -266,6 +266,8 @@ class Client:
                     error_message = response.json().get('detail', 'Unknown error occurred')
                     logging.error(f"Upload failed with status code {response.status_code}: {error_message}")
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
+
+                return result
 
         except requests.RequestException as e:
             logging.error(f"Request exception during upload: {str(e)}")
