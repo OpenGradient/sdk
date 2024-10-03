@@ -51,23 +51,9 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
-        self.login(email, password)
+        self._login(email, password)
 
-    def _initialize_web3(self):
-        """
-        Initialize the Web3 instance if it is not already initialized.
-        """
-        if self._w3 is None:
-            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
-    def refresh_token(self) -> None:
-        """
-        Refresh the authentication token for the current user.
-        """
-        if self.user:
-            self.user = self.auth.refresh(self.user['refreshToken'])
-        else:
-            logging.error("No user is currently signed in")
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
@@ -397,10 +383,26 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def login(self, email, password):
+    def _login(self, email, password):
         try:
             self.user = self.auth.sign_in_with_email_and_password(email, password)
             return self.user
         except Exception as e:
             logging.error(f"Authentication failed: {str(e)}")
             raise
+
+    def _initialize_web3(self):
+        """
+        Initialize the Web3 instance if it is not already initialized.
+        """
+        if self._w3 is None:
+            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+
+    def _refresh_token(self) -> None:
+        """
+        Refresh the authentication token for the current user.
+        """
+        if self.user:
+            self.user = self.auth.refresh(self.user['refreshToken'])
+        else:
+            logging.error("No user is currently signed in")
