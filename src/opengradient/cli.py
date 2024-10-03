@@ -56,15 +56,15 @@ InferenceModes = {
               default="http://18.218.115.248:8545")
 @click.option('--contract_address', 
               envvar=CONTRACT_ADDRESS_ENV, 
-              help='OpenGradient contract address', 
+              help='OpenGradient inference contract address', 
               default="0x350E0A430b2B1563481833a99523Cfd17a530e4e")
 @click.option('--email', 
               envvar=EMAIL_ENV,
-              help='Your OpenGradient hub email address -- not required for inference', 
+              help='Your OpenGradient Hub email address -- not required for inference', 
               default="test@test.com")
 @click.option('--password', 
               envvar=PASSWORD_ENV, 
-              help='Your OpenGradient hub password -- not required for inference', 
+              help='Your OpenGradient Hub password -- not required for inference', 
               default="Test-123")
 @click.pass_context
 def cli(ctx, api_key, rpc_url, contract_address, email, password):
@@ -184,6 +184,11 @@ def infer(ctx, model_cid, inference_mode, input_data, input_file):
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)
     except Exception as e:
         click.echo(f"Error running inference: {str(e)}")
+
+
+@cli.command()
+def version():
+    click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
 
 if __name__ == '__main__':
     cli()
