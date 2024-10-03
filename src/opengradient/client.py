@@ -54,7 +54,6 @@ class Client:
         self._login(email, password)
 
 
-
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
         Create a new model with the given model_name and model_desc, and a specified version.
