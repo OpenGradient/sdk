@@ -23,8 +23,8 @@ class ModelInput:
 
 class InferenceMode:
     VANILLA = 0
-    PRIVATE = 1
-    VERIFIED = 2
+    ZKML = 1
+    TEE = 2
 
 @dataclass
 class ModelOutput:
