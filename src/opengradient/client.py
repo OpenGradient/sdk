@@ -10,6 +10,7 @@ import logging
 from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 import firebase
+from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 # TODO: change this to ERROR for release
 logging.basicConfig(level=logging.INFO)
@@ -211,7 +212,6 @@ class Client:
         Raises:
             OpenGradientError: If the upload fails.
         """
-        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
         if not self.user:
             raise ValueError("User not authenticated")

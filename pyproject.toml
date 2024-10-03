@@ -30,6 +30,7 @@ dependencies = [
     "firebase-rest-api",
     "fastparquet",
     "pathlib",
+    "requests_toolbelt",
 ]
 
 [project.scripts]
