@@ -11,6 +11,7 @@ from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 import firebase
 
+# TODO: change this to ERROR for release
 logging.basicConfig(level=logging.INFO)
 
 class Client:
