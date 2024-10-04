@@ -15,22 +15,22 @@ og.init(private_key="x", rpc_url="y", contract_address="z")
 
 ### Sign in with Email
 ```
-og.sign_in_with_email_and_password(email="test@test.com", password="Test-123")
+og.login(email="you@opengradient.ai", password="xyz")
 ```
 
 ### Create a Model
 ```
-og.create_model("test-network-model-5", "testing sdk")
+og.create_model(model_name="test-network-model", model_desc="testing upload to sdk")
 ```
 
 ### Create a Version of a Model
 ```
-og.create_version(model_id=11, notes="test notes")
+og.create_version(model_name="test-network-model", notes="test notes")
 ```
 
 ### Upload Files to a Model
 ```
-og.upload(model_path, model_id, version=2)
+og.upload(model_path="local_path_to_your_model.onnx", model_name="test-network-model", version="0.01")
 ```
 
 ### Run Inference
