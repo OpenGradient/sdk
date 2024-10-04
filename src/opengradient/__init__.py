@@ -8,7 +8,7 @@ _client = None
 
 def init(private_key="cd09980ef6e280afc3900d2d6801f9e9c5d858a5deaeeab74a65643f5ff1a4c1",
          rpc_url="http://18.218.115.248:8545",
-         contract_address="0x350E0A430b2B1563481833a99523Cfd17a530e4e",
+         contract_address="0x833c1c7A93E112a242E8Bca642ae3c4b47d483Bf",
          email="test@test.com",
          password="Test-123"):
     global _client

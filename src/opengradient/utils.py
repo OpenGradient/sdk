@@ -40,11 +40,10 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     """
     Expect SDK input to be a dict with the format
         key: tensor name
-        value: np.array
+        value: np.array / list
 
-        Note: np.array types must be float or string. Ints currently not supported.
-
-    Return a tuple of (number tensors, string tensors) depending on the input type
+    Return a tuple of (number tensors, string tensors) depending on the input type. Each number and string tensor converted
+    to a numpy array and flattened and the shape saved.
     """
     logging.debug("Converting the following input dictionary to ModelInput: %s", inputs)
     number_tensors = []
@@ -61,9 +60,7 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
 
         # Check if type is np array
         if not isinstance(tensor_data, np.ndarray):
-            raise TypeError("Inference input must be list, numpy array, or (str, int, float): %s" % type(tensor_data))
-
-        # logging.debug("What original array would look like: %s", [convert_to_fixed_point(i) for i in tensor_data])
+            raise TypeError("Inference input must be list, numpy array, or type (str, int, float): %s" % type(tensor_data))
 
         # Flatten list and retain shape
         shape = tensor_data.shape
@@ -72,20 +69,25 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
 
         # Parse into number and string tensors
         if issubclass(tensor_data.dtype.type, np.floating):
+            # Convert to fixed-point tuples
             data_type = np.dtype([('value', int), ('decimal', int)])
-
-            logging.debug("YO YO YO YO YO: %s", np.array([convert_to_fixed_point(i) for i in flat_data], dtype=data_type))
-            converted_tensor_data = np.array([convert_to_fixed_point(i) for i in flat_data], dtype=data_type).reshape(shape)
-            input = (tensor_name, converted_tensor_data.tolist())
+            converted_tensor_data = np.array([convert_to_fixed_point(i) for i in flat_data], dtype=data_type)
+            
+            input = (tensor_name, converted_tensor_data.tolist(), shape)
             logging.debug("\tFloating tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.integer):
-            input = (tensor_name, [convert_to_fixed_point(int(i)) for i in flat_data])
+            # Convert to fixed-point tuples
+            data_type = np.dtype([('value', int), ('decimal', int)])
+            converted_tensor_data = np.array([convert_to_fixed_point(int(i)) for i in flat_data], dtype=data_type)
+
+            input = (tensor_name, converted_tensor_data.tolist(), shape)
             logging.debug("\tInteger tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.str_):
+            # TODO (Kyle): Add shape into here as well
             input = (tensor_name, [s for s in flat_data])
             logging.debug("\tString tensor input: %s", input)
 
