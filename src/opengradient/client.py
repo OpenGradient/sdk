@@ -10,7 +10,6 @@ import logging
 from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 import firebase
-from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -56,8 +55,23 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
-        self._login(email, password)
+        self.login(email, password)
 
+    def _initialize_web3(self):
+        """
+        Initialize the Web3 instance if it is not already initialized.
+        """
+        if self._w3 is None:
+            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+
+    def refresh_token(self) -> None:
+        """
+        Refresh the authentication token for the current user.
+        """
+        if self.user:
+            self.user = self.auth.refresh(self.user['refreshToken'])
+        else:
+            logging.error("No user is currently signed in")
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
@@ -96,20 +110,20 @@ class Client:
             response.raise_for_status()
 
             json_response = response.json()
-            model_id = json_response.get('id')
-            if not model_id:
-                raise Exception(f"Model creation response missing 'id'. Full response: {json_response}")
-            logging.info(f"Model creation successful. Model ID: {model_id}")
+            model_name = json_response.get('name')
+            if not model_name:
+                raise Exception(f"Model creation response missing 'name'. Full response: {json_response}")
+            logging.info(f"Model creation successful. Model name: {model_name}")
 
             # Create the specified version for the newly created model
             try:
-                version_response = self.create_version(model_id, version)
-                logging.info(f"Version creation successful. Version ID: {version_response['versionString']}")
+                version_response = self.create_version(model_name, version)
+                logging.info(f"Version creation successful. Version string: {version_response['versionString']}")
             except Exception as ve:
                 logging.error(f"Version creation failed, but model was created. Error: {str(ve)}")
-                return {"id": model_id, "versionString": None, "version_error": str(ve)}
+                return {"name": model_name, "versionString": None, "version_error": str(ve)}
 
-            return {"id": model_id, "versionString": version_response["versionString"]}
+            return {"name": model_name, "versionString": version_response["versionString"]}
 
         except requests.RequestException as e:
             logging.error(f"Model creation failed: {str(e)}")
@@ -202,6 +216,7 @@ class Client:
         Raises:
             OpenGradientError: If the upload fails.
         """
+        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
         if not self.user:
             raise ValueError("User not authenticated")
@@ -387,26 +402,10 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def _login(self, email, password):
+    def login(self, email, password):
         try:
             self.user = self.auth.sign_in_with_email_and_password(email, password)
             return self.user
         except Exception as e:
             logging.error(f"Authentication failed: {str(e)}")
             raise
-
-    def _initialize_web3(self):
-        """
-        Initialize the Web3 instance if it is not already initialized.
-        """
-        if self._w3 is None:
-            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-
-    def _refresh_token(self) -> None:
-        """
-        Refresh the authentication token for the current user.
-        """
-        if self.user:
-            self.user = self.auth.refresh(self.user['refreshToken'])
-        else:
-            logging.error("No user is currently signed in")
