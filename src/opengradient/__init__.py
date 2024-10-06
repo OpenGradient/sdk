@@ -1,16 +1,15 @@
 from .client import Client
-from .exceptions import OpenGradientError, FileNotFoundError, UploadError, InferenceError, ResultRetrievalError
-from .types import ModelInput, InferenceMode, Number, NumberTensor, StringTensor, ModelOutput
+from .defaults import *
 
 __version__ = "0.2.7"
 
 _client = None
 
-def init(private_key="cd09980ef6e280afc3900d2d6801f9e9c5d858a5deaeeab74a65643f5ff1a4c1",
-         rpc_url="http://18.218.115.248:8545",
-         contract_address="0x75D0266DAb643417e9FFD828A1A31C1E039a966c",
-         email="test@test.com",
-         password="Test-123"):
+def init(private_key=DEFAULT_PRIVATE_KEY,
+         rpc_url=DEFAULT_RPC_URL,
+         contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
+         email=DEFAULT_HUB_EMAIL,
+         password=DEFAULT_HUB_PASSWORD):
     global _client
     _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
 

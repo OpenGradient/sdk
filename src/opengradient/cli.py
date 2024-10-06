@@ -5,6 +5,7 @@ import json
 import ast
 from pathlib import Path
 from .client import Client
+from .defaults import *
 from opengradient.types import InferenceMode, ModelInput
 
 # Environment variable names
@@ -49,23 +50,23 @@ InferenceModes = {
 @click.option('--api_key', 
               envvar=API_KEY_ENV, 
               help='Your OpenGradient private key', 
-              default="cd09980ef6e280afc3900d2d6801f9e9c5d858a5deaeeab74a65643f5ff1a4c1")
+              default=DEFAULT_PRIVATE_KEY)
 @click.option('--rpc_url', 
               envvar=RPC_URL_ENV, 
               help='OpenGradient RPC URL address', 
-              default="http://18.218.115.248:8545")
+              default=DEFAULT_RPC_URL)
 @click.option('--contract_address', 
               envvar=CONTRACT_ADDRESS_ENV, 
               help='OpenGradient inference contract address', 
-              default="0x75D0266DAb643417e9FFD828A1A31C1E039a966c")
+              default=DEFAULT_INFERENCE_CONTRACT_ADDRESS)
 @click.option('--email', 
               envvar=EMAIL_ENV,
               help='Your OpenGradient Hub email address -- not required for inference', 
-              default="test@test.com")
+              default=DEFAULT_HUB_EMAIL)
 @click.option('--password', 
               envvar=PASSWORD_ENV, 
               help='Your OpenGradient Hub password -- not required for inference', 
-              default="Test-123")
+              default=DEFAULT_HUB_PASSWORD)
 @click.pass_context
 def cli(ctx, api_key, rpc_url, contract_address, email, password):
     """CLI for OpenGradient SDK"""
