@@ -57,7 +57,7 @@ InferenceModes = {
 @click.option('--contract_address', 
               envvar=CONTRACT_ADDRESS_ENV, 
               help='OpenGradient inference contract address', 
-              default="0x350E0A430b2B1563481833a99523Cfd17a530e4e")
+              default="0x75D0266DAb643417e9FFD828A1A31C1E039a966c")
 @click.option('--email', 
               envvar=EMAIL_ENV,
               help='Your OpenGradient Hub email address -- not required for inference', 
