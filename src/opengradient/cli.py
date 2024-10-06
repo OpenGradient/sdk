@@ -6,7 +6,7 @@ import ast
 from pathlib import Path
 from .client import Client
 from .defaults import *
-from opengradient.types import InferenceMode, ModelInput
+from .types import InferenceMode, ModelInput
 
 # Environment variable names
 API_KEY_ENV = 'OPENGRADIENT_API_KEY'
@@ -40,9 +40,9 @@ Dict = DictParamType()
 
 # Support inference modes
 InferenceModes = {
-    "VANILLA": opengradient.InferenceMode.VANILLA,
-    "ZKML": opengradient.InferenceMode.ZKML,
-    "TEE": opengradient.InferenceMode.TEE,
+    "VANILLA": InferenceMode.VANILLA,
+    "ZKML": InferenceMode.ZKML,
+    "TEE": InferenceMode.TEE,
 }
 
 # TODO (Kyle): Once we're farther into development, we should remove the defaults for these options
