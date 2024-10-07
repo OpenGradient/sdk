@@ -135,7 +135,7 @@ def create_model(client, model_name, model_desc):
 @cli.command()
 @click.argument('model_id', type=str)
 @click.option('--notes', type=str, default=None, help='Version notes')
-@click.option('--is_major', default=False, is_flag=True, help='Is this a major version')
+@click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
 @click.pass_obj
 def create_version(client, model_id, notes, is_major):
     """Create a new version of a model"""
