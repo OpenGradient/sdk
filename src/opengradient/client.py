@@ -43,6 +43,12 @@ class Client:
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
+        
+        logging.debug("Initialized client with parameters:\n"
+                      "private key: %s\n"
+                      "RPC URL: %s\n"
+                      "Contract Address: %s\n",
+                      private_key, rpc_url, contract_address)
 
         abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
         with open(abi_path, 'r') as abi_file:
