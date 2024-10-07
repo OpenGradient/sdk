@@ -8,7 +8,7 @@ from .client import Client
 from opengradient.types import InferenceMode, ModelInput
 
 # Environment variable names
-API_KEY_ENV = 'OPENGRADIENT_API_KEY'
+PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
 RPC_URL_ENV = 'OPENGRADIENT_RPC_URL'
 CONTRACT_ADDRESS_ENV = 'OPENGRADIENT_CONTRACT_ADDRESS'
 EMAIL_ENV = 'OPENGRADIENT_EMAIL'
@@ -46,8 +46,8 @@ InferenceModes = {
 
 # TODO (Kyle): Once we're farther into development, we should remove the defaults for these options
 @click.group()
-@click.option('--api_key', 
-              envvar=API_KEY_ENV, 
+@click.option('--private_key', 
+              envvar=PRIVATE_KEY_ENV, 
               help='Your OpenGradient private key', 
               default="cd09980ef6e280afc3900d2d6801f9e9c5d858a5deaeeab74a65643f5ff1a4c1")
 @click.option('--rpc_url', 
@@ -67,20 +67,20 @@ InferenceModes = {
               help='Your OpenGradient Hub password -- not required for inference', 
               default="Test-123")
 @click.pass_context
-def cli(ctx, api_key, rpc_url, contract_address, email, password):
+def cli(ctx, private_key, rpc_url, contract_address, email, password):
     """CLI for OpenGradient SDK"""
-    if not api_key:
-        click.echo("Please provide an API key via flag or setting environment variable OPENGRADIENT_API_KEY")
+    if not private_key:
+        click.echo("Please provide a private key via flag or setting environment variable OPENGRADIENT_PRIVATE_KEY")
     if not rpc_url:
         click.echo("Please provide a RPC URL via flag or setting environment variable OPENGRADIENT_RPC_URL")
     if not contract_address:
         click.echo("Please provide a contract address via flag or setting environment variable OPENGRADIENT_CONTRACT_ADDRESS")
-    if not api_key or not rpc_url or not contract_address:
+    if not private_key or not rpc_url or not contract_address:
         ctx.exit(1)
         return
 
     try:
-        ctx.obj = Client(private_key=api_key, 
+        ctx.obj = Client(private_key=private_key, 
                          rpc_url=rpc_url,
                          contract_address=contract_address,
                          email=email,
@@ -98,7 +98,7 @@ def client_settings(ctx):
         ctx.exit(1)
         
     click.echo("Settings for OpenGradient client:")
-    click.echo(f"\tAPI key ({API_KEY_ENV}): {client.private_key}")
+    click.echo(f"\tPrivate key ({PRIVATE_KEY_ENV}): {client.private_key}")
     click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
     click.echo(f"\tContract address ({CONTRACT_ADDRESS_ENV}): {client.contract_address}")
     if client.user:
@@ -134,7 +134,7 @@ def create_model(client, model_name, model_desc):
 @cli.command()
 @click.argument('model_id', type=str)
 @click.option('--notes', type=str, default=None, help='Version notes')
-@click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
+@click.option('--is_major', default=False, is_flag=True, help='Is this a major version')
 @click.pass_obj
 def create_version(client, model_id, notes, is_major):
     """Create a new version of a model"""
