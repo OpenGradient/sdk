@@ -124,6 +124,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
             logging.debug(f"Processing number tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get('name')
+                shape = tensor.get('shape')
                 values = []
                 # Convert from fixed point back into np.float32
                 for v in tensor.get('values', []):
@@ -131,7 +132,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
                         values.append(convert_to_float32(value=int(v.get('value')), decimals=int(v.get('decimals'))))
                     else:
                         logging.warning(f"Unexpected number type: {type(v)}")
-                output_dict[name] = np.array(values)
+                output_dict[name] = np.array(values).reshape(shape)
             else:
                 logging.warning(f"Unexpected tensor type: {type(tensor)}")
 
@@ -140,8 +141,9 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
             logging.debug(f"Processing string tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get('name')
+                shape = tensor.get('shape')
                 values = tensor.get('values', [])
-                output_dict[name] = values
+                output_dict[name] = np.array(values).reshape(shape)
             else:
                     logging.warning(f"Unexpected tensor type: {type(tensor)}")
     else:
