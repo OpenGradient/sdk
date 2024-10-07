@@ -40,11 +40,10 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     """
     Expect SDK input to be a dict with the format
         key: tensor name
-        value: np.array
+        value: np.array / list
 
-        Note: np.array types must be float or string. Ints currently not supported.
-
-    Return a tuple of (number tensors, string tensors) depending on the input type
+    Return a tuple of (number tensors, string tensors) depending on the input type. Each number and string tensor converted
+    to a numpy array and flattened and the shape saved.
     """
     logging.debug("Converting the following input dictionary to ModelInput: %s", inputs)
     number_tensors = []
@@ -59,19 +58,37 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
             logging.debug(f"\tConverting single entry {tensor_data} to a list")
             tensor_data = np.array([tensor_data])
 
+        # Check if type is np array
+        if not isinstance(tensor_data, np.ndarray):
+            raise TypeError("Inference input must be list, numpy array, or type (str, int, float): %s" % type(tensor_data))
+
+        # Flatten list and retain shape
+        shape = tensor_data.shape
+        flat_data = tensor_data.flatten()
+        logging.debug("Shape and flattened data: %s, %s", shape, flat_data)
+
         # Parse into number and string tensors
         if issubclass(tensor_data.dtype.type, np.floating):
-            input = (tensor_name, [convert_to_fixed_point(i) for i in tensor_data])
+            # Convert to fixed-point tuples
+            data_type = np.dtype([('value', int), ('decimal', int)])
+            converted_tensor_data = np.array([convert_to_fixed_point(i) for i in flat_data], dtype=data_type)
+            
+            input = (tensor_name, converted_tensor_data.tolist(), shape)
             logging.debug("\tFloating tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.integer):
-            input = (tensor_name, [convert_to_fixed_point(int(i)) for i in tensor_data])
+            # Convert to fixed-point tuples
+            data_type = np.dtype([('value', int), ('decimal', int)])
+            converted_tensor_data = np.array([convert_to_fixed_point(int(i)) for i in flat_data], dtype=data_type)
+
+            input = (tensor_name, converted_tensor_data.tolist(), shape)
             logging.debug("\tInteger tensor input: %s", input)
 
             number_tensors.append(input)
         elif issubclass(tensor_data.dtype.type, np.str_):
-            input = (tensor_name, [s for s in tensor_data])
+            # TODO (Kyle): Add shape into here as well
+            input = (tensor_name, [s for s in flat_data])
             logging.debug("\tString tensor input: %s", input)
 
             string_tensors.append(input)
@@ -85,6 +102,15 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
     return number_tensors, string_tensors
 
 def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
+    """
+    Converts inference output into a user-readable output. 
+    Expects the inference node to return a dict with the format:
+        key: output_name (str)
+        value: (output_array (list), shape (list)) (tuple)
+
+    We need to reshape each output array using the shape parameter in order to get the array
+    back into its original shape.
+    """
     logging.debug(f"Parsing event data: {event_data}")
         
     output_dict = {}
@@ -98,6 +124,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
             logging.debug(f"Processing number tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get('name')
+                shape = tensor.get('shape')
                 values = []
                 # Convert from fixed point back into np.float32
                 for v in tensor.get('values', []):
@@ -105,7 +132,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
                         values.append(convert_to_float32(value=int(v.get('value')), decimals=int(v.get('decimals'))))
                     else:
                         logging.warning(f"Unexpected number type: {type(v)}")
-                output_dict[name] = np.array(values)
+                output_dict[name] = np.array(values).reshape(shape)
             else:
                 logging.warning(f"Unexpected tensor type: {type(tensor)}")
 
@@ -114,8 +141,9 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
             logging.debug(f"Processing string tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get('name')
+                shape = tensor.get('shape')
                 values = tensor.get('values', [])
-                output_dict[name] = values
+                output_dict[name] = np.array(values).reshape(shape)
             else:
                     logging.warning(f"Unexpected tensor type: {type(tensor)}")
     else:
