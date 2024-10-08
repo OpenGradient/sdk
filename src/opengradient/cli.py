@@ -111,10 +111,10 @@ def client_settings(ctx):
         click.echo(f"\tEmail: not set")
 
 @cli.command()
-@click.option('--repo', '-r', 'repo_name', '--name', required=True, help='Name of the new model repository')
+@click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
 @click.option('--description', '-d', required=True, help='Description of the model')
 @click.pass_obj
-def create_model(client: Client, repo_name: str, description: str):
+def create_model_repo(client: Client, repo_name: str, description: str):
     """
     Create a new model repository.
 
@@ -124,8 +124,8 @@ def create_model(client: Client, repo_name: str, description: str):
     Example usage:
 
     \b
-    opengradient create-model --name "my_new_model" --description "A new model for XYZ task"
-    opengradient create-model -n "my_new_model" -d "A new model for XYZ task"
+    opengradient create-model-repo --name "my_new_model" --description "A new model for XYZ task"
+    opengradient create-model-repo -n "my_new_model" -d "A new model for XYZ task"
     """
     try:
         result = client.create_model(repo_name, description)
