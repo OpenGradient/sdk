@@ -95,24 +95,44 @@ def cli(ctx, private_key, rpc_url, contract_address, email, password):
         click.echo(f"Failed to create OpenGradient client: {str(e)}")
 
 @cli.command()
-@click.option('--email', '-e', 'email', required=True, help='Email address used for Model Hub')
-@click.option('--password', '-p', 'password', required=True, help='Password for Model Hub login')
 def create_account():
     """Create a new test account for OpenGradient inference and model management"""
-    click.echo("Creating new OpenGradient account and credentials...")
+    click.echo("\n" + "=" * 50)
+    click.echo("OpenGradient Account Creation Wizard".center(50))
+    click.echo("=" * 50 + "\n")
+
+    if not click.confirm("Are you sure you want to create a new OpenGradient account?"):
+        click.echo("Account creation cancelled.")
+        return
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 1: Create Account on OpenGradient Hub")
+    click.echo("-" * 50)
 
     click.echo(f"Please create an account on the OpenGradient Hub")
     webbrowser.open(DEFAULT_HUB_SIGNUP_URL, new=2)
     click.confirm("Have you successfully created your account on the OpenGradient Hub?", abort=True)
 
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 2: Generate Ethereum Account")
+    click.echo("-" * 50)
     eth_account = generate_eth_account()
     click.echo(f"Generated OpenGradient chain account with address: {eth_account.address}")
 
-    click.secho(f"Please fund your account clicking 'Request' on the Faucet website", fg='green')
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 3: Fund Your Account")
+    click.echo("-" * 50)
+    click.echo(f"Please fund your account clicking 'Request' on the Faucet website")
     webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
     click.confirm("Have you successfully funded your account using the Faucet?", abort=True)
 
-    click.echo("Account creation and funding process completed.")
+    click.echo("\n" + "=" * 50)
+    click.echo("Account Creation Complete!".center(50))
+    click.echo("=" * 50)
+    click.echo("\nYour OpenGradient account has been successfully created and funded.")
+    click.secho(f"Address: {eth_account.address}", fg='green')
+    click.secho(f"Private Key: {eth_account.private_key}", fg='green')
+    click.secho("\nPlease save this information for your records.\n", fg='cyan')
 
 @cli.command()
 @click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
