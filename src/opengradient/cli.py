@@ -71,7 +71,8 @@ InferenceModes = {
               default=DEFAULT_HUB_PASSWORD)
 @click.pass_context
 def cli(ctx, private_key, rpc_url, contract_address, email, password):
-    """CLI for OpenGradient SDK"""
+    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
+
     if not private_key:
         click.echo("Please provide a private key via flag or setting environment variable OPENGRADIENT_PRIVATE_KEY")
     if not rpc_url:
@@ -115,7 +116,7 @@ def client_settings(ctx):
 @click.argument('version_id', type=str)
 @click.pass_obj
 def upload(client: Client, model_path, model_id, version_id):
-    """Upload a file to a model"""
+    """Upload a file to an existing model repository and version"""
     try:
         result = client.upload(model_path, model_id, version_id)
         click.echo(f"File uploaded successfully: {result}")
@@ -127,7 +128,7 @@ def upload(client: Client, model_path, model_id, version_id):
 @click.argument('model_desc', type=str)
 @click.pass_obj
 def create_model(client: Client, model_name, model_desc):
-    """Create a new model"""
+    """Create a new model repository"""
     try:
         result = client.create_model(model_name, model_desc)
         click.echo(f"Model created successfully: {result}")
@@ -140,7 +141,7 @@ def create_model(client: Client, model_name, model_desc):
 @click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
 @click.pass_obj
 def create_version(client: Client, model_id, notes, is_major):
-    """Create a new version of a model"""
+    """Create a new version in an existing model repository"""
     try:
         result = client.create_version(model_id, notes, is_major)
         click.echo(f"New version created successfully: {result}")
