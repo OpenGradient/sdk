@@ -1,12 +1,14 @@
 import click
-import os
 import opengradient
 import json
 import ast
 from pathlib import Path
+import logging
+from pprint import pformat
+
 from .client import Client
 from .defaults import *
-from .types import InferenceMode, ModelInput
+from .types import InferenceMode
 
 # Environment variable names
 PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
@@ -69,7 +71,8 @@ InferenceModes = {
               default=DEFAULT_HUB_PASSWORD)
 @click.pass_context
 def cli(ctx, private_key, rpc_url, contract_address, email, password):
-    """CLI for OpenGradient SDK"""
+    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
+
     if not private_key:
         click.echo("Please provide a private key via flag or setting environment variable OPENGRADIENT_PRIVATE_KEY")
     if not rpc_url:
@@ -108,54 +111,98 @@ def client_settings(ctx):
         click.echo(f"\tEmail: not set")
 
 @cli.command()
-@click.argument('model_path', type=Path)
-@click.argument('model_id', type=str)
-@click.argument('version_id', type=str)
+@click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
+@click.option('--description', '-d', required=True, help='Description of the model')
 @click.pass_obj
-def upload(client, model_path, model_id, version_id):
-    """Upload a model"""
-    try:
-        result = client.upload(model_path, model_id, version_id)
-        click.echo(f"Model uploaded successfully: {result}")
-    except Exception as e:
-        click.echo(f"Error uploading model: {str(e)}")
+def create_model_repo(client: Client, repo_name: str, description: str):
+    """
+    Create a new model repository.
 
-@cli.command()
-@click.argument('model_name', type=str)
-@click.argument('model_desc', type=str)
-@click.pass_obj
-def create_model(client, model_name, model_desc):
-    """Create a new model"""
+    This command creates a new model repository with the specified name and description.
+    The repository name should be unique within your account.
+
+    Example usage:
+
+    \b
+    opengradient create-model-repo --name "my_new_model" --description "A new model for XYZ task"
+    opengradient create-model-repo -n "my_new_model" -d "A new model for XYZ task"
+    """
     try:
-        result = client.create_model(model_name, model_desc)
-        click.echo(f"Model created successfully: {result}")
+        result = client.create_model(repo_name, description)
+        click.echo(f"Model repository created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating model: {str(e)}")
 
 @cli.command()
-@click.argument('model_id', type=str)
-@click.option('--notes', type=str, default=None, help='Version notes')
-@click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
+@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the existing model repository')
+@click.option('--notes', '-n', help='Version notes (optional)')
+@click.option('--major', '-m', is_flag=True, default=False, help='Flag to indicate a major version update')
 @click.pass_obj
-def create_version(client, model_id, notes, is_major):
-    """Create a new version of a model"""
+def create_version(client: Client, repo_name: str, notes: str, major: bool):
+    """Create a new version in an existing model repository.
+
+    This command creates a new version for the specified model repository. 
+    You can optionally provide version notes and indicate if it's a major version update.
+
+    Example usage:
+
+    \b
+    opengradient create-version --repo my_model_repo --notes "Added new feature X" --major
+    opengradient create-version -r my_model_repo -n "Bug fixes"
+    """
     try:
-        result = client.create_version(model_id, notes, is_major)
-        click.echo(f"Version created successfully: {result}")
+        result = client.create_version(repo_name, notes, major)
+        click.echo(f"New version created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating version: {str(e)}")
 
 @cli.command()
-@click.argument('model_cid', type=str)
-@click.argument('inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA")
-@click.argument('input_data', type=Dict, required=False)
-@click.option('--input_file',
+@click.argument('file_path', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
+                metavar='FILE_PATH')
+@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
+@click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
+@click.pass_obj
+def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
+    """
+    Upload a file to an existing model repository and version.
+
+    FILE_PATH: Path to the file you want to upload (e.g., model.onnx)
+
+    Example usage:
+
+    \b
+    opengradient upload-file path/to/model.onnx --repo my_model_repo --version 0.01
+    opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01
+    """
+    try:
+        result = client.upload(file_path, repo_name, version)
+        click.echo(f"File uploaded successfully: {result}")
+    except Exception as e:
+        click.echo(f"Error uploading model: {str(e)}")
+
+@cli.command()
+@click.option('--model', '-m', 'model_cid', required=True, help='CID of the model to run inference on')
+@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
+              help='Inference mode (default: VANILLA)')
+@click.option('--input', '-d', 'input_data', type=Dict, help='Input data for inference as a JSON string')
+@click.option('--input-file', '-f', 
               type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
-              help="Optional file input for model inference -- must be JSON") 
+              help="JSON file containing input data for inference")
 @click.pass_context
-def infer(ctx, model_cid, inference_mode, input_data, input_file):
-    """Run inference on a model"""
-    client = ctx.obj
+def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path):
+    """
+    Run inference on a model.
+
+    This command runs inference on the specified model using the provided input data.
+    You must provide either --input or --input-file, but not both.
+
+    Example usage:
+
+    \b
+    opengradient infer --model Qm... --mode VANILLA --input '{"key": "value"}'
+    opengradient infer -m Qm... -i ZKML -f input_data.json
+    """
+    client: Client = ctx.obj
     try:
         if not input_data and not input_file:
             click.echo("Must specify either input_data or input_file")
@@ -175,11 +222,12 @@ def infer(ctx, model_cid, inference_mode, input_data, input_file):
                 model_input = json.load(file)
             
         # Parse input data from string to dict
-        click.echo(f"Running {inference_mode} inference for {model_cid}...")
+        click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"\n")
         tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
+
         click.secho("Success!", fg="green")
-        click.echo(f"\nTransaction Hash: \n{tx_hash}")
-        click.echo(f"\nInference result: \n{model_output}")
+        click.echo(f"Transaction hash: {tx_hash}")
+        click.echo(f"Inference result:\n{pformat(model_output, indent=2, width=120)}")
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)
@@ -189,7 +237,9 @@ def infer(ctx, model_cid, inference_mode, input_data, input_file):
 
 @cli.command()
 def version():
+    """Return version of OpenGradient CLI"""
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.WARN)
     cli()
