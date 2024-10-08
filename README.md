@@ -35,7 +35,7 @@ og.upload(model_path="<model_path>", model_name="<model_name>", version="<versio
 
 ### List Files of a Model Version
 ```python
-og.list_files("<model_name>", "<version>")
+og.list_files(model_name="<model_name>", version="<version>")
 ```
 
 ### Run Inference
