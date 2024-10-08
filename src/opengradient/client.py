@@ -21,7 +21,7 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -41,6 +41,8 @@ class Client:
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
+        self.email = email
+        self.password = password
         
         logging.debug("Initialized client with parameters:\n"
                       "private key: %s\n"

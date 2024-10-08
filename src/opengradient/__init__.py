@@ -19,10 +19,18 @@ def upload(model_path, model_name, version):
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.upload(model_path, model_name, version)
 
-def create_model(model_name, model_desc):
+def create_model(model_name: str, model_desc: str, model_path: str = None):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.create_model(model_name, model_desc)
+    
+    result = _client.create_model(model_name, model_desc)
+    
+    if model_path:
+        version = "0.01"
+        upload_result = _client.upload(model_path, model_name, version)
+        result["upload"] = upload_result
+    
+    return result
 
 def create_version(model_name, notes=None, is_major=False):
     if _client is None:
