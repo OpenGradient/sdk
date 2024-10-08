@@ -15,27 +15,27 @@ og.init(email="you@opengradient.ai", password="xyz")
 
 ### Create a Model
 ```python
-og.create_model(model_name="test-network-model", model_desc="testing upload to sdk")
+og.create_model(model_name="<model_name>", model_desc="testing upload to sdk")
 ```
 
 ### Create a Model (with file upload)
 ```python
-og.create_model(model_name="test-network-model", model_desc="testing upload to sdk", model_path="<model_path>")
+og.create_model(model_name="<model_name>", model_desc="testing upload to sdk", model_path="<model_path>")
 ```
 
 ### Create a Version of a Model
 ```python
-og.create_version(model_name="test-network-model", notes="test notes")
+og.create_version(model_name="<model_name>", notes="test notes")
 ```
 
 ### Upload Files to a Model
 ```python
-og.upload(model_path="local_path_to_your_model.onnx", model_name="test-network-model", version="0.01")
+og.upload(model_path="<model_path>", model_name="<model_name>", version="<version>")
 ```
 
 ### List Files of a Model Version
 ```python
-og.list_files("opengradient-1-hour-volatility-ethusdt1", "0.01")
+og.list_files("<model_name>", "<version>")
 ```
 
 ### Run Inference
