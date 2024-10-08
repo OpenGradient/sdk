@@ -68,7 +68,7 @@ opengradient create_model "<model_name>" "<description>"
 
 #### Upload a File
 ```bash
-opengradient upload "path/to/model.onnx" "<model_name>" "<version>" 
+opengradient upload "<model_path>" "<model_name>" "<version>" 
 ```
 
 #### List Files of a Model Version
