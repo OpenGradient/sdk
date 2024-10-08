@@ -182,7 +182,7 @@ def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
 
 @cli.command()
 @click.option('--model', '-m', 'model_cid', required=True, help='CID of the model to run inference on')
-@click.option('--mode', '-i', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
+@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
               help='Inference mode (default: VANILLA)')
 @click.option('--input', '-d', 'input_data', type=Dict, help='Input data for inference as a JSON string')
 @click.option('--input-file', '-f', 
