@@ -192,6 +192,7 @@ def infer(ctx, model_cid, inference_mode, input_data, input_file):
 
 @cli.command()
 def version():
+    """Return version of OpenGradient CLI"""
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
 
 if __name__ == '__main__':
