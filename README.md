@@ -1,6 +1,6 @@
 # OpenGradient SDK
 
-Python SDK for OpenGradient decentrazlied model management & inference services.
+Python SDK for OpenGradient decentralized model management & inference services.
 
 ## Installation
 ```python
