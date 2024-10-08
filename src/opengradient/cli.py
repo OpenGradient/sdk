@@ -4,6 +4,7 @@ import json
 import ast
 from pathlib import Path
 import logging
+from pprint import pformat
 
 from .client import Client
 from .defaults import *
@@ -156,7 +157,7 @@ def create_version(client: Client, model_id, notes, is_major):
 @click.pass_context
 def infer(ctx, model_cid, inference_mode, input_data, input_file):
     """Run inference on a model"""
-    client = ctx.obj
+    client: Client = ctx.obj
     try:
         if not input_data and not input_file:
             click.echo("Must specify either input_data or input_file")
@@ -176,11 +177,12 @@ def infer(ctx, model_cid, inference_mode, input_data, input_file):
                 model_input = json.load(file)
             
         # Parse input data from string to dict
-        click.echo(f"Running {inference_mode} inference for {model_cid}...")
+        click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"\n")
         tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
+
         click.secho("Success!", fg="green")
-        click.echo(f"\nTransaction Hash: \n{tx_hash}")
-        click.echo(f"\nInference result: \n{model_output}")
+        click.echo(f"Transaction hash: 0x{tx_hash}")
+        click.echo(f"Inference result:\n{pformat(model_output, indent=2, width=120)}")
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)
