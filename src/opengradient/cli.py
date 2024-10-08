@@ -1,12 +1,13 @@
 import click
-import os
 import opengradient
 import json
 import ast
 from pathlib import Path
+import logging
+
 from .client import Client
 from .defaults import *
-from .types import InferenceMode, ModelInput
+from .types import InferenceMode
 
 # Environment variable names
 PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
@@ -192,4 +193,5 @@ def version():
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.WARN)
     cli()
