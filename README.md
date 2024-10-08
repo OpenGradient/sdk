@@ -1,6 +1,6 @@
-# OpenGradient Python SDK
+# OpenGradient SDK
 
-Python SDK for OpenGradient inference services.
+Python SDK for OpenGradient decentrazlied model management & inference services.
 
 ## Installation
 ```python
@@ -10,12 +10,7 @@ pip install opengradient
 ## Quick Start
 ```python
 import opengradient as og
-og.init(private_key="x", rpc_url="y", contract_address="z")
-```
-
-### Sign in with Email
-```python
-og.login(email="you@opengradient.ai", password="xyz")
+og.init(email="you@opengradient.ai", password="xyz")
 ```
 
 ### Create a Model
@@ -33,6 +28,11 @@ og.create_version(model_name="test-network-model", notes="test notes")
 og.upload(model_path="local_path_to_your_model.onnx", model_name="test-network-model", version="0.01")
 ```
 
+### List Files of a Model Version
+```python
+og.list_files("opengradient-1-hour-volatility-ethusdt1", "0.01")
+```
+
 ### Run Inference
 ```python
 inference_mode = og.InferenceMode.VANILLA
@@ -44,6 +44,11 @@ og.infer(model_id, inference_mode, model_input)
 ```
 
 ## Using the CLI
+
+```bash
+export OPENGRADIENT_EMAIL=user@opengradient.ai
+export OPENGRADIENT_PASSWORD=password
+```
 
 #### Creating a Model
 ```bash
@@ -61,6 +66,11 @@ opengradient create_model "<model_name>" "<description>"
 opengradient upload "path/to/model.onnx" "<model_name>" "<version>" 
 ```
 
+#### List Files of a Model Version
+```bash
+opengradient list_files "<model_name>" "<version>"
+```
+
 ####  CLI infer using string 
 ```bash
 opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNX"], "str_input2":" world"}'
@@ -70,3 +80,4 @@ opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA '{"num
 ```bash
 opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA --input_file input.json
 ```
+\\

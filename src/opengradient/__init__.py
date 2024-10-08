@@ -1,16 +1,16 @@
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
-
+from typing import List, Dict
 __version__ = "0.2.9"
 
 _client = None
 
-def init(private_key=DEFAULT_PRIVATE_KEY,
+def init(email: str,
+         password: str,
+         private_key=DEFAULT_PRIVATE_KEY,
          rpc_url=DEFAULT_RPC_URL,
-         contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
-         email=DEFAULT_HUB_EMAIL,
-         password=DEFAULT_HUB_PASSWORD):
+         contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
     global _client
     _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
 
@@ -46,3 +46,8 @@ def login(email: str, password: str):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.login(email, password)
+
+def list_files(model_name: str, version: str) -> List[Dict]:
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.list_files(model_name, version)
