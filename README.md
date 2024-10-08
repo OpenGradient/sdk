@@ -18,6 +18,11 @@ og.init(email="you@opengradient.ai", password="xyz")
 og.create_model(model_name="test-network-model", model_desc="testing upload to sdk")
 ```
 
+### Create a Model (with file upload)
+```python
+og.create_model(model_name="test-network-model", model_desc="testing upload to sdk", model_path="<model_path>")
+```
+
 ### Create a Version of a Model
 ```python
 og.create_version(model_name="test-network-model", notes="test notes")
