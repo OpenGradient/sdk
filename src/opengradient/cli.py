@@ -181,15 +181,27 @@ def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
         click.echo(f"Error uploading model: {str(e)}")
 
 @cli.command()
-@click.argument('model_cid', type=str)
-@click.argument('inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA")
-@click.argument('input_data', type=Dict, required=False)
-@click.option('--input_file',
+@click.option('--model', '-m', 'model_cid', required=True, help='CID of the model to run inference on')
+@click.option('--mode', '-i', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
+              help='Inference mode (default: VANILLA)')
+@click.option('--input', '-d', 'input_data', type=Dict, help='Input data for inference as a JSON string')
+@click.option('--input-file', '-f', 
               type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
-              help="Optional file input for model inference -- must be JSON") 
+              help="JSON file containing input data for inference")
 @click.pass_context
-def infer(ctx, model_cid, inference_mode, input_data, input_file):
-    """Run inference on a model"""
+def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path):
+    """
+    Run inference on a model.
+
+    This command runs inference on the specified model using the provided input data.
+    You must provide either --input or --input-file, but not both.
+
+    Example usage:
+
+    \b
+    opengradient infer --model Qm... --mode VANILLA --input '{"key": "value"}'
+    opengradient infer -m Qm... -i ZKML -f input_data.json
+    """
     client: Client = ctx.obj
     try:
         if not input_data and not input_file:
