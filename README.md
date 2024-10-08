@@ -80,4 +80,3 @@ opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA '{"num
 ```bash
 opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA --input_file input.json
 ```
-\\
