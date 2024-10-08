@@ -44,10 +44,6 @@ inference_mode = og.InferenceMode.VANILLA
 inference_cid = og.infer(model_cid, model_inputs, inference_mode)
 ```
 
-```python
-og.infer(model_id, inference_mode, model_input)
-```
-
 ## Using the CLI
 
 ```bash
