@@ -10,7 +10,7 @@ import webbrowser
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
-from .account import EthAccount, generate_eth_account
+from .account import EthAccount, generate_eth_account, register_with_hub
 
 # Environment variable names
 PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
@@ -95,12 +95,14 @@ def cli(ctx, private_key, rpc_url, contract_address, email, password):
         click.echo(f"Failed to create OpenGradient client: {str(e)}")
 
 @cli.command()
-@click.pass_context
 @click.option('--email', '-e', 'email', required=True, help='Email address used for Model Hub')
 @click.option('--password', '-p', 'password', required=True, help='Password for Model Hub login')
-def create_account(ctx, email: str, password: str):
+def create_account(email: str, password: str):
     """Create a new test account for OpenGradient inference and model management"""
-    click.echo("Generating new account...")
+    click.echo("Generating new OpenGradient account and credentials...")
+
+    register_with_hub(email, password)
+    click.echo(f"Successfully Model Hub account ({email}) using given credentials")
 
     eth_account = generate_eth_account()
     click.echo(f"Generated new opengradient chain account, address: {eth_account.address}")
