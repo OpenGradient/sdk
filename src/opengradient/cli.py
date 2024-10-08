@@ -97,18 +97,22 @@ def cli(ctx, private_key, rpc_url, contract_address, email, password):
 @cli.command()
 @click.option('--email', '-e', 'email', required=True, help='Email address used for Model Hub')
 @click.option('--password', '-p', 'password', required=True, help='Password for Model Hub login')
-def create_account(email: str, password: str):
+def create_account():
     """Create a new test account for OpenGradient inference and model management"""
-    click.echo("Generating new OpenGradient account and credentials...")
+    click.echo("Creating new OpenGradient account and credentials...")
 
-    register_with_hub(email, password)
-    click.echo(f"Successfully Model Hub account ({email}) using given credentials")
+    click.echo(f"Please create an account on the OpenGradient Hub")
+    webbrowser.open(DEFAULT_HUB_SIGNUP_URL, new=2)
+    click.confirm("Have you successfully created your account on the OpenGradient Hub?", abort=True)
 
     eth_account = generate_eth_account()
-    click.echo(f"Generated new opengradient chain account, address: {eth_account.address}")
+    click.echo(f"Generated OpenGradient chain account with address: {eth_account.address}")
 
     click.secho(f"Please fund your account clicking 'Request' on the Faucet website", fg='green')
     webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
+    click.confirm("Have you successfully funded your account using the Faucet?", abort=True)
+
+    click.echo("Account creation and funding process completed.")
 
 @cli.command()
 @click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
