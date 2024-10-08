@@ -177,7 +177,7 @@ def clear(ctx):
 @click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
 @click.option('--description', '-d', required=True, help='Description of the model')
 @click.pass_obj
-def create_model_repo(client: Client, repo_name: str, description: str):
+def create_model_repo(obj, repo_name: str, description: str):
     """
     Create a new model repository.
 
@@ -190,6 +190,8 @@ def create_model_repo(client: Client, repo_name: str, description: str):
     opengradient create-model-repo --name "my_new_model" --description "A new model for XYZ task"
     opengradient create-model-repo -n "my_new_model" -d "A new model for XYZ task"
     """
+    client: Client = obj['client']
+
     try:
         result = client.create_model(repo_name, description)
         click.echo(f"Model repository created successfully: {result}")
@@ -202,7 +204,7 @@ def create_model_repo(client: Client, repo_name: str, description: str):
 @click.option('--notes', '-n', help='Version notes (optional)')
 @click.option('--major', '-m', is_flag=True, default=False, help='Flag to indicate a major version update')
 @click.pass_obj
-def create_version(client: Client, repo_name: str, notes: str, major: bool):
+def create_version(obj, repo_name: str, notes: str, major: bool):
     """Create a new version in an existing model repository.
 
     This command creates a new version for the specified model repository. 
@@ -214,6 +216,8 @@ def create_version(client: Client, repo_name: str, notes: str, major: bool):
     opengradient create-version --repo my_model_repo --notes "Added new feature X" --major
     opengradient create-version -r my_model_repo -n "Bug fixes"
     """
+    client: Client = obj['client']
+
     try:
         result = client.create_version(repo_name, notes, major)
         click.echo(f"New version created successfully: {result}")
@@ -227,7 +231,7 @@ def create_version(client: Client, repo_name: str, notes: str, major: bool):
 @click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
 @click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
 @click.pass_obj
-def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
+def upload_file(obj, file_path: Path, repo_name: str, version: str):
     """
     Upload a file to an existing model repository and version.
 
@@ -239,6 +243,8 @@ def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
     opengradient upload-file path/to/model.onnx --repo my_model_repo --version 0.01
     opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01
     """
+    client: Client = obj['client']
+
     try:
         result = client.upload(file_path, repo_name, version)
         click.echo(f"File uploaded successfully: {result}")
