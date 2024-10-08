@@ -142,7 +142,7 @@ def create_version(client: Client, model_id, notes, is_major):
     """Create a new version of a model"""
     try:
         result = client.create_version(model_id, notes, is_major)
-        click.echo(f"Version created successfully: {result}")
+        click.echo(f"New version created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating version: {str(e)}")
 
