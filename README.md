@@ -15,17 +15,17 @@ og.init(email="<email>", password="<password>")
 
 ### Create a Model
 ```python
-og.create_model(model_name="<model_name>", model_desc="testing upload to sdk")
+og.create_model(model_name="<model_name>", model_desc="<model_description>")
 ```
 
 ### Create a Model (with file upload)
 ```python
-og.create_model(model_name="<model_name>", model_desc="testing upload to sdk", model_path="<model_path>")
+og.create_model(model_name="<model_name>", model_desc="<model_description>", model_path="<model_path>")
 ```
 
 ### Create a Version of a Model
 ```python
-og.create_version(model_name="<model_name>", notes="test notes")
+og.create_version(model_name="<model_name>", notes="<model_notes>")
 ```
 
 ### Upload Files to a Model
