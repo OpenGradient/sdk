@@ -10,7 +10,7 @@ pip install opengradient
 ## Quick Start
 ```python
 import opengradient as og
-og.init(email="you@opengradient.ai", password="xyz")
+og.init(email="<email>", password="<password>")
 ```
 
 ### Create a Model
