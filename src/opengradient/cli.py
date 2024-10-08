@@ -59,6 +59,11 @@ InferenceModes = {
 
 def initialize_session(ctx):
     """Interactively initialize session data"""
+    if ctx.obj:  # Check if session data already exists
+        click.echo("A session already exists. Please run 'opengradient clear-session' first if you want to reinitialize.")
+        click.echo("You can view your current session with 'opengradient show-session'.")
+        return
+
     click.echo("Initializing OpenGradient session data...")
     click.secho(f"Session data will be stored in: {SESSION_FILE}", fg='cyan')
 
@@ -124,7 +129,6 @@ def cli(ctx):
 def init_session(ctx):
     """Initialize or reinitialize the OpenGradient session data"""
     initialize_session(ctx)
-    click.echo("Session has been initialized.")
 
 
 @cli.command()
@@ -152,9 +156,16 @@ def show_session(ctx):
 @click.pass_context
 def clear_session(ctx):
     """Clear all saved session data"""
-    ctx.obj.clear()
-    save_session(ctx)
-    click.echo("Session data cleared.")
+    if not ctx.obj:
+        click.echo("No session data to clear.")
+        return
+
+    if click.confirm("Are you sure you want to clear all session data? This action cannot be undone.", abort=True):
+        ctx.obj.clear()
+        save_session(ctx)
+        click.echo("Session data cleared.")
+    else:
+        click.echo("Session clear cancelled.")
 
 
 @cli.command()
@@ -288,11 +299,11 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 
 @cli.command()
 def create_account():
+    """Create a new test account for OpenGradient inference and model management"""
     create_account_impl()
 
 
 def create_account_impl() -> EthAccount:
-    """Create a new test account for OpenGradient inference and model management"""
     click.echo("\n" + "=" * 50)
     click.echo("OpenGradient Account Creation Wizard".center(50))
     click.echo("=" * 50 + "\n")
