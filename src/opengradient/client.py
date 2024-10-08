@@ -11,8 +11,6 @@ from typing import Dict, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 import firebase
 
-logging.basicConfig(level=logging.INFO)
-
 class Client:
     FIREBASE_CONFIG = {
         "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -279,7 +277,6 @@ class Client:
             logging.error(f"Request exception during upload: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response headers: {e.response.headers}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
             raise OpenGradientError(f"Upload failed due to request exception: {str(e)}", 
                                     status_code=e.response.status_code if hasattr(e, 'response') else None)
