@@ -49,6 +49,7 @@ InferenceModes = {
     "TEE": InferenceMode.TEE,
 }
 
+
 # TODO (Kyle): Once we're farther into development, we should remove the defaults for these options
 @click.group()
 @click.option('--private_key', 
@@ -94,45 +95,6 @@ def cli(ctx, private_key, rpc_url, contract_address, email, password):
     except Exception as e:
         click.echo(f"Failed to create OpenGradient client: {str(e)}")
 
-@cli.command()
-def create_account():
-    """Create a new test account for OpenGradient inference and model management"""
-    click.echo("\n" + "=" * 50)
-    click.echo("OpenGradient Account Creation Wizard".center(50))
-    click.echo("=" * 50 + "\n")
-
-    if not click.confirm("Are you sure you want to create a new OpenGradient account?"):
-        click.echo("Account creation cancelled.")
-        return
-
-    click.echo("\n" + "-" * 50)
-    click.echo("Step 1: Create Account on OpenGradient Hub")
-    click.echo("-" * 50)
-
-    click.echo(f"Please create an account on the OpenGradient Hub")
-    webbrowser.open(DEFAULT_HUB_SIGNUP_URL, new=2)
-    click.confirm("Have you successfully created your account on the OpenGradient Hub?", abort=True)
-
-    click.echo("\n" + "-" * 50)
-    click.echo("Step 2: Generate Ethereum Account")
-    click.echo("-" * 50)
-    eth_account = generate_eth_account()
-    click.echo(f"Generated OpenGradient chain account with address: {eth_account.address}")
-
-    click.echo("\n" + "-" * 50)
-    click.echo("Step 3: Fund Your Account")
-    click.echo("-" * 50)
-    click.echo(f"Please fund your account clicking 'Request' on the Faucet website")
-    webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
-    click.confirm("Have you successfully funded your account using the Faucet?", abort=True)
-
-    click.echo("\n" + "=" * 50)
-    click.echo("Account Creation Complete!".center(50))
-    click.echo("=" * 50)
-    click.echo("\nYour OpenGradient account has been successfully created and funded.")
-    click.secho(f"Address: {eth_account.address}", fg='green')
-    click.secho(f"Private Key: {eth_account.private_key}", fg='green')
-    click.secho("\nPlease save this information for your records.\n", fg='cyan')
 
 @cli.command()
 @click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
@@ -157,6 +119,7 @@ def create_model_repo(client: Client, repo_name: str, description: str):
     except Exception as e:
         click.echo(f"Error creating model: {str(e)}")
 
+
 @cli.command()
 @click.option('--repo', '-r', 'repo_name', required=True, help='Name of the existing model repository')
 @click.option('--notes', '-n', help='Version notes (optional)')
@@ -179,6 +142,7 @@ def create_version(client: Client, repo_name: str, notes: str, major: bool):
         click.echo(f"New version created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating version: {str(e)}")
+
 
 @cli.command()
 @click.argument('file_path', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
@@ -203,6 +167,7 @@ def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
         click.echo(f"File uploaded successfully: {result}")
     except Exception as e:
         click.echo(f"Error uploading model: {str(e)}")
+
 
 @cli.command()
 @click.option('--model', '-m', 'model_cid', required=True, help='CID of the model to run inference on')
@@ -258,6 +223,48 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     except Exception as e:
         click.echo(f"Error running inference: {str(e)}")
 
+
+@cli.command()
+def create_account():
+    """Create a new test account for OpenGradient inference and model management"""
+    click.echo("\n" + "=" * 50)
+    click.echo("OpenGradient Account Creation Wizard".center(50))
+    click.echo("=" * 50 + "\n")
+
+    if not click.confirm("Are you sure you want to create a new OpenGradient account?"):
+        click.echo("Account creation cancelled.")
+        return
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 1: Create Account on OpenGradient Hub")
+    click.echo("-" * 50)
+
+    click.echo(f"Please create an account on the OpenGradient Hub")
+    webbrowser.open(DEFAULT_HUB_SIGNUP_URL, new=2)
+    click.confirm("Have you successfully created your account on the OpenGradient Hub?", abort=True)
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 2: Generate Ethereum Account")
+    click.echo("-" * 50)
+    eth_account = generate_eth_account()
+    click.echo(f"Generated OpenGradient chain account with address: {eth_account.address}")
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 3: Fund Your Account")
+    click.echo("-" * 50)
+    click.echo(f"Please fund your account clicking 'Request' on the Faucet website")
+    webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
+    click.confirm("Have you successfully funded your account using the Faucet?", abort=True)
+
+    click.echo("\n" + "=" * 50)
+    click.echo("Account Creation Complete!".center(50))
+    click.echo("=" * 50)
+    click.echo("\nYour OpenGradient account has been successfully created and funded.")
+    click.secho(f"Address: {eth_account.address}", fg='green')
+    click.secho(f"Private Key: {eth_account.private_key}", fg='green')
+    click.secho("\nPlease save this information for your records.\n", fg='cyan')
+
+
 @cli.command()
 @click.pass_context
 def client_settings(ctx):
@@ -276,10 +283,12 @@ def client_settings(ctx):
     else:
         click.echo(f"\tEmail: not set")
 
+
 @cli.command()
 def version():
     """Return version of OpenGradient CLI"""
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
+
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
