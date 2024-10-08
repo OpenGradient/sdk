@@ -111,42 +111,46 @@ def client_settings(ctx):
         click.echo(f"\tEmail: not set")
 
 @cli.command()
-@click.argument('model_path', type=Path)
-@click.argument('model_id', type=str)
-@click.argument('version_id', type=str)
+@click.argument('model_repo_name', type=str)
+@click.argument('model_description', type=str)
 @click.pass_obj
-def upload(client: Client, model_path, model_id, version_id):
-    """Upload a file to an existing model repository and version"""
-    try:
-        result = client.upload(model_path, model_id, version_id)
-        click.echo(f"File uploaded successfully: {result}")
-    except Exception as e:
-        click.echo(f"Error uploading model: {str(e)}")
-
-@cli.command()
-@click.argument('model_name', type=str)
-@click.argument('model_desc', type=str)
-@click.pass_obj
-def create_model(client: Client, model_name, model_desc):
+def create_model(client: Client, model_repo_name, model_description):
     """Create a new model repository"""
     try:
-        result = client.create_model(model_name, model_desc)
-        click.echo(f"Model created successfully: {result}")
+        result = client.create_model(model_repo_name, model_description)
+        click.echo(f"Model repository created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating model: {str(e)}")
 
 @cli.command()
-@click.argument('model_id', type=str)
+@click.argument('model_repo_name', type=str)
 @click.option('--notes', type=str, default=None, help='Version notes')
 @click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
 @click.pass_obj
-def create_version(client: Client, model_id, notes, is_major):
+def create_version(client: Client, model_repo_name, notes, is_major):
     """Create a new version in an existing model repository"""
     try:
-        result = client.create_version(model_id, notes, is_major)
+        result = client.create_version(model_repo_name, notes, is_major)
         click.echo(f"New version created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating version: {str(e)}")
+
+@cli.command()
+@click.argument('model_file_path', type=Path)
+@click.argument('model_repo_name', type=str)
+@click.argument('version', type=str)
+@click.pass_obj
+def upload_file(client: Client, model_file_path, model_repo_name, version):
+    """
+    Upload a file to an existing model repository and version.
+
+    e.g. opengradient upload model.onnx "my_model_repo" "0.01"
+    """
+    try:
+        result = client.upload(model_file_path, model_repo_name, version)
+        click.echo(f"File uploaded successfully: {result}")
+    except Exception as e:
+        click.echo(f"Error uploading model: {str(e)}")
 
 @cli.command()
 @click.argument('model_cid', type=str)
