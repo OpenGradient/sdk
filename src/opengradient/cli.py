@@ -101,7 +101,7 @@ def cli(ctx):
     # Load existing session data
     ctx.obj = load_session()
 
-    no_client_commands = ['show-session', 'clear-session', 'init-session', 'create-account', 'version']
+    no_client_commands = ['session', 'create-account', 'version']
 
     # Only create client if this is not a session management command
     if ctx.invoked_subcommand in no_client_commands:
@@ -119,25 +119,31 @@ def cli(ctx):
             ctx.exit(1)
     else:
         click.echo("Insufficient information to create client. Some commands may not be available.")
-        click.echo("Please run 'opengradient clear-session' and 'opengradient init-session' and to reinitialize your session.")
+        click.echo("Please run 'opengradient session clear' and 'opengradient session init' and to reinitialize your session.")
         ctx.exit(1)
 
 
-@cli.command()
+@cli.group()
+def session():
+    """Manage OpenGradient session configuration (credentials etc)"""
+    pass
+
+
+@session.command()
 @click.pass_context
-def init_session(ctx):
+def init(ctx):
     """Initialize or reinitialize the OpenGradient session data"""
     initialize_session(ctx)
 
 
-@cli.command()
+@session.command()
 @click.pass_context
-def show_session(ctx):
+def show(ctx):
     """Display current session information"""
     click.secho(f"Session file location: {SESSION_FILE}", fg='cyan')
 
     if not ctx.obj:
-        click.echo("Session is empty. Run 'opengradient init-session' to initialize it.")
+        click.echo("Session is empty. Run 'opengradient session init' to initialize it.")
         return
 
     click.echo("Current session information:")
@@ -151,9 +157,9 @@ def show_session(ctx):
                 click.echo(f"{key}: {value}") 
 
 
-@cli.command()
+@session.command()
 @click.pass_context
-def clear_session(ctx):
+def clear(ctx):
     """Clear all saved session data"""
     if not ctx.obj:
         click.echo("No session data to clear.")
