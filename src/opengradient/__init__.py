@@ -2,7 +2,7 @@ from .client import Client
 from .defaults import *
 from .types import InferenceMode
 
-__version__ = "0.2.8"
+__version__ = "0.2.9"
 
 _client = None
 
