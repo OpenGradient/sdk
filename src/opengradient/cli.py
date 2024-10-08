@@ -5,6 +5,7 @@ import ast
 from pathlib import Path
 import logging
 from pprint import pformat
+from typing import List
 
 from .client import Client
 from .defaults import *
@@ -192,46 +193,73 @@ def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
 @click.option('--input-file', '-f', 
               type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
               help="JSON file containing input data for inference")
+@click.option('--llm', is_flag=True, help='Use LLM inference')
+@click.option('--prompt', help='Prompt for LLM inference')
+@click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM output')
+@click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
+@click.option('--temperature', type=int, default=0, help='Temperature for LLM inference')
 @click.pass_context
-def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path):
+def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path, llm: bool, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: int):
     """
-    Run inference on a model.
+    Run inference on a model or LLM.
 
     This command runs inference on the specified model using the provided input data.
-    You must provide either --input or --input-file, but not both.
+    For regular models, you must provide either --input or --input-file, but not both.
+    For LLM models, use the --llm flag and provide a --prompt.
 
     Example usage:
 
     \b
+    Regular inference:
     opengradient infer --model Qm... --mode VANILLA --input '{"key": "value"}'
     opengradient infer -m Qm... -i ZKML -f input_data.json
+
+    LLM inference:
+    opengradient infer --model Qm... --llm --prompt "Hello, how are you?" --max-tokens 50
     """
     client: Client = ctx.obj
     try:
-        if not input_data and not input_file:
-            click.echo("Must specify either input_data or input_file")
-            ctx.exit(1)
-            return
-        
-        if input_data and input_file:
-            click.echo("Cannot have both input_data and input_file")
-            ctx.exit(1)
-            return
-        
-        if input_data:
-            model_input = input_data
-
-        if input_file:
-            with input_file.open('r') as file:
-                model_input = json.load(file)
+        if llm:
+            if not prompt:
+                click.echo("Must specify --prompt for LLM inference")
+                ctx.exit(1)
+                return
+            click.echo(f"Running LLM inference for model \"{model_cid}\"\n")
+            tx_hash, llm_output = client.infer_llm(
+                model_cid=model_cid,
+                inference_mode=InferenceModes[inference_mode],
+                prompt=prompt,
+                max_tokens=max_tokens,
+                stop_sequence=list(stop_sequence),
+                temperature=temperature
+            )
+            click.secho("Success!", fg="green")
+            click.echo(f"Transaction hash: {tx_hash}")
+            click.echo(f"LLM output: {llm_output}")
+        else:
+            if not input_data and not input_file:
+                click.echo("Must specify either input_data or input_file for regular inference")
+                ctx.exit(1)
+                return
+            if input_data and input_file:
+                click.echo("Cannot have both input_data and input_file")
+                ctx.exit(1)
+                return
+            if input_data:
+                model_input = input_data
+            if input_file:
+                with input_file.open('r') as file:
+                    model_input = json.load(file)
             
-        # Parse input data from string to dict
-        click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"\n")
-        tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
-
-        click.secho("Success!", fg="green")
-        click.echo(f"Transaction hash: {tx_hash}")
-        click.echo(f"Inference result:\n{pformat(model_output, indent=2, width=120)}")
+            click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"\n")
+            tx_hash, model_output = client.infer(
+                model_cid=model_cid,
+                inference_mode=InferenceModes[inference_mode],
+                model_input=model_input
+            )
+            click.secho("Success!", fg="green")
+            click.echo(f"Transaction hash: {tx_hash}")
+            click.echo(f"Inference result:\n{pformat(model_output, indent=2, width=120)}")
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)

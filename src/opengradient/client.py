@@ -7,7 +7,7 @@ from opengradient.types import InferenceMode
 from opengradient import utils
 import numpy as np
 import logging
-from typing import Dict, Tuple, Union, List
+from typing import Dict, Optional, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 import firebase
 
@@ -56,6 +56,14 @@ class Client:
         self.abi = inference_abi
 
         self.login(email, password)
+
+    def login(self, email, password):
+        try:
+            self.user = self.auth.sign_in_with_email_and_password(email, password)
+            return self.user
+        except Exception as e:
+            logging.error(f"Authentication failed: {str(e)}")
+            raise
 
     def _initialize_web3(self):
         """
@@ -401,13 +409,99 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def login(self, email, password):
+    def infer_llm(self, 
+                  model_cid: str, 
+                  prompt: str, 
+                  max_tokens: int = 100, 
+                  stop_sequence: Optional[List[str]] = None, 
+                  temperature: float = 0.0,
+                  seed: Optional[int] = None) -> Tuple[str, str]:
+        """
+        Perform inference on an LLM model using completions.
+
+        Args:
+            model_cid (str): The unique content identifier for the model.
+            prompt (str): The input prompt for the LLM.
+            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
+            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
+            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+            seed (int, optional): Seed for random number generator. Default is None.
+
+        Returns:
+            Tuple[str, str]: The transaction hash and the LLM output.
+
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
         try:
-            self.user = self.auth.sign_in_with_email_and_password(email, password)
-            return self.user
+            self._initialize_web3()
+            
+            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'llm.abi')
+            with open(abi_path, 'r') as abi_file:
+                llm_abi = json.load(abi_file)
+            contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
+
+            # Prepare LLM input
+            llm_request = {
+                "mode": 0,  # Assuming 0 is for completions
+                "modelCID": model_cid,
+                "prompt": prompt,
+                "max_tokens": max_tokens,
+                "stop_sequence": stop_sequence or [],
+                "temperature": int(temperature * 100)  # Scale to 0-100 range
+            }
+            logging.debug(f"Prepared LLM request: {llm_request}")
+
+            # Prepare run function
+            run_function = contract.functions.runLLM(llm_request)
+
+            # Build transaction
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            gas_limit = int(estimated_gas * 1.2)
+
+            transaction = run_function.build_transaction({
+                'from': self.wallet_address,
+                'nonce': nonce,
+                'gas': gas_limit,
+                'gasPrice': self._w3.eth.gas_price,
+            })
+
+            # Sign and send transaction
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
+
+            # Wait for transaction receipt
+            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if tx_receipt['status'] == 0:
+                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
+
+            # Process the LLMResult event
+            llm_result = None
+            for log in tx_receipt['logs']:
+                try:
+                    decoded_log = contract.events.LLMResult().process_log(log)
+                    llm_result = decoded_log['args']['response']['answer']
+                    break
+                except:
+                    continue
+
+            if llm_result is None:
+                raise OpenGradientError("LLMResult event not found in transaction logs")
+
+            logging.debug(f"LLM output: {llm_result}")
+
+            return tx_hash.hex(), llm_result
+
+        except ContractLogicError as e:
+            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"LLM inference failed due to contract logic error: {str(e)}")
         except Exception as e:
-            logging.error(f"Authentication failed: {str(e)}")
-            raise
+            logging.error(f"Error in infer_llm method: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"LLM inference failed: {str(e)}")
+
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
