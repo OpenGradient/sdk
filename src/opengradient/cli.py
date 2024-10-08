@@ -181,7 +181,7 @@ def infer(ctx, model_cid, inference_mode, input_data, input_file):
         tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
 
         click.secho("Success!", fg="green")
-        click.echo(f"Transaction hash: 0x{tx_hash}")
+        click.echo(f"Transaction hash: {tx_hash}")
         click.echo(f"Inference result:\n{pformat(model_output, indent=2, width=120)}")
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
