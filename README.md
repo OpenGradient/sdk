@@ -41,7 +41,7 @@ og.list_files(model_name="<model_name>", version="<version>")
 ### Run Inference
 ```python
 inference_mode = og.InferenceMode.VANILLA
-inference_cid = og.infer(model_cid, model_inputs, inference_mode)
+og.infer(model_cid, model_inputs, inference_mode)
 ```
 
 ## Using the CLI
