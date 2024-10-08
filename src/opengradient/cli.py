@@ -111,7 +111,7 @@ def client_settings(ctx):
         click.echo(f"\tEmail: not set")
 
 @cli.command()
-@click.option('--name', '-n', 'repo_name', required=True, help='Name of the new model repository')
+@click.option('--repo', '-r', 'repo_name', '--name', required=True, help='Name of the new model repository')
 @click.option('--description', '-d', required=True, help='Description of the model')
 @click.pass_obj
 def create_model(client: Client, repo_name: str, description: str):
@@ -134,7 +134,7 @@ def create_model(client: Client, repo_name: str, description: str):
         click.echo(f"Error creating model: {str(e)}")
 
 @cli.command()
-@click.option('--repo', '-r', 'repo_name', '--name', required=True, help='Name of the existing model repository')
+@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the existing model repository')
 @click.option('--notes', '-n', help='Version notes (optional)')
 @click.option('--major', '-m', is_flag=True, default=False, help='Flag to indicate a major version update')
 @click.pass_obj
