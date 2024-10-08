@@ -119,7 +119,7 @@ def cli(ctx):
             ctx.exit(1)
     else:
         click.echo("Insufficient information to create client. Some commands may not be available.")
-        click.echo("Please run 'opengradient session clear' and 'opengradient session init' and to reinitialize your session.")
+        click.echo("Please run 'opengradient session clear' and/or 'opengradient session init' and to reinitialize your session.")
         ctx.exit(1)
 
 
