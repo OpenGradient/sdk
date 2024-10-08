@@ -19,7 +19,7 @@ def generate_eth_account() -> EthAccount:
 
     return EthAccount(address=public_key, private_key=private_key)
 
-def get_user_random_seed():
+def _get_user_random_seed():
     print("Please type a random string of characters (the longer and more random, the better):")
     print("> ", end="")  # Add a '>' prompt on a new line
     return input().encode()
