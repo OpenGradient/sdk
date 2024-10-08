@@ -6,8 +6,6 @@ import hashlib
 
 EthAccount = namedtuple('EthAccount', ['address', 'private_key'])
 
-def register_with_hub(email: str, password: str):
-    pass
 
 def generate_eth_account() -> EthAccount:
     user_seed = _get_user_random_seed()

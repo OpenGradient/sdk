@@ -21,7 +21,7 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -53,7 +53,8 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
-        self.login(email, password)
+        if email is not None:
+            self.login(email, password)
 
     def _initialize_web3(self):
         """

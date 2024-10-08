@@ -6,18 +6,25 @@ from pathlib import Path
 import logging
 from pprint import pformat
 import webbrowser
+import sys
 
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
-from .account import EthAccount, generate_eth_account, register_with_hub
+from .account import EthAccount, generate_eth_account
 
-# Environment variable names
-PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
-RPC_URL_ENV = 'OPENGRADIENT_RPC_URL'
-CONTRACT_ADDRESS_ENV = 'OPENGRADIENT_CONTRACT_ADDRESS'
-EMAIL_ENV = 'OPENGRADIENT_EMAIL'
-PASSWORD_ENV = 'OPENGRADIENT_PASSWORD'
+SESSION_FILE = Path.home() / '.opengradient_session.json'
+
+
+def load_session():
+    if SESSION_FILE.exists():
+        with SESSION_FILE.open('r') as f:
+            return json.load(f)
+    return {}
+
+def save_session(ctx):
+    with SESSION_FILE.open('w') as f:
+        json.dump(ctx.obj, f)
 
 # Convert string to dictionary click parameter typing
 class DictParamType(click.ParamType):
@@ -50,50 +57,104 @@ InferenceModes = {
 }
 
 
-# TODO (Kyle): Once we're farther into development, we should remove the defaults for these options
-@click.group()
-@click.option('--private_key', 
-              envvar=PRIVATE_KEY_ENV, 
-              help='Your OpenGradient private key', 
-              default=DEFAULT_PRIVATE_KEY)
-@click.option('--rpc_url', 
-              envvar=RPC_URL_ENV, 
-              help='OpenGradient RPC URL address', 
-              default=DEFAULT_RPC_URL)
-@click.option('--contract_address', 
-              envvar=CONTRACT_ADDRESS_ENV, 
-              help='OpenGradient inference contract address', 
-              default=DEFAULT_INFERENCE_CONTRACT_ADDRESS)
-@click.option('--email', 
-              envvar=EMAIL_ENV,
-              help='Your OpenGradient Hub email address -- not required for inference', 
-              default=DEFAULT_HUB_EMAIL)
-@click.option('--password', 
-              envvar=PASSWORD_ENV, 
-              help='Your OpenGradient Hub password -- not required for inference', 
-              default=DEFAULT_HUB_PASSWORD)
-@click.pass_context
-def cli(ctx, private_key, rpc_url, contract_address, email, password):
-    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
+def initialize_session(ctx):
+    """Interactively initialize session data"""
+    click.echo("Initializing OpenGradient session data...")
+    click.secho(f"Session data will be stored in: {SESSION_FILE}", fg='cyan')
 
-    if not private_key:
-        click.echo("Please provide a private key via flag or setting environment variable OPENGRADIENT_PRIVATE_KEY")
-    if not rpc_url:
-        click.echo("Please provide a RPC URL via flag or setting environment variable OPENGRADIENT_RPC_URL")
-    if not contract_address:
-        click.echo("Please provide a contract address via flag or setting environment variable OPENGRADIENT_CONTRACT_ADDRESS")
-    if not private_key or not rpc_url or not contract_address:
-        ctx.exit(1)
+    # Check if user has an existing account
+    has_account = click.confirm("Do you already have an OpenGradient account?", default=True)
+
+    if not has_account:
+        eth_account = create_account_impl()
+        if eth_account is None:
+            click.echo("Account creation cancelled. Session initialization aborted.")
+            return
+        ctx.obj['private_key'] = eth_account.private_key
+    else:
+        ctx.obj['private_key'] = click.prompt("Enter your OpenGradient private key", type=str)
+
+    # Make email and password optional
+    email = click.prompt("Enter your OpenGradient Hub email address (optional, press Enter to skip)", 
+                         type=str, default='', show_default=False)
+    ctx.obj['email'] = email if email else None
+    password = click.prompt("Enter your OpenGradient Hub password (optional, press Enter to skip)", 
+                            type=str, hide_input=True, default='', show_default=False)
+    ctx.obj['password'] = password if password else None
+
+    ctx.obj['rpc_url'] = DEFAULT_RPC_URL
+    ctx.obj['contract_address'] = DEFAULT_INFERENCE_CONTRACT_ADDRESS
+    
+    save_session(ctx)
+    click.echo("Session data has been saved.")
+    click.secho("You can run 'opengradient show-session' to see configs.", fg='green')
+
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
+    # Load existing session data
+    ctx.obj = load_session()
+
+    no_client_commands = ['show-session', 'clear-session', 'init-session', 'create-account', 'version']
+
+    # Only create client if this is not a session management command
+    if ctx.invoked_subcommand in no_client_commands:
         return
 
-    try:
-        ctx.obj = Client(private_key=private_key, 
-                         rpc_url=rpc_url,
-                         contract_address=contract_address,
-                         email=email,
-                         password=password)
-    except Exception as e:
-        click.echo(f"Failed to create OpenGradient client: {str(e)}")
+    if all(key in ctx.obj for key in ['private_key', 'rpc_url', 'contract_address']):
+        try:
+            ctx.obj['client'] = Client(private_key=ctx.obj['private_key'], 
+                                        rpc_url=ctx.obj['rpc_url'],
+                                        contract_address=ctx.obj['contract_address'],
+                                        email=ctx.obj.get('email'),
+                                        password=ctx.obj.get('password'))
+        except Exception as e:
+            click.echo(f"Failed to create OpenGradient client: {str(e)}")
+            ctx.exit(1)
+    else:
+        click.echo("Insufficient information to create client. Some commands may not be available.")
+        click.echo("Please run 'opengradient clear-session' and 'opengradient init-session' and to reinitialize your session.")
+        ctx.exit(1)
+
+
+@cli.command()
+@click.pass_context
+def init_session(ctx):
+    """Initialize or reinitialize the OpenGradient session data"""
+    initialize_session(ctx)
+    click.echo("Session has been initialized.")
+
+
+@cli.command()
+@click.pass_context
+def show_session(ctx):
+    """Display current session information"""
+    click.secho(f"Session file location: {SESSION_FILE}", fg='cyan')
+
+    if not ctx.obj:
+        click.echo("Session is empty. Run 'opengradient init-session' to initialize it.")
+        return
+
+    click.echo("Current session information:")
+    for key, value in ctx.obj.items():
+        if key != 'client':  # Don't display the client object
+            if key == 'password' and value is not None:
+                click.echo(f"{key}: {'*' * len(value)}")  # Mask the password
+            elif value is None:
+                click.echo(f"{key}: Not set")
+            else:
+                click.echo(f"{key}: {value}") 
+
+
+@cli.command()
+@click.pass_context
+def clear_session(ctx):
+    """Clear all saved session data"""
+    ctx.obj.clear()
+    save_session(ctx)
+    click.echo("Session data cleared.")
 
 
 @cli.command()
@@ -191,7 +252,8 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     opengradient infer --model Qm... --mode VANILLA --input '{"key": "value"}'
     opengradient infer -m Qm... -i ZKML -f input_data.json
     """
-    client: Client = ctx.obj
+    client: Client = ctx.obj['client']
+
     try:
         if not input_data and not input_file:
             click.echo("Must specify either input_data or input_file")
@@ -226,14 +288,14 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 
 @cli.command()
 def create_account():
+    create_account_impl()
+
+
+def create_account_impl() -> EthAccount:
     """Create a new test account for OpenGradient inference and model management"""
     click.echo("\n" + "=" * 50)
     click.echo("OpenGradient Account Creation Wizard".center(50))
     click.echo("=" * 50 + "\n")
-
-    if not click.confirm("Are you sure you want to create a new OpenGradient account?"):
-        click.echo("Account creation cancelled.")
-        return
 
     click.echo("\n" + "-" * 50)
     click.echo("Step 1: Create Account on OpenGradient Hub")
@@ -264,24 +326,7 @@ def create_account():
     click.secho(f"Private Key: {eth_account.private_key}", fg='green')
     click.secho("\nPlease save this information for your records.\n", fg='cyan')
 
-
-@cli.command()
-@click.pass_context
-def client_settings(ctx):
-    """Display OpenGradient client settings"""
-    client = ctx.obj
-    if not client:
-        click.echo("Client not initialized")
-        ctx.exit(1)
-        
-    click.echo("Settings for OpenGradient client:")
-    click.echo(f"\tPrivate key ({PRIVATE_KEY_ENV}): {client.private_key}")
-    click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
-    click.echo(f"\tContract address ({CONTRACT_ADDRESS_ENV}): {client.contract_address}")
-    if client.user:
-        click.echo(f"\tEmail ({EMAIL_ENV}): {client.user["email"]}")
-    else:
-        click.echo(f"\tEmail: not set")
+    return eth_account
 
 
 @cli.command()
