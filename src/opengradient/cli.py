@@ -111,43 +111,71 @@ def client_settings(ctx):
         click.echo(f"\tEmail: not set")
 
 @cli.command()
-@click.argument('model_repo_name', type=str)
-@click.argument('model_description', type=str)
+@click.option('--name', '-n', 'repo_name', required=True, help='Name of the new model repository')
+@click.option('--description', '-d', required=True, help='Description of the model')
 @click.pass_obj
-def create_model(client: Client, model_repo_name, model_description):
-    """Create a new model repository"""
+def create_model(client: Client, repo_name: str, description: str):
+    """
+    Create a new model repository.
+
+    This command creates a new model repository with the specified name and description.
+    The repository name should be unique within your account.
+
+    Example usage:
+
+    \b
+    opengradient create-model --name "my_new_model" --description "A new model for XYZ task"
+    opengradient create-model -n "my_new_model" -d "A new model for XYZ task"
+    """
     try:
-        result = client.create_model(model_repo_name, model_description)
+        result = client.create_model(repo_name, description)
         click.echo(f"Model repository created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating model: {str(e)}")
 
 @cli.command()
-@click.argument('model_repo_name', type=str)
-@click.option('--notes', type=str, default=None, help='Version notes')
-@click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
+@click.option('--repo', '-r', 'repo_name', '--name', required=True, help='Name of the existing model repository')
+@click.option('--notes', '-n', help='Version notes (optional)')
+@click.option('--major', '-m', is_flag=True, default=False, help='Flag to indicate a major version update')
 @click.pass_obj
-def create_version(client: Client, model_repo_name, notes, is_major):
-    """Create a new version in an existing model repository"""
+def create_version(client: Client, repo_name: str, notes: str, major: bool):
+    """Create a new version in an existing model repository.
+
+    This command creates a new version for the specified model repository. 
+    You can optionally provide version notes and indicate if it's a major version update.
+
+    Example usage:
+
+    \b
+    opengradient create-version --repo my_model_repo --notes "Added new feature X" --major
+    opengradient create-version -r my_model_repo -n "Bug fixes"
+    """
     try:
-        result = client.create_version(model_repo_name, notes, is_major)
+        result = client.create_version(repo_name, notes, major)
         click.echo(f"New version created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating version: {str(e)}")
 
 @cli.command()
-@click.argument('model_file_path', type=Path)
-@click.argument('model_repo_name', type=str)
-@click.argument('version', type=str)
+@click.argument('file_path', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
+                metavar='FILE_PATH')
+@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
+@click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
 @click.pass_obj
-def upload_file(client: Client, model_file_path, model_repo_name, version):
+def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
     """
     Upload a file to an existing model repository and version.
 
-    e.g. opengradient upload model.onnx "my_model_repo" "0.01"
+    FILE_PATH: Path to the file you want to upload (e.g., model.onnx)
+
+    Example usage:
+
+    \b
+    opengradient upload-file path/to/model.onnx --repo my_model_repo --version 0.01
+    opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01
     """
     try:
-        result = client.upload(model_file_path, model_repo_name, version)
+        result = client.upload(file_path, repo_name, version)
         click.echo(f"File uploaded successfully: {result}")
     except Exception as e:
         click.echo(f"Error uploading model: {str(e)}")
