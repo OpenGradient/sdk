@@ -5,10 +5,12 @@ import ast
 from pathlib import Path
 import logging
 from pprint import pformat
+import webbrowser
 
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
+from .account import EthAccount, generate_eth_account
 
 # Environment variable names
 PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
@@ -94,21 +96,17 @@ def cli(ctx, private_key, rpc_url, contract_address, email, password):
 
 @cli.command()
 @click.pass_context
-def client_settings(ctx):
-    """Display OpenGradient client settings"""
-    client = ctx.obj
-    if not client:
-        click.echo("Client not initialized")
-        ctx.exit(1)
-        
-    click.echo("Settings for OpenGradient client:")
-    click.echo(f"\tPrivate key ({PRIVATE_KEY_ENV}): {client.private_key}")
-    click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
-    click.echo(f"\tContract address ({CONTRACT_ADDRESS_ENV}): {client.contract_address}")
-    if client.user:
-        click.echo(f"\tEmail ({EMAIL_ENV}): {client.user["email"]}")
-    else:
-        click.echo(f"\tEmail: not set")
+@click.option('--email', '-e', 'email', required=True, help='Email address used for Model Hub')
+@click.option('--password', '-p', 'password', required=True, help='Password for Model Hub login')
+def create_account(ctx, email: str, password: str):
+    """Create a new test account for OpenGradient inference and model management"""
+    click.echo("Generating new account...")
+
+    eth_account = generate_eth_account()
+    click.echo(f"Generated new opengradient chain account, address: {eth_account.address}")
+
+    click.secho(f"Please fund your account clicking 'Request' on the Faucet website", fg='green')
+    webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
 
 @cli.command()
 @click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
@@ -234,6 +232,23 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     except Exception as e:
         click.echo(f"Error running inference: {str(e)}")
 
+@cli.command()
+@click.pass_context
+def client_settings(ctx):
+    """Display OpenGradient client settings"""
+    client = ctx.obj
+    if not client:
+        click.echo("Client not initialized")
+        ctx.exit(1)
+        
+    click.echo("Settings for OpenGradient client:")
+    click.echo(f"\tPrivate key ({PRIVATE_KEY_ENV}): {client.private_key}")
+    click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
+    click.echo(f"\tContract address ({CONTRACT_ADDRESS_ENV}): {client.contract_address}")
+    if client.user:
+        click.echo(f"\tEmail ({EMAIL_ENV}): {client.user["email"]}")
+    else:
+        click.echo(f"\tEmail: not set")
 
 @cli.command()
 def version():
