@@ -21,7 +21,7 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str = "test@test.com", password: str = "Test-123"):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -41,6 +41,8 @@ class Client:
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
+        self.email = email
+        self.password = password
         
         logging.debug("Initialized client with parameters:\n"
                       "private key: %s\n"
@@ -406,3 +408,48 @@ class Client:
         except Exception as e:
             logging.error(f"Authentication failed: {str(e)}")
             raise
+
+    def list_files(self, model_name: str, version: str) -> List[Dict]:
+        """
+        List files for a specific version of a model.
+
+        Args:
+            model_name (str): The unique identifier for the model.
+            version (str): The version identifier for the model.
+
+        Returns:
+            List[Dict]: A list of dictionaries containing file information.
+
+        Raises:
+            OpenGradientError: If the file listing fails.
+        """
+        if not self.user:
+            raise ValueError("User not authenticated")
+
+        url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
+        headers = {
+            'Authorization': f'Bearer {self.user["idToken"]}'
+        }
+
+        logging.debug(f"List Files URL: {url}")
+        logging.debug(f"Headers: {headers}")
+
+        try:
+            response = requests.get(url, headers=headers)
+            response.raise_for_status()
+
+            json_response = response.json()
+            logging.info(f"File listing successful. Number of files: {len(json_response)}")
+            
+            return json_response
+
+        except requests.RequestException as e:
+            logging.error(f"File listing failed: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logging.error(f"Response status code: {e.response.status_code}")
+                logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
+            raise OpenGradientError(f"File listing failed: {str(e)}", 
+                                    status_code=e.response.status_code if hasattr(e, 'response') else None)
+        except Exception as e:
+            logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")

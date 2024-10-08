@@ -64,11 +64,11 @@ InferenceModes = {
 @click.option('--email', 
               envvar=EMAIL_ENV,
               help='Your OpenGradient Hub email address -- not required for inference', 
-              default=DEFAULT_HUB_EMAIL)
+              required=True)
 @click.option('--password', 
               envvar=PASSWORD_ENV, 
               help='Your OpenGradient Hub password -- not required for inference', 
-              default=DEFAULT_HUB_PASSWORD)
+              required=True)
 @click.pass_context
 def cli(ctx, private_key, rpc_url, contract_address, email, password):
     """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
@@ -79,7 +79,11 @@ def cli(ctx, private_key, rpc_url, contract_address, email, password):
         click.echo("Please provide a RPC URL via flag or setting environment variable OPENGRADIENT_RPC_URL")
     if not contract_address:
         click.echo("Please provide a contract address via flag or setting environment variable OPENGRADIENT_CONTRACT_ADDRESS")
-    if not private_key or not rpc_url or not contract_address:
+    if not email:
+        click.echo("Please provide an email via flag or setting environment variable OPENGRADIENT_EMAIL")
+    if not password:
+        click.echo("Please provide a password via flag or setting environment variable OPENGRADIENT_PASSWORD")
+    if not private_key or not rpc_url or not contract_address or not email or not password:
         ctx.exit(1)
         return
 
@@ -239,6 +243,33 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 def version():
     """Return version of OpenGradient CLI"""
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
+
+@cli.command()
+@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
+@click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
+@click.pass_obj
+def list_files(client: Client, repo_name: str, version: str):
+    """
+    List files for a specific version of a model repository.
+
+    This command lists all files associated with the specified model repository and version.
+
+    Example usage:
+
+    \b
+    opengradient list-files --repo my_model_repo --version 0.01
+    opengradient list-files -r my_model_repo -v 0.01
+    """
+    try:
+        files = client.list_files(repo_name, version)
+        if files:
+            click.echo(f"Files for {repo_name} version {version}:")
+            for file in files:
+                click.echo(f"  - {file['name']} (Size: {file['size']} bytes)")
+        else:
+            click.echo(f"No files found for {repo_name} version {version}")
+    except Exception as e:
+        click.echo(f"Error listing files: {str(e)}")
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
