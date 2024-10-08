@@ -113,11 +113,11 @@ def client_settings(ctx):
 @click.argument('model_id', type=str)
 @click.argument('version_id', type=str)
 @click.pass_obj
-def upload(client, model_path, model_id, version_id):
-    """Upload a model"""
+def upload(client: Client, model_path, model_id, version_id):
+    """Upload a file to a model"""
     try:
         result = client.upload(model_path, model_id, version_id)
-        click.echo(f"Model uploaded successfully: {result}")
+        click.echo(f"File uploaded successfully: {result}")
     except Exception as e:
         click.echo(f"Error uploading model: {str(e)}")
 
@@ -125,7 +125,7 @@ def upload(client, model_path, model_id, version_id):
 @click.argument('model_name', type=str)
 @click.argument('model_desc', type=str)
 @click.pass_obj
-def create_model(client, model_name, model_desc):
+def create_model(client: Client, model_name, model_desc):
     """Create a new model"""
     try:
         result = client.create_model(model_name, model_desc)
@@ -138,7 +138,7 @@ def create_model(client, model_name, model_desc):
 @click.option('--notes', type=str, default=None, help='Version notes')
 @click.option('--is-major', default=False, is_flag=True, help='Is this a major version')
 @click.pass_obj
-def create_version(client, model_id, notes, is_major):
+def create_version(client: Client, model_id, notes, is_major):
     """Create a new version of a model"""
     try:
         result = client.create_version(model_id, notes, is_major)
