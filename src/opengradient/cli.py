@@ -62,7 +62,6 @@ def initialize_session(ctx):
     if ctx.obj:  # Check if session data already exists
         click.echo("A session already exists. Please run 'opengradient clear-session' first if you want to reinitialize.")
         click.echo("You can view your current session with 'opengradient show-session'.")
-        return
 
     click.echo("Initializing OpenGradient session data...")
     click.secho(f"Session data will be stored in: {SESSION_FILE}", fg='cyan')
@@ -344,6 +343,34 @@ def create_account_impl() -> EthAccount:
 def version():
     """Return version of OpenGradient CLI"""
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
+
+
+@cli.command()
+@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
+@click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
+@click.pass_obj
+def list_files(client: Client, repo_name: str, version: str):
+    """
+    List files for a specific version of a model repository.
+
+    This command lists all files associated with the specified model repository and version.
+
+    Example usage:
+
+    \b
+    opengradient list-files --repo my_model_repo --version 0.01
+    opengradient list-files -r my_model_repo -v 0.01
+    """
+    try:
+        files = client.list_files(repo_name, version)
+        if files:
+            click.echo(f"Files for {repo_name} version {version}:")
+            for file in files:
+                click.echo(f"  - {file['name']} (Size: {file['size']} bytes)")
+        else:
+            click.echo(f"No files found for {repo_name} version {version}")
+    except Exception as e:
+        click.echo(f"Error listing files: {str(e)}")
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
-# OpenGradient Python SDK
+# OpenGradient SDK
 
-Python SDK for OpenGradient inference services.
+Python SDK for OpenGradient decentralized model management & inference services.
 
 ## Installation
 ```python
@@ -10,40 +10,46 @@ pip install opengradient
 ## Quick Start
 ```python
 import opengradient as og
-og.init(private_key="x", rpc_url="y", contract_address="z")
-```
-
-### Sign in with Email
-```python
-og.login(email="you@opengradient.ai", password="xyz")
+og.init(email="<email>", password="<password>")
 ```
 
 ### Create a Model
 ```python
-og.create_model(model_name="test-network-model", model_desc="testing upload to sdk")
+og.create_model(model_name="<model_name>", model_desc="<model_description>")
+```
+
+### Create a Model (with file upload)
+```python
+og.create_model(model_name="<model_name>", model_desc="<model_description>", model_path="<model_path>")
 ```
 
 ### Create a Version of a Model
 ```python
-og.create_version(model_name="test-network-model", notes="test notes")
+og.create_version(model_name="<model_name>", notes="<model_notes>")
 ```
 
 ### Upload Files to a Model
 ```python
-og.upload(model_path="local_path_to_your_model.onnx", model_name="test-network-model", version="0.01")
+og.upload(model_path="<model_path>", model_name="<model_name>", version="<version>")
+```
+
+### List Files of a Model Version
+```python
+og.list_files(model_name="<model_name>", version="<version>")
 ```
 
 ### Run Inference
 ```python
 inference_mode = og.InferenceMode.VANILLA
-inference_cid = og.infer(model_cid, model_inputs, inference_mode)
-```
-
-```python
-og.infer(model_id, inference_mode, model_input)
+og.infer(model_cid, model_inputs, inference_mode)
 ```
 
 ## Using the CLI
+
+```bash
+export OPENGRADIENT_EMAIL="<email>"
+export OPENGRADIENT_PASSWORD="<password>"
+```
 
 #### Creating a Model
 ```bash
@@ -58,7 +64,12 @@ opengradient create_model "<model_name>" "<description>"
 
 #### Upload a File
 ```bash
-opengradient upload "path/to/model.onnx" "<model_name>" "<version>" 
+opengradient upload "<model_path>" "<model_name>" "<version>" 
+```
+
+#### List Files of a Model Version
+```bash
+opengradient list_files "<model_name>" "<version>"
 ```
 
 ####  CLI infer using string 
