@@ -51,8 +51,8 @@ og.infer(model_id, inference_mode, model_input)
 ## Using the CLI
 
 ```bash
-export OPENGRADIENT_EMAIL=user@opengradient.ai
-export OPENGRADIENT_PASSWORD=password
+export OPENGRADIENT_EMAIL="<email>"
+export OPENGRADIENT_PASSWORD="<password>"
 ```
 
 #### Creating a Model
