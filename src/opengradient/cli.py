@@ -13,17 +13,17 @@ from .defaults import *
 from .types import InferenceMode
 from .account import EthAccount, generate_eth_account
 
-SESSION_FILE = Path.home() / '.opengradient_session.json'
+OG_CONFIG_FILE = Path.home() / '.opengradient_config.json'
 
 
-def load_session():
-    if SESSION_FILE.exists():
-        with SESSION_FILE.open('r') as f:
+def load_og_config():
+    if OG_CONFIG_FILE.exists():
+        with OG_CONFIG_FILE.open('r') as f:
             return json.load(f)
     return {}
 
-def save_session(ctx):
-    with SESSION_FILE.open('w') as f:
+def save_og_config(ctx):
+    with OG_CONFIG_FILE.open('w') as f:
         json.dump(ctx.obj, f)
 
 # Convert string to dictionary click parameter typing
@@ -57,14 +57,14 @@ InferenceModes = {
 }
 
 
-def initialize_session(ctx):
-    """Interactively initialize session data"""
-    if ctx.obj:  # Check if session data already exists
-        click.echo("A session already exists. Please run 'opengradient clear-session' first if you want to reinitialize.")
-        click.echo("You can view your current session with 'opengradient show-session'.")
+def initialize_config(ctx):
+    """Interactively initialize OpenGradient config"""
+    if ctx.obj:  # Check if config data already exists
+        click.echo("A config already exists. Please run 'opengradient config clear' first if you want to reinitialize.")
+        click.echo("You can view your current config with 'opengradient config show'.")
 
-    click.echo("Initializing OpenGradient session data...")
-    click.secho(f"Session data will be stored in: {SESSION_FILE}", fg='cyan')
+    click.echo("Initializing OpenGradient config...")
+    click.secho(f"Config will be stored in: {OG_CONFIG_FILE}", fg='cyan')
 
     # Check if user has an existing account
     has_account = click.confirm("Do you already have an OpenGradient account?", default=True)
@@ -72,7 +72,7 @@ def initialize_session(ctx):
     if not has_account:
         eth_account = create_account_impl()
         if eth_account is None:
-            click.echo("Account creation cancelled. Session initialization aborted.")
+            click.echo("Account creation cancelled. Config initialization aborted.")
             return
         ctx.obj['private_key'] = eth_account.private_key
     else:
@@ -89,21 +89,21 @@ def initialize_session(ctx):
     ctx.obj['rpc_url'] = DEFAULT_RPC_URL
     ctx.obj['contract_address'] = DEFAULT_INFERENCE_CONTRACT_ADDRESS
     
-    save_session(ctx)
-    click.echo("Session data has been saved.")
-    click.secho("You can run 'opengradient show-session' to see configs.", fg='green')
+    save_og_config(ctx)
+    click.echo("Config has been saved.")
+    click.secho("You can run 'opengradient config show' to see configs.", fg='green')
 
 
 @click.group()
 @click.pass_context
 def cli(ctx):
     """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
-    # Load existing session data
-    ctx.obj = load_session()
+    # Load existing config 
+    ctx.obj = load_og_config()
 
-    no_client_commands = ['session', 'create-account', 'version']
+    no_client_commands = ['config', 'create-account', 'version']
 
-    # Only create client if this is not a session management command
+    # Only create client if this is not a config management command
     if ctx.invoked_subcommand in no_client_commands:
         return
 
@@ -119,34 +119,34 @@ def cli(ctx):
             ctx.exit(1)
     else:
         click.echo("Insufficient information to create client. Some commands may not be available.")
-        click.echo("Please run 'opengradient session clear' and/or 'opengradient session init' and to reinitialize your session.")
+        click.echo("Please run 'opengradient config clear' and/or 'opengradient config init' and to reinitialize your configs.")
         ctx.exit(1)
 
 
 @cli.group()
-def session():
-    """Manage OpenGradient session configuration (credentials etc)"""
+def config():
+    """Manage your OpenGradient configuration (credentials etc)"""
     pass
 
 
-@session.command()
+@config.command()
 @click.pass_context
 def init(ctx):
-    """Initialize or reinitialize the OpenGradient session data"""
-    initialize_session(ctx)
+    """Initialize or reinitialize the OpenGradient config"""
+    initialize_config(ctx)
 
 
-@session.command()
+@config.command()
 @click.pass_context
 def show(ctx):
-    """Display current session information"""
-    click.secho(f"Session file location: {SESSION_FILE}", fg='cyan')
+    """Display current config information"""
+    click.secho(f"Config file location: {OG_CONFIG_FILE}", fg='cyan')
 
     if not ctx.obj:
-        click.echo("Session is empty. Run 'opengradient session init' to initialize it.")
+        click.echo("Config is empty. Run 'opengradient config init' to initialize it.")
         return
 
-    click.echo("Current session information:")
+    click.echo("Current config:")
     for key, value in ctx.obj.items():
         if key != 'client':  # Don't display the client object
             if key == 'password' and value is not None:
@@ -157,20 +157,20 @@ def show(ctx):
                 click.echo(f"{key}: {value}") 
 
 
-@session.command()
+@config.command()
 @click.pass_context
 def clear(ctx):
-    """Clear all saved session data"""
+    """Clear all saved configs"""
     if not ctx.obj:
-        click.echo("No session data to clear.")
+        click.echo("No configs to clear.")
         return
 
-    if click.confirm("Are you sure you want to clear all session data? This action cannot be undone.", abort=True):
+    if click.confirm("Are you sure you want to clear all configs? This action cannot be undone.", abort=True):
         ctx.obj.clear()
-        save_session(ctx)
-        click.echo("Session data cleared.")
+        save_og_config(ctx)
+        click.echo("Configs cleared.")
     else:
-        click.echo("Session clear cancelled.")
+        click.echo("Config clear cancelled.")
 
 
 @cli.command()
