@@ -5,17 +5,26 @@ import ast
 from pathlib import Path
 import logging
 from pprint import pformat
+import webbrowser
+import sys
 
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
+from .account import EthAccount, generate_eth_account
 
-# Environment variable names
-PRIVATE_KEY_ENV = 'OPENGRADIENT_PRIVATE_KEY'
-RPC_URL_ENV = 'OPENGRADIENT_RPC_URL'
-CONTRACT_ADDRESS_ENV = 'OPENGRADIENT_CONTRACT_ADDRESS'
-EMAIL_ENV = 'OPENGRADIENT_EMAIL'
-PASSWORD_ENV = 'OPENGRADIENT_PASSWORD'
+OG_CONFIG_FILE = Path.home() / '.opengradient_config.json'
+
+
+def load_og_config():
+    if OG_CONFIG_FILE.exists():
+        with OG_CONFIG_FILE.open('r') as f:
+            return json.load(f)
+    return {}
+
+def save_og_config(ctx):
+    with OG_CONFIG_FILE.open('w') as f:
+        json.dump(ctx.obj, f)
 
 # Convert string to dictionary click parameter typing
 class DictParamType(click.ParamType):
@@ -47,78 +56,128 @@ InferenceModes = {
     "TEE": InferenceMode.TEE,
 }
 
-# TODO (Kyle): Once we're farther into development, we should remove the defaults for these options
-@click.group()
-@click.option('--private_key', 
-              envvar=PRIVATE_KEY_ENV, 
-              help='Your OpenGradient private key', 
-              default=DEFAULT_PRIVATE_KEY)
-@click.option('--rpc_url', 
-              envvar=RPC_URL_ENV, 
-              help='OpenGradient RPC URL address', 
-              default=DEFAULT_RPC_URL)
-@click.option('--contract_address', 
-              envvar=CONTRACT_ADDRESS_ENV, 
-              help='OpenGradient inference contract address', 
-              default=DEFAULT_INFERENCE_CONTRACT_ADDRESS)
-@click.option('--email', 
-              envvar=EMAIL_ENV,
-              help='Your OpenGradient Hub email address -- not required for inference', 
-              required=True)
-@click.option('--password', 
-              envvar=PASSWORD_ENV, 
-              help='Your OpenGradient Hub password -- not required for inference', 
-              required=True)
-@click.pass_context
-def cli(ctx, private_key, rpc_url, contract_address, email, password):
-    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
 
-    if not private_key:
-        click.echo("Please provide a private key via flag or setting environment variable OPENGRADIENT_PRIVATE_KEY")
-    if not rpc_url:
-        click.echo("Please provide a RPC URL via flag or setting environment variable OPENGRADIENT_RPC_URL")
-    if not contract_address:
-        click.echo("Please provide a contract address via flag or setting environment variable OPENGRADIENT_CONTRACT_ADDRESS")
-    if not email:
-        click.echo("Please provide an email via flag or setting environment variable OPENGRADIENT_EMAIL")
-    if not password:
-        click.echo("Please provide a password via flag or setting environment variable OPENGRADIENT_PASSWORD")
-    if not private_key or not rpc_url or not contract_address or not email or not password:
-        ctx.exit(1)
+def initialize_config(ctx):
+    """Interactively initialize OpenGradient config"""
+    if ctx.obj:  # Check if config data already exists
+        click.echo("A config already exists. Please run 'opengradient config clear' first if you want to reinitialize.")
+        click.echo("You can view your current config with 'opengradient config show'.")
+
+    click.echo("Initializing OpenGradient config...")
+    click.secho(f"Config will be stored in: {OG_CONFIG_FILE}", fg='cyan')
+
+    # Check if user has an existing account
+    has_account = click.confirm("Do you already have an OpenGradient account?", default=True)
+
+    if not has_account:
+        eth_account = create_account_impl()
+        if eth_account is None:
+            click.echo("Account creation cancelled. Config initialization aborted.")
+            return
+        ctx.obj['private_key'] = eth_account.private_key
+    else:
+        ctx.obj['private_key'] = click.prompt("Enter your OpenGradient private key", type=str)
+
+    # Make email and password optional
+    email = click.prompt("Enter your OpenGradient Hub email address (optional, press Enter to skip)", 
+                         type=str, default='', show_default=False)
+    ctx.obj['email'] = email if email else None
+    password = click.prompt("Enter your OpenGradient Hub password (optional, press Enter to skip)", 
+                            type=str, hide_input=True, default='', show_default=False)
+    ctx.obj['password'] = password if password else None
+
+    ctx.obj['rpc_url'] = DEFAULT_RPC_URL
+    ctx.obj['contract_address'] = DEFAULT_INFERENCE_CONTRACT_ADDRESS
+    
+    save_og_config(ctx)
+    click.echo("Config has been saved.")
+    click.secho("You can run 'opengradient config show' to see configs.", fg='green')
+
+
+@click.group()
+@click.pass_context
+def cli(ctx):
+    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
+    # Load existing config 
+    ctx.obj = load_og_config()
+
+    no_client_commands = ['config', 'create-account', 'version']
+
+    # Only create client if this is not a config management command
+    if ctx.invoked_subcommand in no_client_commands:
         return
 
-    try:
-        ctx.obj = Client(private_key=private_key, 
-                         rpc_url=rpc_url,
-                         contract_address=contract_address,
-                         email=email,
-                         password=password)
-    except Exception as e:
-        click.echo(f"Failed to create OpenGradient client: {str(e)}")
-
-@cli.command()
-@click.pass_context
-def client_settings(ctx):
-    """Display OpenGradient client settings"""
-    client = ctx.obj
-    if not client:
-        click.echo("Client not initialized")
-        ctx.exit(1)
-        
-    click.echo("Settings for OpenGradient client:")
-    click.echo(f"\tPrivate key ({PRIVATE_KEY_ENV}): {client.private_key}")
-    click.echo(f"\tRPC URL ({RPC_URL_ENV}): {client.rpc_url}")
-    click.echo(f"\tContract address ({CONTRACT_ADDRESS_ENV}): {client.contract_address}")
-    if client.user:
-        click.echo(f"\tEmail ({EMAIL_ENV}): {client.user["email"]}")
+    if all(key in ctx.obj for key in ['private_key', 'rpc_url', 'contract_address']):
+        try:
+            ctx.obj['client'] = Client(private_key=ctx.obj['private_key'], 
+                                        rpc_url=ctx.obj['rpc_url'],
+                                        contract_address=ctx.obj['contract_address'],
+                                        email=ctx.obj.get('email'),
+                                        password=ctx.obj.get('password'))
+        except Exception as e:
+            click.echo(f"Failed to create OpenGradient client: {str(e)}")
+            ctx.exit(1)
     else:
-        click.echo(f"\tEmail: not set")
+        click.echo("Insufficient information to create client. Some commands may not be available.")
+        click.echo("Please run 'opengradient config clear' and/or 'opengradient config init' and to reinitialize your configs.")
+        ctx.exit(1)
+
+
+@cli.group()
+def config():
+    """Manage your OpenGradient configuration (credentials etc)"""
+    pass
+
+
+@config.command()
+@click.pass_context
+def init(ctx):
+    """Initialize or reinitialize the OpenGradient config"""
+    initialize_config(ctx)
+
+
+@config.command()
+@click.pass_context
+def show(ctx):
+    """Display current config information"""
+    click.secho(f"Config file location: {OG_CONFIG_FILE}", fg='cyan')
+
+    if not ctx.obj:
+        click.echo("Config is empty. Run 'opengradient config init' to initialize it.")
+        return
+
+    click.echo("Current config:")
+    for key, value in ctx.obj.items():
+        if key != 'client':  # Don't display the client object
+            if key == 'password' and value is not None:
+                click.echo(f"{key}: {'*' * len(value)}")  # Mask the password
+            elif value is None:
+                click.echo(f"{key}: Not set")
+            else:
+                click.echo(f"{key}: {value}") 
+
+
+@config.command()
+@click.pass_context
+def clear(ctx):
+    """Clear all saved configs"""
+    if not ctx.obj:
+        click.echo("No configs to clear.")
+        return
+
+    if click.confirm("Are you sure you want to clear all configs? This action cannot be undone.", abort=True):
+        ctx.obj.clear()
+        save_og_config(ctx)
+        click.echo("Configs cleared.")
+    else:
+        click.echo("Config clear cancelled.")
+
 
 @cli.command()
 @click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
 @click.option('--description', '-d', required=True, help='Description of the model')
 @click.pass_obj
-def create_model_repo(client: Client, repo_name: str, description: str):
+def create_model_repo(obj, repo_name: str, description: str):
     """
     Create a new model repository.
 
@@ -131,18 +190,21 @@ def create_model_repo(client: Client, repo_name: str, description: str):
     opengradient create-model-repo --name "my_new_model" --description "A new model for XYZ task"
     opengradient create-model-repo -n "my_new_model" -d "A new model for XYZ task"
     """
+    client: Client = obj['client']
+
     try:
         result = client.create_model(repo_name, description)
         click.echo(f"Model repository created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating model: {str(e)}")
 
+
 @cli.command()
 @click.option('--repo', '-r', 'repo_name', required=True, help='Name of the existing model repository')
 @click.option('--notes', '-n', help='Version notes (optional)')
 @click.option('--major', '-m', is_flag=True, default=False, help='Flag to indicate a major version update')
 @click.pass_obj
-def create_version(client: Client, repo_name: str, notes: str, major: bool):
+def create_version(obj, repo_name: str, notes: str, major: bool):
     """Create a new version in an existing model repository.
 
     This command creates a new version for the specified model repository. 
@@ -154,11 +216,14 @@ def create_version(client: Client, repo_name: str, notes: str, major: bool):
     opengradient create-version --repo my_model_repo --notes "Added new feature X" --major
     opengradient create-version -r my_model_repo -n "Bug fixes"
     """
+    client: Client = obj['client']
+
     try:
         result = client.create_version(repo_name, notes, major)
         click.echo(f"New version created successfully: {result}")
     except Exception as e:
         click.echo(f"Error creating version: {str(e)}")
+
 
 @cli.command()
 @click.argument('file_path', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
@@ -166,7 +231,7 @@ def create_version(client: Client, repo_name: str, notes: str, major: bool):
 @click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
 @click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
 @click.pass_obj
-def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
+def upload_file(obj, file_path: Path, repo_name: str, version: str):
     """
     Upload a file to an existing model repository and version.
 
@@ -178,11 +243,14 @@ def upload_file(client: Client, file_path: Path, repo_name: str, version: str):
     opengradient upload-file path/to/model.onnx --repo my_model_repo --version 0.01
     opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01
     """
+    client: Client = obj['client']
+
     try:
         result = client.upload(file_path, repo_name, version)
         click.echo(f"File uploaded successfully: {result}")
     except Exception as e:
         click.echo(f"Error uploading model: {str(e)}")
+
 
 @cli.command()
 @click.option('--model', '-m', 'model_cid', required=True, help='CID of the model to run inference on')
@@ -206,7 +274,8 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     opengradient infer --model Qm... --mode VANILLA --input '{"key": "value"}'
     opengradient infer -m Qm... -i ZKML -f input_data.json
     """
-    client: Client = ctx.obj
+    client: Client = ctx.obj['client']
+
     try:
         if not input_data and not input_file:
             click.echo("Must specify either input_data or input_file")
@@ -240,9 +309,53 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 
 
 @cli.command()
+def create_account():
+    """Create a new test account for OpenGradient inference and model management"""
+    create_account_impl()
+
+
+def create_account_impl() -> EthAccount:
+    click.echo("\n" + "=" * 50)
+    click.echo("OpenGradient Account Creation Wizard".center(50))
+    click.echo("=" * 50 + "\n")
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 1: Create Account on OpenGradient Hub")
+    click.echo("-" * 50)
+
+    click.echo(f"Please create an account on the OpenGradient Hub")
+    webbrowser.open(DEFAULT_HUB_SIGNUP_URL, new=2)
+    click.confirm("Have you successfully created your account on the OpenGradient Hub?", abort=True)
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 2: Generate Ethereum Account")
+    click.echo("-" * 50)
+    eth_account = generate_eth_account()
+    click.echo(f"Generated OpenGradient chain account with address: {eth_account.address}")
+
+    click.echo("\n" + "-" * 50)
+    click.echo("Step 3: Fund Your Account")
+    click.echo("-" * 50)
+    click.echo(f"Please fund your account clicking 'Request' on the Faucet website")
+    webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
+    click.confirm("Have you successfully funded your account using the Faucet?", abort=True)
+
+    click.echo("\n" + "=" * 50)
+    click.echo("Account Creation Complete!".center(50))
+    click.echo("=" * 50)
+    click.echo("\nYour OpenGradient account has been successfully created and funded.")
+    click.secho(f"Address: {eth_account.address}", fg='green')
+    click.secho(f"Private Key: {eth_account.private_key}", fg='green')
+    click.secho("\nPlease save this information for your records.\n", fg='cyan')
+
+    return eth_account
+
+
+@cli.command()
 def version():
     """Return version of OpenGradient CLI"""
     click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
+
 
 @cli.command()
 @click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
@@ -270,6 +383,7 @@ def list_files(client: Client, repo_name: str, version: str):
             click.echo(f"No files found for {repo_name} version {version}")
     except Exception as e:
         click.echo(f"Error listing files: {str(e)}")
+
 
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
