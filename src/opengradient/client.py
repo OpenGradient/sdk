@@ -55,7 +55,8 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
-        self.login(email, password)
+        if email is not None:
+            self.login(email, password)
 
     def login(self, email, password):
         try:
