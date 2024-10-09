@@ -55,7 +55,8 @@ class Client:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
-        self.login(email, password)
+        if email is not None:
+            self.login(email, password)
 
     def login(self, email, password):
         try:
@@ -414,8 +415,7 @@ class Client:
                   prompt: str, 
                   max_tokens: int = 100, 
                   stop_sequence: Optional[List[str]] = None, 
-                  temperature: float = 0.0,
-                  seed: Optional[int] = None) -> Tuple[str, str]:
+                  temperature: float = 0.0) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
 
@@ -425,7 +425,6 @@ class Client:
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-            seed (int, optional): Seed for random number generator. Default is None.
 
         Returns:
             Tuple[str, str]: The transaction hash and the LLM output.
@@ -443,7 +442,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": 0,  # Assuming 0 is for completions
+                "mode": InferenceMode.VANILLA,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
