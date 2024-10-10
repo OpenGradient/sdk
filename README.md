@@ -14,7 +14,7 @@ To get started, run:
 
 ```python
 import opengradient as og
-og.init(email="<email>", password="<password>")
+og.init(private_key="<private_key>", email="<email>", password="<password>")
 ```
 
 The following commands show how to use Python SDK.
