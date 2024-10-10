@@ -32,6 +32,8 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
+        self.email = email
+        self.password = password
         self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
@@ -41,8 +43,6 @@ class Client:
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
-        self.email = email
-        self.password = password
         
         logging.debug("Initialized client with parameters:\n"
                       "private key: %s\n"
