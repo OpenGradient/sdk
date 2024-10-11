@@ -1,14 +1,14 @@
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
-from typing import List, Dict, Tuple, Optional
-__version__ = "0.3.0"
+from typing import List, Dict
+__version__ = "0.3.1"
 
 _client = None
 
 def init(email: str,
          password: str,
-         private_key=DEFAULT_PRIVATE_KEY,
+         private_key: str,
          rpc_url=DEFAULT_RPC_URL,
          contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
     global _client

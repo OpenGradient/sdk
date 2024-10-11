@@ -1,17 +1,23 @@
-# OpenGradient SDK
-
-Python SDK for OpenGradient decentralized model management & inference services.
+# OpenGradient Python SDK
+Python SDK for the OpenGradient platform provides decentralized model management & inference services. Python SDK allows programmatic access to our model repository and decentralized AI infrastructure. 
 
 ## Installation
+
+To install Python SDK and CLI, run the following command:
 ```python
 pip install opengradient
 ```
 
 ## Quick Start
+
+To get started, run:
+
 ```python
 import opengradient as og
-og.init(email="<email>", password="<password>")
+og.init(private_key="<private_key>", email="<email>", password="<password>")
 ```
+
+The following commands show how to use Python SDK.
 
 ### Create a Model
 ```python
@@ -43,6 +49,8 @@ og.list_files(model_name="<model_name>", version="<version>")
 inference_mode = og.InferenceMode.VANILLA
 og.infer(model_cid, model_inputs, inference_mode)
 ```
+ - inference mode can be `VANILLA`, `ZKML`, or `TEE`
+
 
 ## Using the CLI
 
@@ -51,15 +59,15 @@ export OPENGRADIENT_EMAIL="<email>"
 export OPENGRADIENT_PASSWORD="<password>"
 ```
 
-#### Creating a Model
+#### Creating a Model Repo
 ```bash
-opengradient create_model "<model_name>" "<description>" 
+opengradient create_model_repo "<model_name>" "<description>" 
 ```
 - creating a model automatically initializes version `v0.01`
 
 #### Creating a Version
 ```bash
-opengradient create_model "<model_name>" "<description>" 
+opengradient create_model_repo "<model_name>" "<description>" 
 ```
 
 #### Upload a File
@@ -81,3 +89,5 @@ opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA '{"num
 ```bash
 opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA --input_file input.json
 ```
+
+For more information read the OpenGradient [documentation](https://docs.opengradient.ai/).

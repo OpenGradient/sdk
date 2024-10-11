@@ -98,7 +98,13 @@ def initialize_config(ctx):
 @click.group()
 @click.pass_context
 def cli(ctx):
-    """CLI for OpenGradient SDK. Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation."""
+    """
+    CLI for OpenGradient SDK. 
+
+    Run 'opengradient config show' to make sure you have configs set up.
+    
+    Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation.
+    """
     # Load existing config 
     ctx.obj = load_og_config()
 
@@ -150,7 +156,7 @@ def show(ctx):
     click.echo("Current config:")
     for key, value in ctx.obj.items():
         if key != 'client':  # Don't display the client object
-            if key == 'password' and value is not None:
+            if (key == 'password' or key == 'private_key') and value is not None:
                 click.echo(f"{key}: {'*' * len(value)}")  # Mask the password
             elif value is None:
                 click.echo(f"{key}: Not set")
