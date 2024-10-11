@@ -90,4 +90,9 @@ opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA '{"num
 opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA --input_file input.json
 ```
 
+#### Run LLM Inference
+```bash
+opengradient llm --model "meta-llama/Meta-Llama-3-8B-Instruct" --prompt "Translate to French: Hello, how are you?" --max-tokens 50 --temperature 0.7
+```
+
 For more information read the OpenGradient [documentation](https://docs.opengradient.ai/).
