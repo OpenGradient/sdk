@@ -5,6 +5,7 @@ import ast
 from pathlib import Path
 import logging
 from pprint import pformat
+from typing import List
 import webbrowser
 import sys
 
@@ -300,7 +301,6 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
             with input_file.open('r') as file:
                 model_input = json.load(file)
             
-        # Parse input data from string to dict
         click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"\n")
         tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
 
@@ -313,6 +313,41 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     except Exception as e:
         click.echo(f"Error running inference: {str(e)}")
 
+@cli.command()
+@click.option('--model', '-m', 'model_cid', required=True, help='CID of the LLM model to run inference on')
+@click.option('--prompt', '-p', required=True, help='Input prompt for the LLM')
+@click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM output')
+@click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
+@click.option('--temperature', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
+@click.pass_context
+def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
+    """
+    Run inference on an LLM model.
+
+    This command runs inference on the specified LLM model using the provided prompt and parameters.
+
+    Example usage:
+
+    \b
+    opengradient llm --model Qm... --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
+    opengradient llm -m Qm... -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
+    """
+    client: Client = ctx.obj['client']
+    try:
+        click.echo(f"Running LLM inference for model \"{model_cid}\"\n")
+        tx_hash, llm_output = client.infer_llm(
+            model_cid=model_cid,
+            prompt=prompt,
+            max_tokens=max_tokens,
+            stop_sequence=list(stop_sequence),
+            temperature=temperature
+        )
+
+        click.secho("Success!", fg="green")
+        click.echo(f"Transaction hash: {tx_hash}")
+        click.echo(f"LLM output:\n{llm_output}")
+    except Exception as e:
+        click.echo(f"Error running LLM inference: {str(e)}")
 
 @cli.command()
 def create_account():
