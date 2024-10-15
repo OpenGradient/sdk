@@ -6,6 +6,9 @@ from typing import List, Callable, Tuple
 import uuid
 import argparse
 
+# Number of requests to run serially
+NUM_REQUESTS = 1000
+
 def run_prompt(prompt: str):
     og.infer_llm(
         "meta-llama/Meta-Llama-3-8B-Instruct",
@@ -24,7 +27,7 @@ def generate_unique_prompt(request_id: int) -> str:
     
     return f"Request {request_id}: Tell me a {adjective} fact about {topic}. Unique ID: {unique_id}"
 
-def stress_test_wrapper(infer_function: Callable, num_requests: int = 1000) -> Tuple[List[float], int]:
+def stress_test_wrapper(infer_function: Callable, num_requests: int) -> Tuple[List[float], int]:
     """
     Wrapper function to stress test the LLM inference.
     
@@ -58,7 +61,7 @@ def main(private_key: str):
     # init with private key only
     og.init(private_key=private_key, email=None, password=None)
 
-    latencies, failures = stress_test_wrapper(run_prompt, num_requests=1000)
+    latencies, failures = stress_test_wrapper(run_prompt, num_requests=NUM_REQUESTS)
     
     # Calculate and print statistics
     total_requests = len(latencies) + failures
