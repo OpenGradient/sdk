@@ -79,16 +79,22 @@ def main(private_key: str):
     
     print("\nOpenGradient LLM Stress Test Results:")
     print(f"Using model '{MODEL}'")
-    print("=" * 20)
+    print("=" * 20 + "\n")
     print(f"Total Requests: {total_requests}")
     print(f"Successful Requests: {len(latencies)}")
     print(f"Failed Requests: {failures}")
-    print(f"Success Rate: {success_rate:.2f}%")
+    print(f"Success Rate: {success_rate:.2f}%\n")
     print(f"Average Latency: {avg_latency:.4f} seconds")
     print(f"Median Latency: {median_latency:.4f} seconds")
     print(f"Min Latency: {min_latency:.4f} seconds")
     print(f"Max Latency: {max_latency:.4f} seconds")
     print(f"95th Percentile Latency: {p95_latency:.4f} seconds")
+
+    if failures > 0:
+        print("\n🛑 WARNING: TEST FAILED")
+    else:
+        print("\n✅ NO FAILURES")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run LLM inference stress test")
