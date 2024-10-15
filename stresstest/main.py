@@ -64,7 +64,7 @@ def main(private_key: str):
     latencies, failures = stress_test_wrapper(run_prompt, num_requests=NUM_REQUESTS)
     
     # Calculate and print statistics
-    total_requests = len(latencies) + failures
+    total_requests = NUM_REQUESTS
     success_rate = (len(latencies) / total_requests) * 100 if total_requests > 0 else 0
     
     if latencies:
@@ -76,7 +76,8 @@ def main(private_key: str):
     else:
         avg_latency = median_latency = min_latency = max_latency = p95_latency = 0
     
-    print("\nTest Results:")
+    print("\nOpenGradient LLM Stress Test Results:")
+    print("=" * 20)
     print(f"Total Requests: {total_requests}")
     print(f"Successful Requests: {len(latencies)}")
     print(f"Failed Requests: {failures}")
