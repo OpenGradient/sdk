@@ -7,14 +7,14 @@ import uuid
 import argparse
 
 # Number of requests to run serially
-NUM_REQUESTS = 1000
+NUM_REQUESTS = 100
 MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 def run_prompt(prompt: str):
     og.infer_llm(
         MODEL,
         prompt,
-        max_tokens=100
+        max_tokens=50
     )
 
 def generate_unique_prompt(request_id: int) -> str:
@@ -26,7 +26,7 @@ def generate_unique_prompt(request_id: int) -> str:
     adjective = random.choice(adjectives)
     unique_id = str(uuid.uuid4())[:8]  # Use first 8 characters of a UUID
     
-    return f"Request {request_id}: Tell me a {adjective} fact about {topic}. Unique ID: {unique_id}"
+    return f"Request {request_id}: Tell me a {adjective} fact about {topic}. Keep it short. Unique ID: {unique_id}"
 
 def stress_test_wrapper(infer_function: Callable, num_requests: int) -> Tuple[List[float], int]:
     """
