@@ -1,10 +1,9 @@
 import opengradient as og
-import time
 import random
 import statistics
-from typing import List, Callable, Tuple
 import uuid
 import argparse
+from utils import stress_test_wrapper
 
 # Number of requests to run serially
 NUM_REQUESTS = 100
@@ -17,52 +16,11 @@ def run_prompt(prompt: str):
         max_tokens=50
     )
 
-def generate_unique_prompt(request_id: int) -> str:
-    """Generate a unique prompt for testing."""
-    topics = ["science", "history", "technology", "art", "sports", "music", "literature", "philosophy", "politics", "economics"]
-    adjectives = ["interesting", "surprising", "little-known", "controversial", "inspiring", "thought-provoking"]
-    
-    topic = random.choice(topics)
-    adjective = random.choice(adjectives)
-    unique_id = str(uuid.uuid4())[:8]  # Use first 8 characters of a UUID
-    
-    return f"Request {request_id}: Tell me a {adjective} fact about {topic}. Keep it short. Unique ID: {unique_id}"
-
-def stress_test_wrapper(infer_function: Callable, num_requests: int) -> Tuple[List[float], int]:
-    """
-    Wrapper function to stress test the LLM inference.
-    
-    Args:
-    infer_function (Callable): The LLM inference function to test.
-    num_requests (int): Number of requests to send. Default is 1000.
-    
-    Returns:
-    Tuple[List[float], int]: List of latencies for each request and the number of failures.
-    """
-    latencies = []
-    failures = 0
-    
-    for i in range(num_requests):
-        prompt = generate_unique_prompt(i)
-        start_time = time.time()
-        
-        try:
-            _ = infer_function(prompt)
-            end_time = time.time()
-            latency = end_time - start_time
-            latencies.append(latency)
-            print(f"Request {i+1}/{num_requests} completed. Latency: {latency:.4f} seconds")
-        except Exception as e:
-            failures += 1
-            print(f"Request {i+1}/{num_requests} failed. Error: {str(e)}")
-    
-    return latencies, failures
-
 def main(private_key: str):
     # init with private key only
     og.init(private_key=private_key, email=None, password=None)
 
-    latencies, failures = stress_test_wrapper(run_prompt, num_requests=NUM_REQUESTS)
+    latencies, failures = stress_test_wrapper(run_prompt, num_requests=NUM_REQUESTS, is_llm=True)
     
     # Calculate and print statistics
     total_requests = NUM_REQUESTS
