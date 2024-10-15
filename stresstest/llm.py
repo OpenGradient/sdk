@@ -8,10 +8,11 @@ import argparse
 
 # Number of requests to run serially
 NUM_REQUESTS = 1000
+MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 def run_prompt(prompt: str):
     og.infer_llm(
-        "meta-llama/Meta-Llama-3-8B-Instruct",
+        MODEL,
         prompt,
         max_tokens=100
     )
@@ -77,6 +78,7 @@ def main(private_key: str):
         avg_latency = median_latency = min_latency = max_latency = p95_latency = 0
     
     print("\nOpenGradient LLM Stress Test Results:")
+    print(f"Using model '{MODEL}'")
     print("=" * 20)
     print(f"Total Requests: {total_requests}")
     print(f"Successful Requests: {len(latencies)}")
