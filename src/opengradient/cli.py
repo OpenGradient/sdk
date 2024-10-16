@@ -118,7 +118,7 @@ def cli(ctx):
         try:
             ctx.obj['client'] = Client(private_key=ctx.obj['private_key'], 
                                         rpc_url=ctx.obj['rpc_url'],
-                                        contract_address=ctx.obj['contract_address'],
+                                        contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
                                         email=ctx.obj.get('email'),
                                         password=ctx.obj.get('password'))
         except Exception as e:
