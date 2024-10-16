@@ -301,12 +301,23 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
             with input_file.open('r') as file:
                 model_input = json.load(file)
             
-        click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"\n")
+        click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"")
         tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
 
-        click.secho("Success!", fg="green")
-        click.echo(f"Transaction hash: {tx_hash}")
-        click.echo(f"Inference result:\n{pformat(model_output, indent=2, width=120)}")
+        click.echo()  # Add a newline for better spacing
+        click.secho("✅ Transaction successful", fg="green", bold=True)
+        click.echo("──────────────────────────────────────")
+        click.echo(f"Transaction hash: ", nl=False)
+        click.secho(tx_hash, fg="cyan", bold=True)
+
+        block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
+        click.echo(f"Block explorer link: ", nl=False)
+        click.secho(block_explorer_link, fg="blue", underline=True)
+        click.echo()
+
+        click.secho("Inference result:", fg="green")
+        formatted_output = json.dumps(model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, 'tolist') else str(x))
+        click.echo(formatted_output)
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)
