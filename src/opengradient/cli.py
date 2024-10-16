@@ -354,11 +354,25 @@ def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[s
             temperature=temperature
         )
 
-        click.secho("Success!", fg="green")
-        click.echo(f"Transaction hash: {tx_hash}")
-        click.echo(f"LLM output:\n{llm_output}")
+        print_llm_inference_result(model_cid, tx_hash, llm_output)
     except Exception as e:
         click.echo(f"Error running LLM inference: {str(e)}")
+
+def print_llm_inference_result(model_cid, tx_hash, llm_output):
+    click.secho(f"✅ LLM Inference Successful", fg="green", bold=True)
+    click.echo("──────────────────────────────────────")
+    click.echo(f"Model CID: ", nl=False)
+    click.secho(model_cid, fg="cyan", bold=True)
+    click.echo(f"Transaction hash: ", nl=False)
+    click.secho(tx_hash, fg="cyan", bold=True)
+    block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
+    click.echo(f"Block explorer link: ", nl=False)
+    click.secho(block_explorer_link, fg="blue", underline=True)
+    click.echo("──────────────────────────────────────")
+    click.secho("LLM Output:", fg="yellow", bold=True)
+    click.echo()
+    click.echo(llm_output)
+    click.echo()
 
 @cli.command()
 def create_account():
