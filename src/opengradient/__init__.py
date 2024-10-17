@@ -1,8 +1,13 @@
+import os
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
 from typing import List, Dict, Optional, Tuple
+from huggingface_hub import snapshot_download
+import tempfile
+
 __version__ = "0.3.5"
+__all__ = ['init', 'upload', 'create_model', 'create_version', 'infer', 'infer_llm', 'login', 'list_files', 'InferenceMode']
 
 _client = None
 
@@ -60,3 +65,13 @@ def list_files(model_name: str, version: str) -> List[Dict]:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.list_files(model_name, version)
+
+def create_model_from_huggingface(repo_id: str, model_name: str, model_desc: str):
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        snapshot_download(repo_id, local_dir=temp_dir)
+        result = create_model(model_name, model_desc, temp_dir)
+    
+    return result

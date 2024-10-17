@@ -63,7 +63,7 @@ class Client:
             self.user = self.auth.sign_in_with_email_and_password(email, password)
             return self.user
         except Exception as e:
-            logging.error(f"Authentication failed: {str(e)}")
+            logging.error(f"Authentication failed: {str(e)}")=
             raise
 
     def _initialize_web3(self):

@@ -68,6 +68,7 @@ dependencies = [
     "grpcio==1.66.2",
     "grpcio-status==1.66.2",
     "hexbytes==1.2.1",
+    "huggingface_hub==0.16.4",
     "idna==3.10",
     "jaraco.classes==3.4.0",
     "jwcrypto==1.5.6",
