@@ -63,7 +63,7 @@ class Client:
             self.user = self.auth.sign_in_with_email_and_password(email, password)
             return self.user
         except Exception as e:
-            logging.error(f"Authentication failed: {str(e)}")=
+            logging.error(f"Authentication failed: {str(e)}")
             raise
 
     def _initialize_web3(self):
@@ -283,7 +283,6 @@ class Client:
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
                 return result
-
         except requests.RequestException as e:
             logging.error(f"Request exception during upload: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
