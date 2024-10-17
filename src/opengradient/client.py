@@ -283,6 +283,7 @@ class Client:
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
                 return result
+            
         except requests.RequestException as e:
             logging.error(f"Request exception during upload: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
