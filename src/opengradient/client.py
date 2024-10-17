@@ -10,6 +10,7 @@ import logging
 from typing import Dict, Optional, Tuple, Union, List
 from web3.exceptions import ContractLogicError
 import firebase
+import tempfile
 
 class Client:
     FIREBASE_CONFIG = {
