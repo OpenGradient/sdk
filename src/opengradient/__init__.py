@@ -7,7 +7,7 @@ from huggingface_hub import snapshot_download
 import tempfile
 
 __version__ = "0.3.5"
-__all__ = ['init', 'upload', 'create_model', 'create_version', 'infer', 'infer_llm', 'login', 'list_files', 'InferenceMode']
+__all__ = ['init', 'upload', 'create_model', 'create_version', 'infer', 'infer_llm', 'login', 'list_files', 'InferenceMode', 'create_model_from_huggingface']
 
 _client = None
 
