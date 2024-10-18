@@ -336,29 +336,22 @@ def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[s
     Run inference on an LLM model.
 
     This command runs inference on the specified LLM model using the provided prompt and parameters.
-
-    Example usage:
-
-    \b
-    opengradient llm --model Qm... --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
-    opengradient llm -m Qm... -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
     """
     client: Client = ctx.obj['client']
-    try:
-        click.echo(f"Running LLM inference for model \"{model_cid}\"\n")
-        tx_hash, llm_output = client.infer_llm(
-            model_cid=model_cid,
-            prompt=prompt,
-            max_tokens=max_tokens,
-            stop_sequence=list(stop_sequence),
-            temperature=temperature
-        )
+    result = client.infer_llm(
+        model_cid=model_cid,
+        prompt=prompt,
+        max_tokens=max_tokens,
+        stop_sequence=list(stop_sequence),
+        temperature=temperature
+    )
 
-        print_llm_inference_result(model_cid, tx_hash, llm_output)
-    except Exception as e:
-        click.echo(f"Error running LLM inference: {str(e)}")
+    if result['success']:
+        print_llm_inference_result(model_cid, result['tx_hash'], result['output'], result['gas_used'], result['block_number'])
+    else:
+        print_llm_inference_error(model_cid, result['error_type'], result['error_message'], result['tx_hash'])
 
-def print_llm_inference_result(model_cid, tx_hash, llm_output):
+def print_llm_inference_result(model_cid, tx_hash, llm_output, gas_used, block_number):
     click.secho(f"✅ LLM Inference Successful", fg="green", bold=True)
     click.echo("──────────────────────────────────────")
     click.echo(f"Model CID: ", nl=False)
@@ -368,10 +361,33 @@ def print_llm_inference_result(model_cid, tx_hash, llm_output):
     block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
     click.echo(f"Block explorer link: ", nl=False)
     click.secho(block_explorer_link, fg="blue", underline=True)
+    click.echo(f"Gas used: ", nl=False)
+    click.secho(str(gas_used), fg="yellow")
+    click.echo(f"Block number: ", nl=False)
+    click.secho(str(block_number), fg="yellow")
     click.echo("──────────────────────────────────────")
     click.secho("LLM Output:", fg="yellow", bold=True)
     click.echo()
     click.echo(llm_output)
+    click.echo()
+
+def print_llm_inference_error(model_cid, error_type, error_message, tx_hash):
+    click.secho(f"❌ LLM Inference Failed", fg="red", bold=True)
+    click.echo("──────────────────────────────────────")
+    click.echo(f"Model CID: ", nl=False)
+    click.secho(model_cid, fg="cyan", bold=True)
+    if tx_hash:
+        click.echo(f"Transaction hash: ", nl=False)
+        click.secho(tx_hash, fg="cyan", bold=True)
+        block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
+        click.echo(f"Block explorer link: ", nl=False)
+        click.secho(block_explorer_link, fg="blue", underline=True)
+    click.echo(f"Error type: ", nl=False)
+    click.secho(error_type, fg="red")
+    click.echo("──────────────────────────────────────")
+    click.secho("Error Message:", fg="red", bold=True)
+    click.echo()
+    click.echo(error_message)
     click.echo()
 
 @cli.command()

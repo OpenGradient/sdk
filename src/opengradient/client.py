@@ -7,7 +7,7 @@ from opengradient.types import InferenceMode
 from opengradient import utils
 import numpy as np
 import logging
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, Optional, Tuple, Union, List, Any
 from web3.exceptions import ContractLogicError
 import firebase
 
@@ -140,10 +140,19 @@ class Client:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response headers: {e.response.headers}")
                 logging.error(f"Response content: {e.response.text}")
-            raise Exception(f"Model creation failed: {str(e)}")
+            return {
+                "success": False,
+                "error_type": "RequestException",
+                "error_message": str(e),
+                "status_code": e.response.status_code if hasattr(e, 'response') else None
+            }
         except Exception as e:
             logging.error(f"Unexpected error during model creation: {str(e)}")
-            raise
+            return {
+                "success": False,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
 
     def create_version(self, model_name: str, notes: str = None, is_major: bool = False) -> dict:
         """
@@ -205,10 +214,19 @@ class Client:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response headers: {e.response.headers}")
                 logging.error(f"Response content: {e.response.text}")
-            raise Exception(f"Version creation failed: {str(e)}")
+            return {
+                "success": False,
+                "error_type": "RequestException",
+                "error_message": str(e),
+                "status_code": e.response.status_code if hasattr(e, 'response') else None
+            }
         except Exception as e:
             logging.error(f"Unexpected error during version creation: {str(e)}")
-            raise
+            return {
+                "success": False,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
 
     def upload(self, model_path: str, model_name: str, version: str) -> dict:
         """
@@ -289,11 +307,19 @@ class Client:
             if hasattr(e, 'response') and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}", 
-                                    status_code=e.response.status_code if hasattr(e, 'response') else None)
+            return {
+                "success": False,
+                "error_type": "RequestException",
+                "error_message": str(e),
+                "status_code": e.response.status_code if hasattr(e, 'response') else None
+            }
         except Exception as e:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
+            return {
+                "success": False,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
     
     def infer(self, model_cid: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
         """
@@ -405,33 +431,35 @@ class Client:
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"Inference failed due to contract logic error: {str(e)}")
+            return {
+                "success": False,
+                "error_type": "ContractLogicError",
+                "error_message": str(e),
+                "tx_hash": tx_hash.hex() if 'tx_hash' in locals() else None
+            }
+        except OpenGradientError as e:
+            logging.error(f"OpenGradient error: {str(e)}", exc_info=True)
+            return {
+                "success": False,
+                "error_type": "OpenGradientError",
+                "error_message": str(e),
+                "tx_hash": tx_hash.hex() if 'tx_hash' in locals() else None
+            }
         except Exception as e:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"Inference failed: {str(e)}")
+            return {
+                "success": False,
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+                "tx_hash": tx_hash.hex() if 'tx_hash' in locals() else None
+            }
         
-    def infer_llm(self, 
+    def infer_llm(self,
                   model_cid: str, 
                   prompt: str, 
                   max_tokens: int = 100, 
                   stop_sequence: Optional[List[str]] = None, 
-                  temperature: float = 0.0) -> Tuple[str, str]:
-        """
-        Perform inference on an LLM model using completions.
-
-        Args:
-            model_cid (str): The unique content identifier for the model.
-            prompt (str): The input prompt for the LLM.
-            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
-            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
-            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-
-        Returns:
-            Tuple[str, str]: The transaction hash and the LLM output.
-
-        Raises:
-            OpenGradientError: If the inference fails.
-        """
+                  temperature: float = 0.0) -> Dict[str, Any]:
         try:
             self._initialize_web3()
             
@@ -440,21 +468,17 @@ class Client:
                 llm_abi = json.load(abi_file)
             contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
 
-            # Prepare LLM input
             llm_request = {
                 "mode": InferenceMode.VANILLA,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
                 "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100)  # Scale to 0-100 range
+                "temperature": int(temperature * 100)
             }
-            logging.debug(f"Prepared LLM request: {llm_request}")
 
-            # Prepare run function
             run_function = contract.functions.runLLM(llm_request)
 
-            # Build transaction
             nonce = self._w3.eth.get_transaction_count(self.wallet_address)
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
@@ -466,18 +490,13 @@ class Client:
                 'gasPrice': self._w3.eth.gas_price,
             })
 
-            # Sign and send transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
             tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
-
-            # Wait for transaction receipt
             tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
-            # Process the LLMResult event
             llm_result = None
             for log in tx_receipt['logs']:
                 try:
@@ -490,17 +509,20 @@ class Client:
             if llm_result is None:
                 raise OpenGradientError("LLMResult event not found in transaction logs")
 
-            logging.debug(f"LLM output: {llm_result}")
-
-            return tx_hash.hex(), llm_result
-
-        except ContractLogicError as e:
-            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"LLM inference failed due to contract logic error: {str(e)}")
-        except Exception as e:
-            logging.error(f"Error in infer_llm method: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"LLM inference failed: {str(e)}")
-
+            return {
+                "success": True,
+                "tx_hash": tx_hash.hex(),
+                "output": llm_result,
+                "gas_used": tx_receipt['gasUsed'],
+                "block_number": tx_receipt['blockNumber']
+            }
+        except OpenGradientError as e:
+            return {
+                "success": False,
+                "error_type": "OpenGradientError",
+                "error_message": str(e),
+                "tx_hash": tx_hash.hex() if 'tx_hash' in locals() else None
+            }
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
