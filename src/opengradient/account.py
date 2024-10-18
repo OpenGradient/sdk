@@ -1,8 +1,9 @@
-from eth_account import Account
+import hashlib
+import os
 import secrets
 from collections import namedtuple
-import os
-import hashlib
+
+from eth_account import Account
 
 EthAccount = namedtuple('EthAccount', ['address', 'private_key'])
 

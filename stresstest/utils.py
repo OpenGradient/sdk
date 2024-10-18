@@ -1,7 +1,8 @@
-import uuid
-import time
 import random
-from typing import List, Callable, Tuple
+import time
+import uuid
+from typing import Callable, List, Tuple
+
 
 def generate_unique_input(request_id: int) -> dict:
     """Generate a unique input for testing."""

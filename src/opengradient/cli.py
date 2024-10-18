@@ -1,18 +1,18 @@
-import click
-import opengradient
-import json
 import ast
-from pathlib import Path
+import json
 import logging
-from pprint import pformat
-from typing import List
 import webbrowser
-import sys
+from pathlib import Path
+from typing import List
 
+import click
+
+import opengradient
+
+from .account import EthAccount, generate_eth_account
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
-from .account import EthAccount, generate_eth_account
 
 OG_CONFIG_FILE = Path.home() / '.opengradient_config.json'
 
@@ -307,11 +307,11 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
         click.echo()  # Add a newline for better spacing
         click.secho("✅ Transaction successful", fg="green", bold=True)
         click.echo("──────────────────────────────────────")
-        click.echo(f"Transaction hash: ", nl=False)
+        click.echo("Transaction hash: ", nl=False)
         click.secho(tx_hash, fg="cyan", bold=True)
 
         block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
-        click.echo(f"Block explorer link: ", nl=False)
+        click.echo("Block explorer link: ", nl=False)
         click.secho(block_explorer_link, fg="blue", underline=True)
         click.echo()
 
@@ -359,14 +359,14 @@ def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[s
         click.echo(f"Error running LLM inference: {str(e)}")
 
 def print_llm_inference_result(model_cid, tx_hash, llm_output):
-    click.secho(f"✅ LLM Inference Successful", fg="green", bold=True)
+    click.secho("✅ LLM Inference Successful", fg="green", bold=True)
     click.echo("──────────────────────────────────────")
-    click.echo(f"Model CID: ", nl=False)
+    click.echo("Model CID: ", nl=False)
     click.secho(model_cid, fg="cyan", bold=True)
-    click.echo(f"Transaction hash: ", nl=False)
+    click.echo("Transaction hash: ", nl=False)
     click.secho(tx_hash, fg="cyan", bold=True)
     block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
-    click.echo(f"Block explorer link: ", nl=False)
+    click.echo("Block explorer link: ", nl=False)
     click.secho(block_explorer_link, fg="blue", underline=True)
     click.echo("──────────────────────────────────────")
     click.secho("LLM Output:", fg="yellow", bold=True)
@@ -389,7 +389,7 @@ def create_account_impl() -> EthAccount:
     click.echo("Step 1: Create Account on OpenGradient Hub")
     click.echo("-" * 50)
 
-    click.echo(f"Please create an account on the OpenGradient Hub")
+    click.echo("Please create an account on the OpenGradient Hub")
     webbrowser.open(DEFAULT_HUB_SIGNUP_URL, new=2)
     click.confirm("Have you successfully created your account on the OpenGradient Hub?", abort=True)
 
@@ -402,7 +402,7 @@ def create_account_impl() -> EthAccount:
     click.echo("\n" + "-" * 50)
     click.echo("Step 3: Fund Your Account")
     click.echo("-" * 50)
-    click.echo(f"Please fund your account clicking 'Request' on the Faucet website")
+    click.echo("Please fund your account clicking 'Request' on the Faucet website")
     webbrowser.open(DEFAULT_OG_FAUCET_URL + eth_account.address, new=2)
     click.confirm("Have you successfully funded your account using the Faucet?", abort=True)
 

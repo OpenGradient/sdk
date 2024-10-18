@@ -1,15 +1,18 @@
-import requests
-import os
 import json
+import logging
+import os
+from typing import Dict, List, Optional, Tuple, Union
+
+import firebase
+import numpy as np
+import requests
 from web3 import Web3
+from web3.exceptions import ContractLogicError
+
+from opengradient import utils
 from opengradient.exceptions import OpenGradientError
 from opengradient.types import InferenceMode
-from opengradient import utils
-import numpy as np
-import logging
-from typing import Dict, Optional, Tuple, Union, List
-from web3.exceptions import ContractLogicError
-import firebase
+
 
 class Client:
     FIREBASE_CONFIG = {
@@ -100,7 +103,7 @@ class Client:
         if not self.user:
             raise ValueError("User not authenticated")
 
-        url = f"https://api.opengradient.ai/api/v0/models/"
+        url = "https://api.opengradient.ai/api/v0/models/"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}',
             'Content-Type': 'application/json'
@@ -186,7 +189,7 @@ class Client:
             logging.debug(f"Full server response: {json_response}")
 
             if isinstance(json_response, list) and not json_response:
-                logging.info(f"Server returned an empty list. Assuming version was created successfully.")
+                logging.info("Server returned an empty list. Assuming version was created successfully.")
                 return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
                 versionString = json_response.get('versionString')

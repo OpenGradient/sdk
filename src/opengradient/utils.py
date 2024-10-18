@@ -1,8 +1,10 @@
-import numpy as np
 import logging
 from decimal import Decimal
 from typing import Dict, List, Tuple
+
+import numpy as np
 from web3.datastructures import AttributeDict
+
 
 def convert_to_fixed_point(number: float) -> Tuple[int, int]:
     """

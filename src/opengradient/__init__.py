@@ -1,7 +1,9 @@
+from typing import Dict, List, Optional, Tuple
+
 from .client import Client
 from .defaults import *
 from .types import InferenceMode
-from typing import List, Dict, Optional, Tuple
+
 __version__ = "0.3.5"
 
 _client = None
