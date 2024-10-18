@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import InferenceMode
+from .types import InferenceMode as InferenceMode
 
 __version__ = "0.3.5"
 
