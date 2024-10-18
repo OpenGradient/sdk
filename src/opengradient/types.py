@@ -38,7 +38,7 @@ class AbiFunction:
     name: str
     inputs: List[Union[str, 'AbiFunction']]
     outputs: List[Union[str, 'AbiFunction']]
-    stateMutability: str
+    state_mutability: str
 
 @dataclass
 class Abi:
@@ -55,7 +55,7 @@ class Abi:
                     name=item['name'],
                     inputs=inputs,
                     outputs=outputs,
-                    stateMutability=item['stateMutability']
+                    state_mutability=item['stateMutability']
                 ))
         return cls(functions=functions)
 
@@ -68,7 +68,7 @@ class Abi:
                     name=item['name'],
                     inputs=Abi._parse_inputs_outputs(item['components']),
                     outputs=[],
-                    stateMutability=''
+                    state_mutability=''
                 ))
             else:
                 result.append(f"{item['name']}:{item['type']}")

@@ -192,12 +192,12 @@ class Client:
                 logging.info("Server returned an empty list. Assuming version was created successfully.")
                 return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
-                versionString = json_response.get('versionString')
-                if not versionString:
+                version_string = json_response.get('versionString')
+                if not version_string:
                     logging.warning(f"'versionString' not found in response. Response: {json_response}")
                     return {"versionString": "Unknown", "note": "Version ID not provided in response"}
-                logging.info(f"Version creation successful. Version ID: {versionString}")
-                return {"versionString": versionString}
+                logging.info(f"Version creation successful. Version ID: {version_string}")
+                return {"versionString": version_string}
             else:
                 logging.error(f"Unexpected response type: {type(json_response)}. Content: {json_response}")
                 raise Exception(f"Unexpected response type: {type(json_response)}")

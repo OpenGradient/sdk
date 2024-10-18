@@ -38,14 +38,16 @@ def convert_to_float32(value: int, decimals: int) -> np.float32:
     """
     return np.float32(Decimal(value) / (10 ** Decimal(decimals)))
 
-def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[str, List[Tuple[int, int]]]], List[Tuple[str, List[str]]]]:
+def convert_to_model_input(
+        inputs: Dict[str, np.ndarray]
+    ) -> Tuple[List[Tuple[str, List[Tuple[int, int]]]], List[Tuple[str, List[str]]]]:
     """
     Expect SDK input to be a dict with the format
         key: tensor name
         value: np.array / list
 
-    Return a tuple of (number tensors, string tensors) depending on the input type. Each number and string tensor converted
-    to a numpy array and flattened and the shape saved.
+    Return a tuple of (number tensors, string tensors) depending on the input type.
+    Each number and string tensor converted to a numpy array and flattened and the shape saved.
     """
     logging.debug("Converting the following input dictionary to ModelInput: %s", inputs)
     number_tensors = []
@@ -62,7 +64,9 @@ def convert_to_model_input(inputs: Dict[str, np.ndarray]) -> Tuple[List[Tuple[st
 
         # Check if type is np array
         if not isinstance(tensor_data, np.ndarray):
-            raise TypeError("Inference input must be list, numpy array, or type (str, int, float): %s" % type(tensor_data))
+            raise TypeError(
+                "Inference input must be list, numpy array, or type (str, int, float): %s" 
+                % type(tensor_data))
 
         # Flatten list and retain shape
         shape = tensor_data.shape

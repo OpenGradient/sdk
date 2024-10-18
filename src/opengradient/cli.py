@@ -11,7 +11,13 @@ import opengradient
 
 from .account import EthAccount, generate_eth_account
 from .client import Client
-from .defaults import *
+from .defaults import (
+    DEFAULT_BLOCKCHAIN_EXPLORER,
+    DEFAULT_HUB_SIGNUP_URL,
+    DEFAULT_INFERENCE_CONTRACT_ADDRESS,
+    DEFAULT_OG_FAUCET_URL,
+    DEFAULT_RPC_URL,
+)
 from .types import InferenceMode
 
 OG_CONFIG_FILE = Path.home() / '.opengradient_config.json'
