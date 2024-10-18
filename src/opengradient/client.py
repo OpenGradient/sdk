@@ -298,7 +298,12 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_cid: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def infer(
+            self, 
+            model_cid: str, 
+            inference_mode: InferenceMode, 
+            model_input: Dict[str, Union[str, int, float, List, np.ndarray]]
+            ) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
 
