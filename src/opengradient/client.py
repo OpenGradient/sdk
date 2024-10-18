@@ -485,7 +485,8 @@ class Client:
                 raise OpenGradientError("LLMResult event not found in transaction logs")
             llm_result = parsed_logs[0]
 
-            return tx_hash.hex(), llm_result
+            llm_answer = llm_result['args']['response']['answer']
+            return tx_hash.hex(), llm_answer
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
