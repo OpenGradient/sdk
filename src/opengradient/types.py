@@ -10,7 +10,7 @@ class Number:
 @dataclass
 class NumberTensor:
     name: str
-    values: List[Tuple[int, int]]  # (int128, int128)[]
+    values: List[Tuple[int, int]]
 
 @dataclass
 class StringTensor:
@@ -73,3 +73,8 @@ class Abi:
             else:
                 result.append(f"{item['name']}:{item['type']}")
         return result
+    
+class LLM:
+    META_LLAMA3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
+    LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
+    MISTRAL_7B_INSTRUCT_V3 = "mistralai/Mistral-7B-Instruct-v0.3"
