@@ -1,7 +1,8 @@
-import uuid
-import time
 import random
-from typing import List, Callable, Tuple
+import time
+import uuid
+from typing import Callable, List, Tuple
+
 
 def generate_unique_input(request_id: int) -> dict:
     """Generate a unique input for testing."""
@@ -19,8 +20,26 @@ def generate_unique_input(request_id: int) -> dict:
 
 def generate_unique_prompt(request_id: int) -> str:
     """Generate a unique prompt for testing."""
-    topics = ["science", "history", "technology", "art", "sports", "music", "literature", "philosophy", "politics", "economics"]
-    adjectives = ["interesting", "surprising", "little-known", "controversial", "inspiring", "thought-provoking"]
+    topics = [
+        "science",
+        "history",
+        "technology",
+        "art",
+        "sports",
+        "music",
+        "literature",
+        "philosophy",
+        "politics",
+        "economics"
+    ]
+    adjectives = [
+        "interesting",
+        "surprising",
+        "little-known",
+        "controversial",
+        "inspiring",
+        "thought-provoking"
+    ]
     
     topic = random.choice(topics)
     adjective = random.choice(adjectives)

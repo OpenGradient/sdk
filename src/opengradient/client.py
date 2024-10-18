@@ -1,15 +1,19 @@
-import requests
-import os
 import json
+import logging
+import os
+from typing import Dict, List, Optional, Tuple, Union
+
+import firebase
+import numpy as np
+import requests
 from web3 import Web3
+from web3.exceptions import ContractLogicError
+from web3.logs import DISCARD
+
+from opengradient import utils
 from opengradient.exceptions import OpenGradientError
 from opengradient.types import InferenceMode, LLM
-from opengradient import utils
-import numpy as np
-import logging
-from typing import Dict, Optional, Tuple, Union, List
-from web3.exceptions import ContractLogicError
-import firebase
+
 
 class Client:
     FIREBASE_CONFIG = {
@@ -100,7 +104,7 @@ class Client:
         if not self.user:
             raise ValueError("User not authenticated")
 
-        url = f"https://api.opengradient.ai/api/v0/models/"
+        url = "https://api.opengradient.ai/api/v0/models/"
         headers = {
             'Authorization': f'Bearer {self.user["idToken"]}',
             'Content-Type': 'application/json'
@@ -186,15 +190,15 @@ class Client:
             logging.debug(f"Full server response: {json_response}")
 
             if isinstance(json_response, list) and not json_response:
-                logging.info(f"Server returned an empty list. Assuming version was created successfully.")
+                logging.info("Server returned an empty list. Assuming version was created successfully.")
                 return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
-                versionString = json_response.get('versionString')
-                if not versionString:
+                version_string = json_response.get('versionString')
+                if not version_string:
                     logging.warning(f"'versionString' not found in response. Response: {json_response}")
                     return {"versionString": "Unknown", "note": "Version ID not provided in response"}
-                logging.info(f"Version creation successful. Version ID: {versionString}")
-                return {"versionString": versionString}
+                logging.info(f"Version creation successful. Version ID: {version_string}")
+                return {"versionString": version_string}
             else:
                 logging.error(f"Unexpected response type: {type(json_response)}. Content: {json_response}")
                 raise Exception(f"Unexpected response type: {type(json_response)}")
@@ -295,7 +299,12 @@ class Client:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
     
-    def infer(self, model_cid: str, inference_mode: InferenceMode, model_input: Dict[str, Union[str, int, float, List, np.ndarray]]) -> Tuple[str, Dict[str, np.ndarray]]:
+    def infer(
+            self, 
+            model_cid: str, 
+            inference_mode: InferenceMode, 
+            model_input: Dict[str, Union[str, int, float, List, np.ndarray]]
+            ) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
 
@@ -376,19 +385,11 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the InferenceResult event
-            inference_result = None
-            for log in tx_receipt['logs']:
-                try:
-                    decoded_log = contract.events.InferenceResult().process_log(log)
-                    inference_result = decoded_log
-                    break
-                except:
-                    continue
+            parsed_logs = contract.events.InferenceResult().process_receipt(tx_receipt, errors=DISCARD)
 
-            if inference_result is None:
-                logging.error("InferenceResult event not found in transaction logs")
-                logging.debug(f"Transaction receipt logs: {tx_receipt['logs']}")
+            if len(parsed_logs) < 1:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
+            inference_result = parsed_logs[0]
 
             # Extract the ModelOutput from the event
             event_data = inference_result['args']
@@ -478,21 +479,14 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            llm_result = None
-            for log in tx_receipt['logs']:
-                try:
-                    decoded_log = contract.events.LLMResult().process_log(log)
-                    llm_result = decoded_log['args']['response']['answer']
-                    break
-                except:
-                    continue
+            parsed_logs = contract.events.LLMResult().process_receipt(tx_receipt, errors=DISCARD)
 
-            if llm_result is None:
+            if len(parsed_logs) < 1:
                 raise OpenGradientError("LLMResult event not found in transaction logs")
+            llm_result = parsed_logs[0]
 
-            logging.debug(f"LLM output: {llm_result}")
-
-            return tx_hash.hex(), llm_result
+            llm_answer = llm_result['args']['response']['answer']
+            return tx_hash.hex(), llm_answer
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
