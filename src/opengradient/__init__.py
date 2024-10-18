@@ -1,6 +1,6 @@
 from .client import Client
 from .defaults import *
-from .types import InferenceMode
+from .types import InferenceMode, LLM
 from typing import List, Dict, Optional, Tuple
 __version__ = "0.3.5"
 
@@ -42,7 +42,7 @@ def infer(model_cid, inference_mode, model_input):
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.infer(model_cid, inference_mode, model_input)
 
-def infer_llm(model_cid: str, 
+def infer_llm(model_cid: LLM, 
               prompt: str, 
               max_tokens: int = 100, 
               stop_sequence: Optional[List[str]] = None, 

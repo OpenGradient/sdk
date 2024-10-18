@@ -3,7 +3,7 @@ import os
 import json
 from web3 import Web3
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import InferenceMode
+from opengradient.types import InferenceMode, LLM
 from opengradient import utils
 import numpy as np
 import logging
@@ -411,7 +411,7 @@ class Client:
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
     def infer_llm(self, 
-                  model_cid: str, 
+                  model_cid: LLM, 
                   prompt: str, 
                   max_tokens: int = 100, 
                   stop_sequence: Optional[List[str]] = None, 
@@ -420,7 +420,7 @@ class Client:
         Perform inference on an LLM model using completions.
 
         Args:
-            model_cid (str): The unique content identifier for the model.
+            model_cid (LLM): The unique content identifier for the model.
             prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
