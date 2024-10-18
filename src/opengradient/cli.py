@@ -336,6 +336,11 @@ def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[s
     Run inference on an LLM model.
 
     This command runs inference on the specified LLM model using the provided prompt and parameters.
+
+    Example usage:
+    \b
+    opengradient llm --model Qm... --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
+    opengradient llm -m Qm... -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
     """
     client: Client = ctx.obj['client']
     result = client.infer_llm(

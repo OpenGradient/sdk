@@ -460,6 +460,19 @@ class Client:
                   max_tokens: int = 100, 
                   stop_sequence: Optional[List[str]] = None, 
                   temperature: float = 0.0) -> Dict[str, Any]:
+        """
+        Perform inference on an LLM model using completions.
+        Args:
+            model_cid (str): The unique content identifier for the model.
+            prompt (str): The input prompt for the LLM.
+            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
+            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
+            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+        Returns:
+            Tuple[str, str]: The transaction hash and the LLM output.
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
         try:
             self._initialize_web3()
             
