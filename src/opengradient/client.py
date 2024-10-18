@@ -459,7 +459,7 @@ class Client:
                   prompt: str, 
                   max_tokens: int = 100, 
                   stop_sequence: Optional[List[str]] = None, 
-                  temperature: float = 0.0) -> Dict[str, Any]:
+                  temperature: float = 0.0) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
         Args:
