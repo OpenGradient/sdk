@@ -1,7 +1,9 @@
-import opengradient as og
-import statistics
 import argparse
+import statistics
+
 from utils import stress_test_wrapper
+
+import opengradient as og
 
 # Number of requests to run serially
 NUM_REQUESTS = 100

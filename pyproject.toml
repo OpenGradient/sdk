@@ -140,3 +140,12 @@ exclude = ["tests*", "stresstest*"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["*.ipynb", "*.pyc", "*.pyo", ".gitignore", "requirements.txt", "conftest.py"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"  # Specify your Python version
+select = ["E", "F", "I", "N"]
+ignore = []
+
+[tool.ruff.mccabe]
+max-complexity = 10
