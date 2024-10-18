@@ -8,6 +8,7 @@ import numpy as np
 import requests
 from web3 import Web3
 from web3.exceptions import ContractLogicError
+from web3.logs import DISCARD
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
@@ -384,19 +385,11 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the InferenceResult event
-            inference_result = None
-            for log in tx_receipt['logs']:
-                try:
-                    decoded_log = contract.events.InferenceResult().process_log(log)
-                    inference_result = decoded_log
-                    break
-                except:
-                    continue
+            parsed_logs = contract.events.InferenceResult().process_receipt(tx_receipt, errors=DISCARD)
 
-            if inference_result is None:
-                logging.error("InferenceResult event not found in transaction logs")
-                logging.debug(f"Transaction receipt logs: {tx_receipt['logs']}")
+            if len(parsed_logs) < 1:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
+            inference_result = parsed_logs[0]
 
             # Extract the ModelOutput from the event
             event_data = inference_result['args']
@@ -486,19 +479,11 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            llm_result = None
-            for log in tx_receipt['logs']:
-                try:
-                    decoded_log = contract.events.LLMResult().process_log(log)
-                    llm_result = decoded_log['args']['response']['answer']
-                    break
-                except:
-                    continue
+            parsed_logs = contract.events.LLMResult().process_receipt(tx_receipt, errors=DISCARD)
 
-            if llm_result is None:
+            if len(parsed_logs) < 1:
                 raise OpenGradientError("LLMResult event not found in transaction logs")
-
-            logging.debug(f"LLM output: {llm_result}")
+            llm_result = parsed_logs[0]
 
             return tx_hash.hex(), llm_result
 
