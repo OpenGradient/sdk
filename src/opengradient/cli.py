@@ -50,13 +50,19 @@ class DictParamType(click.ParamType):
 
 Dict = DictParamType()
 
-# Support inference modes
+# Supported inference modes
 InferenceModes = {
     "VANILLA": InferenceMode.VANILLA,
     "ZKML": InferenceMode.ZKML,
     "TEE": InferenceMode.TEE,
 }
 
+# Supported LLMs
+LlmModels = {
+    "meta-llama/Meta-Llama-3-8B-Instruct",
+    "meta-llama/Llama-3.2-3B-Instruct",
+    "mistralai/Mistral-7B-Instruct-v0.3"
+}
 
 def initialize_config(ctx):
     """Interactively initialize OpenGradient config"""
@@ -325,7 +331,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
         click.echo(f"Error running inference: {str(e)}")
 
 @cli.command()
-@click.option('--model', '-m', 'model_cid', required=True, help='CID of the LLM model to run inference on')
+@click.option('--model', '-m', 'model_cid', type=click.Choice(LlmModels), required=True, help='CID of the LLM model to run inference on')
 @click.option('--prompt', '-p', required=True, help='Input prompt for the LLM')
 @click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM output')
 @click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
@@ -340,8 +346,8 @@ def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[s
     Example usage:
 
     \b
-    opengradient llm --model Qm... --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
-    opengradient llm -m Qm... -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
+    opengradient llm --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
+    opengradient llm -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
     """
     client: Client = ctx.obj['client']
     try:
