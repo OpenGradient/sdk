@@ -11,7 +11,7 @@ from .exceptions import OpenGradientError
 import time
 from requests.exceptions import RequestException, SSLError
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __all__ = ['init', 'upload', 'create_model', 'create_version', 'infer', 'infer_llm', 'login', 'list_files', 'InferenceMode', 'create_model_from_huggingface']
 
 _client = None
@@ -94,29 +94,29 @@ def create_model_from_huggingface(repo_id: str, model_name: str, model_desc: str
         os.makedirs(download_dir, exist_ok=True)
 
         try:
-            snapshot_download(repo_id, local_dir=download_dir)
+            snapshot_download(repo_id, local_dir=download_dir, allow_patterns=["*.onnx", "README.md"])
 
             for root, _, files in os.walk(download_dir):
                 for file in files:
-                    file_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(file_path, download_dir)
-                    
-                    for attempt in range(max_retries):
-                        try:
-                            upload_result = _client.upload(file_path, model_name, version)
-                            print(f"Uploaded {relative_path}: {upload_result}")
-                            break
-                        except (OpenGradientError, RequestException, SSLError) as e:
-                            if attempt < max_retries - 1:
-                                print(f"Attempt {attempt + 1} failed to upload {relative_path}: {str(e)}")
-                                time.sleep(retry_delay)
-                            else:
-                                print(f"Failed to upload {relative_path} after {max_retries} attempts: {str(e)}")
+                    if file.endswith('.onnx') or file == 'README.md':
+                        file_path = os.path.join(root, file)
+                        relative_path = os.path.relpath(file_path, download_dir)
+                        
+                        for attempt in range(max_retries):
+                            try:
+                                upload_result = _client.upload(file_path, model_name, version)
+                                print(f"Uploaded {relative_path}: {upload_result}")
+                                break
+                            except (OpenGradientError, RequestException, SSLError) as e:
+                                if attempt < max_retries - 1:
+                                    print(f"Attempt {attempt + 1} failed to upload {relative_path}: {str(e)}")
+                                    time.sleep(retry_delay)
+                                else:
+                                    print(f"Failed to upload {relative_path} after {max_retries} attempts: {str(e)}")
 
         finally:
             shutil.rmtree(download_dir, ignore_errors=True)
 
-        return model_result
     except Exception as e:
         print(f"Error in create_model_from_huggingface: {str(e)}")
         raise
@@ -125,3 +125,46 @@ def create_model_from_huggingface(repo_id: str, model_name: str, model_desc: str
             os.rmdir(temp_dir)
         except OSError:
             pass
+
+def upload_from_huggingface(repo_id: str, model_name: str, version: str = "0.01"):
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+
+    temp_dir = os.path.join(os.getcwd(), "opengradient_temp")
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    try:
+        download_dir = os.path.join(temp_dir, f"{model_name}_{version}")
+        os.makedirs(download_dir, exist_ok=True)
+
+        snapshot_download(repo_id, local_dir=download_dir, allow_patterns=["*.onnx", "README.md"])
+
+        uploaded_files = []
+        for root, _, files in os.walk(download_dir):
+            for file in files:
+                if file.endswith('.onnx') or file == 'README.md':
+                    file_path = os.path.join(root, file)
+                    relative_path = os.path.relpath(file_path, download_dir)
+                    
+                    try:
+                        upload_result = _client.upload(file_path, model_name, version)
+                        print(f"Uploaded {relative_path}: {upload_result}")
+                        uploaded_files.append(relative_path)
+                    except Exception as e:
+                        print(f"Failed to upload {relative_path}: {str(e)}")
+
+        if uploaded_files:
+            print(f"Successfully uploaded the following files from {repo_id} to {model_name} version {version}:")
+            for file in uploaded_files:
+                print(f"- {file}")
+        else:
+            print(f"No files were successfully uploaded from {repo_id}")
+
+        return uploaded_files
+
+    except Exception as e:
+        print(f"Error uploading from Hugging Face: {str(e)}")
+        return []
+    finally:
+        shutil.rmtree(download_dir, ignore_errors=True)
