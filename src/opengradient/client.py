@@ -411,12 +411,12 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def infer_llm(self, 
-                  model_cid: LLM, 
-                  prompt: str, 
-                  max_tokens: int = 100, 
-                  stop_sequence: Optional[List[str]] = None, 
-                  temperature: float = 0.0) -> Tuple[str, str]:
+    def infer_llm_completion(self, 
+                             model_cid: LLM, 
+                             prompt: str, 
+                             max_tokens: int = 100, 
+                             stop_sequence: Optional[List[str]] = None, 
+                             temperature: float = 0.0) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
 
@@ -436,7 +436,7 @@ class Client:
         try:
             self._initialize_web3()
             
-            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'llm.abi')
+            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
             with open(abi_path, 'r') as abi_file:
                 llm_abi = json.load(abi_file)
             contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
@@ -453,7 +453,7 @@ class Client:
             logging.debug(f"Prepared LLM request: {llm_request}")
 
             # Prepare run function
-            run_function = contract.functions.runLLM(llm_request)
+            run_function = contract.functions.runLLMCompletion(llm_request)
 
             # Build transaction
             nonce = self._w3.eth.get_transaction_count(self.wallet_address)
@@ -494,6 +494,11 @@ class Client:
         except Exception as e:
             logging.error(f"Error in infer_llm method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"LLM inference failed: {str(e)}")
+        
+    def infer_llm_chat(self,
+                       model_cid: str):
+        # runLLMChat
+        pass
 
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
