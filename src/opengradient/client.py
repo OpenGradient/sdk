@@ -411,12 +411,12 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def infer_llm(self, 
-                  model_cid: LLM, 
-                  prompt: str, 
-                  max_tokens: int = 100, 
-                  stop_sequence: Optional[List[str]] = None, 
-                  temperature: float = 0.0) -> Tuple[str, str]:
+    def llm_completion(self, 
+                       model_cid: LLM, 
+                       prompt: str, 
+                       max_tokens: int = 100, 
+                       stop_sequence: Optional[List[str]] = None, 
+                       temperature: float = 0.0) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
 
@@ -428,7 +428,7 @@ class Client:
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
 
         Returns:
-            Tuple[str, str]: The transaction hash and the LLM output.
+            Tuple[str, str]: The transaction hash and the LLM completion output.
 
         Raises:
             OpenGradientError: If the inference fails.
@@ -436,7 +436,7 @@ class Client:
         try:
             self._initialize_web3()
             
-            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'llm.abi')
+            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
             with open(abi_path, 'r') as abi_file:
                 llm_abi = json.load(abi_file)
             contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
@@ -453,7 +453,7 @@ class Client:
             logging.debug(f"Prepared LLM request: {llm_request}")
 
             # Prepare run function
-            run_function = contract.functions.runLLM(llm_request)
+            run_function = contract.functions.runLLMCompletion(llm_request)
 
             # Build transaction
             nonce = self._w3.eth.get_transaction_count(self.wallet_address)
@@ -479,10 +479,10 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            parsed_logs = contract.events.LLMResult().process_receipt(tx_receipt, errors=DISCARD)
+            parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
 
             if len(parsed_logs) < 1:
-                raise OpenGradientError("LLMResult event not found in transaction logs")
+                raise OpenGradientError("LLM completion result event not found in transaction logs")
             llm_result = parsed_logs[0]
 
             llm_answer = llm_result['args']['response']['answer']
@@ -492,7 +492,161 @@ class Client:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
             raise OpenGradientError(f"LLM inference failed due to contract logic error: {str(e)}")
         except Exception as e:
-            logging.error(f"Error in infer_llm method: {str(e)}", exc_info=True)
+            logging.error(f"Error in infer completion method: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"LLM inference failed: {str(e)}")
+        
+    def llm_chat(self,
+                 model_cid: str,
+                 messages: List[Dict],
+                 max_tokens: int = 100,
+                 stop_sequence: Optional[List[str]] = None,
+                 temperature: float = 0.0,
+                 tools: Optional[List[Dict]] = [],
+                 tool_choice: Optional[str] = None) -> Tuple[str, str]:
+        """
+        Perform inference on an LLM model using chat.
+
+        Args:
+            model_cid (LLM): The unique content identifier for the model.
+            messages (dict): The messages that will be passed into the chat. 
+                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
+                Example:
+                [
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant."
+                    },
+                    {
+                        "role": "user",
+                        "content": "Hello!"
+                    }
+                ]
+            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
+            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
+            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+            tools (List[dict], optional): Set of tools
+                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
+                Example:
+                [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_current_weather",
+                            "description": "Get the current weather in a given location",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "location": {
+                                        "type": "string",
+                                        "description": "The city and state, e.g. San Francisco, CA"
+                                    },
+                                    "unit": {
+                                        "type": "string",
+                                        "enum": ["celsius", "fahrenheit"]
+                                    }
+                                },
+                                "required": ["location"]
+                            }
+                        }
+                    }
+                ]
+            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
+
+        Returns:
+            Tuple[str, str]: The transaction hash and the LLM chat output.
+
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
+        try:
+            self._initialize_web3()
+            
+            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
+            with open(abi_path, 'r') as abi_file:
+                llm_abi = json.load(abi_file)
+            contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
+
+            # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
+            for message in messages:
+                if 'tool_calls' not in message:
+                    message['tool_calls'] = []
+
+            # Create simplified tool structure for smart contract
+            #
+            #   struct ToolDefinition {
+            #       string description;
+            #       string name;
+            #       string parameters; // This must be a JSON 
+            #   }
+            converted_tools = []
+            if tools is not None:
+                for tool in tools:
+                    function = tool['function']
+
+                    converted_tool = {}
+                    converted_tool['name'] = function['name']
+                    converted_tool['description'] = function['description']
+                    if (parameters := function.get('parameters')) is not None:
+                        try:
+                            converted_tool['parameters'] = json.dumps(parameters)
+                        except Exception as e:
+                            raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
+                    
+                    converted_tools.append(converted_tool)
+
+            # Prepare LLM input
+            llm_request = {
+                "mode": InferenceMode.VANILLA,
+                "modelCID": model_cid,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "stop_sequence": stop_sequence or [],
+                "temperature": int(temperature * 100),  # Scale to 0-100 range
+                "tools": converted_tools or [],
+                "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto")
+            }
+            logging.debug(f"Prepared LLM request: {llm_request}")
+
+            # Prepare run function
+            run_function = contract.functions.runLLMChat(llm_request)
+
+            # Build transaction
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            gas_limit = int(estimated_gas * 1.2)
+
+            transaction = run_function.build_transaction({
+                'from': self.wallet_address,
+                'nonce': nonce,
+                'gas': gas_limit,
+                'gasPrice': self._w3.eth.gas_price,
+            })
+
+            # Sign and send transaction
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
+
+            # Wait for transaction receipt
+            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+
+            if tx_receipt['status'] == 0:
+                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
+
+            # Process the LLMResult event
+            parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
+
+            if len(parsed_logs) < 1:
+                raise OpenGradientError("LLM chat result event not found in transaction logs")
+            llm_result = parsed_logs[0]
+
+            return tx_hash.hex(), llm_result
+
+        except ContractLogicError as e:
+            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"LLM inference failed due to contract logic error: {str(e)}")
+        except Exception as e:
+            logging.error(f"Error in infer chat method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"LLM inference failed: {str(e)}")
 
 
