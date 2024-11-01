@@ -53,10 +53,16 @@ def infer_llm_completion(model_cid: LLM,
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.infer_llm_completion(model_cid, prompt, max_tokens, stop_sequence, temperature)
 
-def infer_llm_chat(model_cid: LLM):
+def infer_llm_chat(model_cid: LLM,
+                   messages: List[Dict],
+                   max_tokens: int = 100,
+                   stop_sequence: Optional[List[str]] = None,
+                   temperature: float = 0.0,
+                   tools: Optional[List[Dict]] = None,
+                   tool_choice: Optional[str] = None):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.infer_llm_chat(model_cid)
+    return _client.infer_llm_chat(model_cid, messages, max_tokens, stop_sequence, temperature, tools, tool_choice)
 
 def login(email: str, password: str):
     if _client is None:
