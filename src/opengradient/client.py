@@ -411,12 +411,12 @@ class Client:
             logging.error(f"Error in infer method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def infer_llm_completion(self, 
-                             model_cid: LLM, 
-                             prompt: str, 
-                             max_tokens: int = 100, 
-                             stop_sequence: Optional[List[str]] = None, 
-                             temperature: float = 0.0) -> Tuple[str, str]:
+    def llm_completion(self, 
+                       model_cid: LLM, 
+                       prompt: str, 
+                       max_tokens: int = 100, 
+                       stop_sequence: Optional[List[str]] = None, 
+                       temperature: float = 0.0) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
 
@@ -495,14 +495,14 @@ class Client:
             logging.error(f"Error in infer completion method: {str(e)}", exc_info=True)
             raise OpenGradientError(f"LLM inference failed: {str(e)}")
         
-    def infer_llm_chat(self,
-                       model_cid: str,
-                       messages: List[Dict],
-                       max_tokens: int = 100,
-                       stop_sequence: Optional[List[str]] = None,
-                       temperature: float = 0.0,
-                       tools: Optional[List[Dict]] = [],
-                       tool_choice: Optional[str] = None) -> Tuple[str, str]:
+    def llm_chat(self,
+                 model_cid: str,
+                 messages: List[Dict],
+                 max_tokens: int = 100,
+                 stop_sequence: Optional[List[str]] = None,
+                 temperature: float = 0.0,
+                 tools: Optional[List[Dict]] = [],
+                 tool_choice: Optional[str] = None) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using chat.
 
@@ -579,19 +579,20 @@ class Client:
             #       string parameters; // This must be a JSON 
             #   }
             converted_tools = []
-            for tool in tools:
-                function = tool['function']
+            if tools is not None:
+                for tool in tools:
+                    function = tool['function']
 
-                converted_tool = {}
-                converted_tool['name'] = function['name']
-                converted_tool['description'] = function['description']
-                if (parameters := function.get('parameters')) is not None:
-                    try:
-                        converted_tool['parameters'] = json.dumps(parameters)
-                    except Exception as e:
-                        raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
-                
-                converted_tools.append(converted_tool)
+                    converted_tool = {}
+                    converted_tool['name'] = function['name']
+                    converted_tool['description'] = function['description']
+                    if (parameters := function.get('parameters')) is not None:
+                        try:
+                            converted_tool['parameters'] = json.dumps(parameters)
+                        except Exception as e:
+                            raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
+                    
+                    converted_tools.append(converted_tool)
 
             # Prepare LLM input
             llm_request = {
@@ -605,7 +606,6 @@ class Client:
                 "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto")
             }
             logging.debug(f"Prepared LLM request: {llm_request}")
-            print("LLM REQUEST: ", llm_request)
 
             # Prepare run function
             run_function = contract.functions.runLLMChat(llm_request)
@@ -638,12 +638,9 @@ class Client:
 
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
-            print("Parsed LOGS :", parsed_logs)
-            print("LLM Result: ", parsed_logs[0])
             llm_result = parsed_logs[0]
 
-            llm_answer = llm_result['args']['response']['message']
-            return tx_hash.hex(), llm_answer
+            return tx_hash.hex(), llm_result
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
