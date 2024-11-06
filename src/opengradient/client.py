@@ -340,12 +340,10 @@ class Client:
             logging.debug(f"Prepared model input tuple: {converted_model_input}")
 
             logging.debug("Preparing run function")
-            run_function = contract.functions.runModelInference(
-                (inference_mode_uint8,
+            run_function = contract.functions.run(
                 model_cid,
-                # model_cid,
-                # inference_mode_uint8,
-                converted_model_input)
+                inference_mode_uint8,
+                converted_model_input
             )
             logging.debug("Run function prepared successfully")
 
@@ -481,7 +479,7 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            parsed_logs = contract.events.LLMCompletionResponse().process_receipt(tx_receipt, errors=DISCARD)
+            parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
 
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM completion result event not found in transaction logs")
@@ -572,6 +570,10 @@ class Client:
             for message in messages:
                 if 'tool_calls' not in message:
                     message['tool_calls'] = []
+                if 'tool_call_id' not in message:
+                    message['tool_call_id'] = ""
+                if 'name' not in message:
+                    message['name'] = ""
 
             # Create simplified tool structure for smart contract
             #
@@ -595,6 +597,14 @@ class Client:
                             raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
                     
                     converted_tools.append(converted_tool)
+
+            print("model CID: ", model_cid)
+            print("messages: ", messages)
+            print("max_tokens: ", max_tokens)
+            print("stop_sequence: ", stop_sequence)
+            print("temperature: ", int(temperature * 100))
+            print("tools: ", tools)
+            print("tool_choice: ", tool_choice)
 
             # Prepare LLM input
             llm_request = {
@@ -636,7 +646,7 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            parsed_logs = contract.events.LLMChatResponse().process_receipt(tx_receipt, errors=DISCARD)
+            parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
 
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
