@@ -598,14 +598,6 @@ class Client:
                     
                     converted_tools.append(converted_tool)
 
-            print("model CID: ", model_cid)
-            print("messages: ", messages)
-            print("max_tokens: ", max_tokens)
-            print("stop_sequence: ", stop_sequence)
-            print("temperature: ", int(temperature * 100))
-            print("tools: ", tools)
-            print("tool_choice: ", tool_choice)
-
             # Prepare LLM input
             llm_request = {
                 "mode": InferenceMode.VANILLA,

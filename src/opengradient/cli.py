@@ -3,7 +3,8 @@ import json
 import logging
 import webbrowser
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Optional
+from enum import Enum
 
 import click
 
@@ -386,18 +387,62 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
     click.echo(llm_output)
     click.echo()
 
+
+class LlmModels(str, Enum):
+    """Enum for available LLM models"""
+    LLAMA_3_8B = "meta-llama/Meta-Llama-3-8B-Instruct"
+
+
 @cli.command()
-@click.option('--model', '-m', 'model_cid', type=click.Choice(LlmModels), required=True, help='CID of the LLM model to run inference on')
-@click.option('--messages', required=True, help='Input prompt for the LLM')
-@click.option('--messages-file', required=True, help='Input prompt for the LLM')
-@click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM output')
-@click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
-@click.option('--temperature', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
-@click.option('--tools', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
-@click.option('--tools-file', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
-@click.option('--tool-choice', type=str, default=None, help='Temperature for LLM inference (0.0 to 1.0)')
+@click.option('--model', '-m', 'model_cid', 
+              type=click.Choice([e.value for e in LlmModels]), 
+              required=True, 
+              help='CID of the LLM model to run inference on')
+@click.option('--messages', 
+              type=str,
+              required=False, 
+              help='Input messages for the LLM in JSON format')
+@click.option('--messages-file', 
+              type=click.Path(exists=True, path_type=Path),
+              required=False, 
+              help='Path to JSON file containing input messages for the LLM')
+@click.option('--max-tokens', 
+              type=int,
+              default=100, 
+              help='Maximum number of tokens for LLM output')
+@click.option('--stop-sequence',
+              type=str,
+              default=None,
+              multiple=True,
+              help='Stop sequences for LLM')
+@click.option('--temperature', 
+              type=float,
+              default=0.0,
+              help='Temperature for LLM inference (0.0 to 1.0)')
+@click.option('--tools',
+              type=str,
+              default="[]",
+              help='Tool configurations in JSON format')
+@click.option('--tools-file',
+              type=click.Path(exists=True, path_type=Path),
+              required=False,
+              help='Path to JSON file containing tool configurations')
+@click.option('--tool-choice',
+              type=str,
+              default='',
+              help='Specific tool choice for the LLM')
 @click.pass_context
-def chat(ctx, model_cid: str, messages: str, messages_file: Path, max_tokens: int, stop_sequence: List[str], temperature: float, tools, tools_file, tool_choice):
+def chat(
+    ctx,
+    model_cid: str,
+    messages: Optional[str],
+    messages_file: Optional[Path],
+    max_tokens: int,
+    stop_sequence: List[str],
+    temperature: float,
+    tools: Optional[str],
+    tools_file: Optional[Path],
+    tool_choice: Optional[str]): 
     """
     Run chat inference on an LLM model.
 
@@ -415,20 +460,29 @@ def chat(ctx, model_cid: str, messages: str, messages_file: Path, max_tokens: in
         if not messages and not messages_file:
             click.echo("Must specify either messages or messages-file")
             ctx.exit(1)
-            return
         if messages and messages_file:
             click.echo("Cannot have both messages and messages_file")
             ctx.exit(1)
-            return
+
         if messages:
             try:
                 messages = json.loads(messages)
             except Exception as e:
                 click.echo(f"Failed to parse messages: {e}")
                 ctx.exit(1)
-        if messages_file:
+        else:
             with messages_file.open('r') as file:
                 messages = json.load(file)
+
+        # Parse tools if provided
+        try:
+            parsed_tools = json.loads(tools)
+            if not isinstance(parsed_tools, list):
+                click.echo("Tools must be a JSON array")
+                ctx.exit(1)
+        except json.JSONDecodeError as e:
+            click.echo(f"Failed to parse tools JSON: {e}")
+            ctx.exit(1)
 
         tx_hash, llm_output = client.llm_chat(
             model_cid=model_cid,
@@ -436,7 +490,7 @@ def chat(ctx, model_cid: str, messages: str, messages_file: Path, max_tokens: in
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
             temperature=temperature,
-            tools=tools,
+            tools=parsed_tools,
             tool_choice=tool_choice,
         )
 
