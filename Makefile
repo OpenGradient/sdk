@@ -4,4 +4,4 @@ infer:
 
 llm:
 	pip install -e .
-	python -m opengradient.cli llm --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "hello doctor" --max-tokens 50
+	python -m opengradient.cli completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "hello doctor" --max-tokens 50
