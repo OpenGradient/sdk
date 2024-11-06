@@ -3,7 +3,9 @@ import json
 import logging
 import webbrowser
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Optional
+from enum import Enum
+from . import types
 
 import click
 
@@ -338,27 +340,27 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 
 @cli.command()
 @click.option('--model', '-m', 'model_cid', type=click.Choice(LlmModels), required=True, help='CID of the LLM model to run inference on')
-@click.option('--prompt', '-p', required=True, help='Input prompt for the LLM')
-@click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM output')
+@click.option('--prompt', '-p', required=True, help='Input prompt for the LLM completion')
+@click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM completion output')
 @click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
 @click.option('--temperature', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
 @click.pass_context
-def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
+def completion(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
     """
-    Run inference on an LLM model.
+    Run completion inference on an LLM model.
 
-    This command runs inference on the specified LLM model using the provided prompt and parameters.
+    This command runs a completion inference on the specified LLM model using the provided prompt and parameters.
 
     Example usage:
 
     \b
-    opengradient llm --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
-    opengradient llm -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
+    opengradient completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
+    opengradient completion -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
     """
     client: Client = ctx.obj['client']
     try:
-        click.echo(f"Running LLM inference for model \"{model_cid}\"\n")
-        tx_hash, llm_output = client.infer_llm(
+        click.echo(f"Running LLM completion inference for model \"{model_cid}\"\n")
+        tx_hash, llm_output = client.llm_completion(
             model_cid=model_cid,
             prompt=prompt,
             max_tokens=max_tokens,
@@ -366,12 +368,12 @@ def llm(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[s
             temperature=temperature
         )
 
-        print_llm_inference_result(model_cid, tx_hash, llm_output)
+        print_llm_completion_result(model_cid, tx_hash, llm_output)
     except Exception as e:
-        click.echo(f"Error running LLM inference: {str(e)}")
+        click.echo(f"Error running LLM completion: {str(e)}")
 
-def print_llm_inference_result(model_cid, tx_hash, llm_output):
-    click.secho("✅ LLM Inference Successful", fg="green", bold=True)
+def print_llm_completion_result(model_cid, tx_hash, llm_output):
+    click.secho("✅ LLM completion Successful", fg="green", bold=True)
     click.echo("──────────────────────────────────────")
     click.echo("Model CID: ", nl=False)
     click.secho(model_cid, fg="cyan", bold=True)
@@ -385,6 +387,146 @@ def print_llm_inference_result(model_cid, tx_hash, llm_output):
     click.echo()
     click.echo(llm_output)
     click.echo()
+
+
+@cli.command()
+@click.option('--model', '-m', 'model_cid', 
+              type=click.Choice([e.value for e in types.LLM]), 
+              required=True, 
+              help='CID of the LLM model to run inference on')
+@click.option('--messages', 
+              type=str,
+              required=False, 
+              help='Input messages for the chat inference in JSON format')
+@click.option('--messages-file', 
+              type=click.Path(exists=True, path_type=Path),
+              required=False, 
+              help='Path to JSON file containing input messages for the chat inference')
+@click.option('--max-tokens', 
+              type=int,
+              default=100, 
+              help='Maximum number of tokens for LLM output')
+@click.option('--stop-sequence',
+              type=str,
+              default=None,
+              multiple=True,
+              help='Stop sequences for LLM')
+@click.option('--temperature', 
+              type=float,
+              default=0.0,
+              help='Temperature for LLM inference (0.0 to 1.0)')
+@click.option('--tools',
+              type=str,
+              default="[]",
+              help='Tool configurations in JSON format')
+@click.option('--tools-file',
+              type=click.Path(exists=True, path_type=Path),
+              required=False,
+              help='Path to JSON file containing tool configurations')
+@click.option('--tool-choice',
+              type=str,
+              default='',
+              help='Specific tool choice for the LLM')
+@click.pass_context
+def chat(
+    ctx,
+    model_cid: str,
+    messages: Optional[str],
+    messages_file: Optional[Path],
+    max_tokens: int,
+    stop_sequence: List[str],
+    temperature: float,
+    tools: Optional[str],
+    tools_file: Optional[Path],
+    tool_choice: Optional[str]): 
+    """
+    Run chat inference on an LLM model.
+
+    This command runs a chat inference on the specified LLM model using the provided messages and parameters.
+
+    Example usage:
+
+    \b
+    opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
+    opengradient chat -m mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --stop-sequence "." --stop-sequence "\n"
+    """
+    # TODO (Kyle): ^^^^^^^ Edit description with more examples using tools
+    client: Client = ctx.obj['client']
+    try:
+        click.echo(f"Running LLM chat inference for model \"{model_cid}\"\n")
+        if not messages and not messages_file:
+            click.echo("Must specify either messages or messages-file")
+            ctx.exit(1)
+            return
+        if messages and messages_file:
+            click.echo("Cannot have both messages and messages_file")
+            ctx.exit(1)
+            return
+
+        if messages:
+            try:
+                messages = json.loads(messages)
+            except Exception as e:
+                click.echo(f"Failed to parse messages: {e}")
+                ctx.exit(1)
+        else:
+            with messages_file.open('r') as file:
+                messages = json.load(file)
+
+        # Parse tools if provided
+        if (tools or tools != "[]") and tools_file:
+            click.echo("Cannot have both tools and tools_file")
+            click.exit(1)
+            return
+        
+        parsed_tools=[]
+        if tools:
+            try:
+                parsed_tools = json.loads(tools)
+                if not isinstance(parsed_tools, list):
+                    click.echo("Tools must be a JSON array")
+                    ctx.exit(1)
+                    return
+            except json.JSONDecodeError as e:
+                click.echo(f"Failed to parse tools JSON: {e}")
+                ctx.exit(1)
+                return
+
+        if tools_file:
+            try:
+                with tools_file.open('r') as file:
+                    parsed_tools = json.load(file)
+                if not isinstance(parsed_tools, list):
+                    click.echo("Tools must be a JSON array")
+                    ctx.exit(1)
+                    return
+            except Exception as e:
+                click.echo("Failed to load JSON from tools_file: %s" % e)
+                ctx.exit(1)
+                return
+            
+        if not tools and not tools_file:
+            parsed_tools = None
+
+        tx_hash, finish_reason, llm_chat_output = client.llm_chat(
+            model_cid=model_cid,
+            messages=messages,
+            max_tokens=max_tokens,
+            stop_sequence=list(stop_sequence),
+            temperature=temperature,
+            tools=parsed_tools,
+            tool_choice=tool_choice,
+        )
+
+        # TODO (Kyle): Make this prettier
+        print("TX Hash: ", tx_hash)
+        print("Finish reason: ", finish_reason)
+        print("Chat output: ", llm_chat_output)
+    except Exception as e:
+        click.echo(f"Error running LLM chat inference: {str(e)}")
+
+def print_llm_chat_result():
+    pass
 
 @cli.command()
 def create_account():

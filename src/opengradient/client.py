@@ -553,7 +553,7 @@ class Client:
             tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
 
         Returns:
-            Tuple[str, str]: The transaction hash and the LLM chat output.
+            Tuple[str, str, dict]: The transaction hash, finish reason, and a dictionary struct of LLM chat messages.
 
         Raises:
             OpenGradientError: If the inference fails.
@@ -570,6 +570,10 @@ class Client:
             for message in messages:
                 if 'tool_calls' not in message:
                     message['tool_calls'] = []
+                if 'tool_call_id' not in message:
+                    message['tool_call_id'] = ""
+                if 'name' not in message:
+                    message['name'] = ""
 
             # Create simplified tool structure for smart contract
             #
@@ -638,9 +642,17 @@ class Client:
 
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
-            llm_result = parsed_logs[0]
+            llm_result = parsed_logs[0]['args']['response']
 
-            return tx_hash.hex(), llm_result
+            # Turn tool calls into normal dicts
+            message = dict(llm_result['message'])
+            if (tool_calls := message.get('tool_calls')) != None:
+                new_tool_calls = []
+                for tool_call in tool_calls:
+                    new_tool_calls.append(dict(tool_call))
+                message['tool_calls'] = new_tool_calls
+
+            return (tx_hash.hex(), llm_result['finish_reason'], message)
 
         except ContractLogicError as e:
             logging.error(f"Contract logic error: {str(e)}", exc_info=True)
