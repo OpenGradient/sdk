@@ -340,10 +340,12 @@ class Client:
             logging.debug(f"Prepared model input tuple: {converted_model_input}")
 
             logging.debug("Preparing run function")
-            run_function = contract.functions.run(
+            run_function = contract.functions.runModelInference(
+                (inference_mode_uint8,
                 model_cid,
-                inference_mode_uint8,
-                converted_model_input
+                # model_cid,
+                # inference_mode_uint8,
+                converted_model_input)
             )
             logging.debug("Run function prepared successfully")
 
@@ -479,7 +481,7 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
+            parsed_logs = contract.events.LLMCompletionResponse().process_receipt(tx_receipt, errors=DISCARD)
 
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM completion result event not found in transaction logs")
@@ -634,11 +636,11 @@ class Client:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             # Process the LLMResult event
-            parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
+            parsed_logs = contract.events.LLMChatResponse().process_receipt(tx_receipt, errors=DISCARD)
 
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
-            llm_result = parsed_logs[0]
+            llm_result = parsed_logs[0]['args']['response']
 
             return tx_hash.hex(), llm_result
 
