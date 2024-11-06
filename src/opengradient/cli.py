@@ -5,6 +5,7 @@ import webbrowser
 from pathlib import Path
 from typing import List, Dict, Optional
 from enum import Enum
+from . import types
 
 import click
 
@@ -388,24 +389,19 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
     click.echo()
 
 
-class LlmModels(str, Enum):
-    """Enum for available LLM models"""
-    LLAMA_3_8B = "meta-llama/Meta-Llama-3-8B-Instruct"
-
-
 @cli.command()
 @click.option('--model', '-m', 'model_cid', 
-              type=click.Choice([e.value for e in LlmModels]), 
+              type=click.Choice([e.value for e in types.LLM]), 
               required=True, 
               help='CID of the LLM model to run inference on')
 @click.option('--messages', 
               type=str,
               required=False, 
-              help='Input messages for the LLM in JSON format')
+              help='Input messages for the chat inference in JSON format')
 @click.option('--messages-file', 
               type=click.Path(exists=True, path_type=Path),
               required=False, 
-              help='Path to JSON file containing input messages for the LLM')
+              help='Path to JSON file containing input messages for the chat inference')
 @click.option('--max-tokens', 
               type=int,
               default=100, 
@@ -451,18 +447,21 @@ def chat(
     Example usage:
 
     \b
-    opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
-    opengradient chat -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
+    opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
+    opengradient chat -m mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --stop-sequence "." --stop-sequence "\n"
     """
+    # TODO (Kyle): ^^^^^^^ Edit description with more examples using tools
     client: Client = ctx.obj['client']
     try:
         click.echo(f"Running LLM chat inference for model \"{model_cid}\"\n")
         if not messages and not messages_file:
             click.echo("Must specify either messages or messages-file")
             ctx.exit(1)
+            return
         if messages and messages_file:
             click.echo("Cannot have both messages and messages_file")
             ctx.exit(1)
+            return
 
         if messages:
             try:
@@ -475,16 +474,41 @@ def chat(
                 messages = json.load(file)
 
         # Parse tools if provided
-        try:
-            parsed_tools = json.loads(tools)
-            if not isinstance(parsed_tools, list):
-                click.echo("Tools must be a JSON array")
+        if (tools or tools != "[]") and tools_file:
+            click.echo("Cannot have both tools and tools_file")
+            click.exit(1)
+            return
+        
+        parsed_tools=[]
+        if tools:
+            try:
+                parsed_tools = json.loads(tools)
+                if not isinstance(parsed_tools, list):
+                    click.echo("Tools must be a JSON array")
+                    ctx.exit(1)
+                    return
+            except json.JSONDecodeError as e:
+                click.echo(f"Failed to parse tools JSON: {e}")
                 ctx.exit(1)
-        except json.JSONDecodeError as e:
-            click.echo(f"Failed to parse tools JSON: {e}")
-            ctx.exit(1)
+                return
 
-        tx_hash, llm_output = client.llm_chat(
+        if tools_file:
+            try:
+                with tools_file.open('r') as file:
+                    parsed_tools = json.load(file)
+                if not isinstance(parsed_tools, list):
+                    click.echo("Tools must be a JSON array")
+                    ctx.exit(1)
+                    return
+            except Exception as e:
+                click.echo("Failed to load JSON from tools_file: %s" % e)
+                ctx.exit(1)
+                return
+            
+        if not tools and not tools_file:
+            parsed_tools = None
+
+        tx_hash, finish_reason, llm_chat_output = client.llm_chat(
             model_cid=model_cid,
             messages=messages,
             max_tokens=max_tokens,
@@ -494,7 +518,10 @@ def chat(
             tool_choice=tool_choice,
         )
 
-        print_llm_chat_result(model_cid, tx_hash, llm_output)
+        # TODO (Kyle): Make this prettier
+        print("TX Hash: ", tx_hash)
+        print("Finish reason: ", finish_reason)
+        print("Chat output: ", llm_chat_output)
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
 

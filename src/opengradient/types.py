@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Union
-
+from enum import Enum
 
 @dataclass
 class Number:
@@ -74,7 +74,7 @@ class Abi:
                 result.append(f"{item['name']}:{item['type']}")
         return result
     
-class LLM:
+class LLM(str, Enum):
     META_LLAMA3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
     LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
     MISTRAL_7B_INSTRUCT_V3 = "mistralai/Mistral-7B-Instruct-v0.3"
