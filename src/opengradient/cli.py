@@ -355,7 +355,7 @@ def completion(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence:
 
     \b
     opengradient completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
-    opengradient completion -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\n"
+    opengradient completion -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\\n"
     """
     client: Client = ctx.obj['client']
     try:
@@ -444,13 +444,15 @@ def chat(
 
     This command runs a chat inference on the specified LLM model using the provided messages and parameters.
 
+    Tool call formatting is based on OpenAI documentation tool calls (see here: https://platform.openai.com/docs/guides/function-calling).
+
     Example usage:
 
     \b
     opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
-    opengradient chat -m mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --stop-sequence "." --stop-sequence "\n"
+    opengradient chat --model mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --tools-file tools.json --max-tokens 200 --stop-sequence "." --stop-sequence "\\n"
     """
-    # TODO (Kyle): ^^^^^^^ Edit description with more examples using tools
+    # TODO (Kyle): Probably refer to our own docs here once they're written ^^
     client: Client = ctx.obj['client']
     try:
         click.echo(f"Running LLM chat inference for model \"{model_cid}\"\n")
@@ -459,7 +461,7 @@ def chat(
             ctx.exit(1)
             return
         if messages and messages_file:
-            click.echo("Cannot have both messages and messages_file")
+            click.echo("Cannot have both messages and messages-file")
             ctx.exit(1)
             return
 
@@ -474,8 +476,8 @@ def chat(
                 messages = json.load(file)
 
         # Parse tools if provided
-        if (tools or tools != "[]") and tools_file:
-            click.echo("Cannot have both tools and tools_file")
+        if (tools and tools != '[]') and tools_file:
+            click.echo("Cannot have both tools and tools-file")
             click.exit(1)
             return
         
@@ -518,15 +520,32 @@ def chat(
             tool_choice=tool_choice,
         )
 
-        # TODO (Kyle): Make this prettier
-        print("TX Hash: ", tx_hash)
-        print("Finish reason: ", finish_reason)
-        print("Chat output: ", llm_chat_output)
+        print_llm_chat_result(model_cid, tx_hash, finish_reason, llm_chat_output)
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
 
-def print_llm_chat_result():
-    pass
+def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
+    click.secho("✅ LLM Chat Successful", fg="green", bold=True)
+    click.echo("──────────────────────────────────────")
+    click.echo("Model CID: ", nl=False)
+    click.secho(model_cid, fg="cyan", bold=True)
+    click.echo("Transaction hash: ", nl=False)
+    click.secho(tx_hash, fg="cyan", bold=True)
+    block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
+    click.echo("Block explorer link: ", nl=False)
+    click.secho(block_explorer_link, fg="blue", underline=True)
+    click.echo("──────────────────────────────────────")
+    click.secho("Finish Reason: ", fg="yellow", bold=True)
+    click.echo()
+    click.echo(finish_reason)
+    click.echo()
+    click.secho("Chat Output:", fg="yellow", bold=True)
+    click.echo()
+    for key, value in chat_output.items():
+        # If the value doesn't give any information, don't print it
+        if value != None and value != "" and value != '[]' and value != []:
+            click.echo(f"{key}: {value}")
+    click.echo()
 
 @cli.command()
 def create_account():
