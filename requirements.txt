@@ -81,7 +81,7 @@ multidict==6.1.0
 nest-asyncio==1.6.0
 nh3==0.2.18
 numpy==1.26.4
--e git+https://github.com/OpenGradient/sdk.git@fc7f9335a142c92954d0bcb8e258f3f9788b0f9d#egg=opengradient
+-e git+https://github.com/OpenGradient/sdk.git@70955ec6b7935e4a5017ba5b70098fabdc603182#egg=opengradient
 orjson==3.10.11
 packaging==24.1
 pandas==2.2.3
