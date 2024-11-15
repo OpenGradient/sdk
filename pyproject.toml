@@ -68,6 +68,7 @@ dependencies = [
     "jaraco.classes==3.4.0",
     "jwcrypto==1.5.6",
     "keyring==24.3.1",
+    "langchain==0.3.7",
     "more-itertools==10.5.0",
     "msgpack==1.1.0",
     "multidict==6.1.0",
