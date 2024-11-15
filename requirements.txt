@@ -68,7 +68,9 @@ jupyter_client==8.6.3
 jupyter_core==5.7.2
 jwcrypto==1.5.6
 keyring==24.3.1
+langchain==0.3.7
 langchain-core==0.3.18
+langchain-text-splitters==0.3.2
 langsmith==0.1.143
 markdown-it-py==3.0.0
 matplotlib-inline==0.1.7
@@ -78,8 +80,8 @@ msgpack==1.1.0
 multidict==6.1.0
 nest-asyncio==1.6.0
 nh3==0.2.18
-numpy==2.1.1
--e git+https://github.com/OpenGradient/sdk.git@07dbe8348ab8dce0a4219c3b83f214d945b64e46#egg=opengradient
+numpy==1.26.4
+-e git+https://github.com/OpenGradient/sdk.git@fc7f9335a142c92954d0bcb8e258f3f9788b0f9d#egg=opengradient
 orjson==3.10.11
 packaging==24.1
 pandas==2.2.3
@@ -127,6 +129,7 @@ ruff==0.7.0
 shellingham==1.5.4
 six==1.16.0
 sniffio==1.3.1
+SQLAlchemy==2.0.36
 stack-data==0.6.3
 tenacity==9.0.0
 tomlkit==0.13.2
