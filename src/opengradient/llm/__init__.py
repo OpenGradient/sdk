@@ -1,5 +1,5 @@
-from .base import *
+from .chat import *
 
 __all__ = [
-    'OpenGradientLLM'
+    'OpenGradientChatModel'
 ]
