@@ -35,6 +35,7 @@ class OpenGradientChatModel(BaseChatModel):
             email=None,
             password=None)
         self.model_cid = model_cid
+        self.max_tokens = max_tokens
 
     @property
     def _llm_type(self) -> str:
