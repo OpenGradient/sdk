@@ -417,7 +417,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
               help='Temperature for LLM inference (0.0 to 1.0)')
 @click.option('--tools',
               type=str,
-              default="[]",
+              default=None,
               help='Tool configurations in JSON format')
 @click.option('--tools-file',
               type=click.Path(exists=True, path_type=Path),
@@ -450,7 +450,6 @@ def chat(
     opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
     opengradient chat -m mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --stop-sequence "." --stop-sequence "\n"
     """
-    # TODO (Kyle): ^^^^^^^ Edit description with more examples using tools
     client: Client = ctx.obj['client']
     try:
         click.echo(f"Running LLM chat inference for model \"{model_cid}\"\n")
@@ -474,9 +473,9 @@ def chat(
                 messages = json.load(file)
 
         # Parse tools if provided
-        if (tools or tools != "[]") and tools_file:
+        if tools is not None and tools != "[]" and tools_file:
             click.echo("Cannot have both tools and tools_file")
-            click.exit(1)
+            ctx.exit(1)
             return
         
         parsed_tools=[]
