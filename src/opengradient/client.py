@@ -706,3 +706,78 @@ class Client:
         except Exception as e:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
+
+    def generate_image(
+            self,
+            model_cid: str,
+            prompt: str,
+            num_inference_steps: int = 50,
+            guidance_scale: float = 7.5,
+            negative_prompt: Optional[str] = None,
+            width: int = 1024,
+            height: int = 1024,
+            seed: Optional[int] = None
+        ) -> bytes:
+        """
+        Generate an image using a diffusion model.
+
+        Args:
+            model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+            prompt (str): The text prompt to generate the image from
+            num_inference_steps (int, optional): Number of denoising steps. Defaults to 50.
+            guidance_scale (float, optional): Scale for classifier-free guidance. Defaults to 7.5.
+            negative_prompt (str, optional): The prompt to not generate. Defaults to None.
+            width (int, optional): Output image width. Defaults to 1024.
+            height (int, optional): Output image height. Defaults to 1024.
+            seed (int, optional): Random seed for reproducibility. Defaults to None.
+
+        Returns:
+            bytes: The raw image data bytes
+
+        Raises:
+            OpenGradientError: If the image generation fails
+        """
+        try:
+            url = "https://api.opengradient.ai/api/v0/inference/image"
+            
+            headers = {
+                'Content-Type': 'application/json'
+            }
+            if self.user:
+                headers['Authorization'] = f'Bearer {self.user["idToken"]}'
+
+            # Prepare request payload
+            payload = {
+                "model": model_cid,
+                "prompt": prompt,
+                "negative_prompt": negative_prompt,
+                "num_inference_steps": num_inference_steps,
+                "guidance_scale": guidance_scale,
+                "width": width,
+                "height": height,
+                "seed": seed or random.randint(0, 2**32 - 1)
+            }
+
+            logging.debug(f"Sending image generation request to {url}")
+            logging.debug(f"Request payload: {payload}")
+
+            response = requests.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+
+            if response.headers.get('content-type') == 'application/json':
+                # Handle error response
+                error_data = response.json()
+                raise OpenGradientError(f"Image generation failed: {error_data.get('detail', 'Unknown error')}")
+
+            # Expect raw image bytes
+            return response.content
+
+        except requests.RequestException as e:
+            logging.error(f"Request failed: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                logging.error(f"Response status code: {e.response.status_code}")
+                logging.error(f"Response content: {e.response.text[:1000]}...")
+            raise OpenGradientError(f"Image generation failed: {str(e)}")
+        except Exception as e:
+            logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"Image generation failed: {str(e)}")

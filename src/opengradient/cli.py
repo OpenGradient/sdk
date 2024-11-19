@@ -604,6 +604,53 @@ def list_files(client: Client, repo_name: str, version: str):
         click.echo(f"Error listing files: {str(e)}")
 
 
+@cli.command()
+@click.option('--model', '-m', required=True, help='Model identifier for image generation')
+@click.option('--prompt', '-p', required=True, help='Text prompt for generating the image')
+@click.option('--output', '-o', required=True, help='Output file path for the generated image')
+@click.option('--steps', type=int, default=50, help='Number of inference steps')
+@click.option('--guidance-scale', type=float, default=7.5, help='Guidance scale for generation')
+@click.option('--negative-prompt', help='Negative prompt to guide generation')
+@click.option('--width', type=int, default=1024, help='Output image width')
+@click.option('--height', type=int, default=1024, help='Output image height')
+@click.option('--seed', type=int, help='Random seed for reproducibility')
+@click.pass_context
+def generate_image(ctx, model: str, prompt: str, output: str, steps: int, 
+                  guidance_scale: float, negative_prompt: str, width: int, 
+                  height: int, seed: int):
+    """
+    Generate an image using a diffusion model.
+
+    Example usage:
+    opengradient generate-image --model stabilityai/stable-diffusion-xl-base-1.0 
+        --prompt "A beautiful sunset over mountains" --output sunset.png
+    """
+    client: Client = ctx.obj['client']
+    try:
+        click.echo(f"Generating image with model \"{model}\"")
+        image_data = client.generate_image(
+            model_cid=model,
+            prompt=prompt,
+            num_inference_steps=steps,
+            guidance_scale=guidance_scale,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            seed=seed
+        )
+
+        # Save the image
+        with open(output, 'wb') as f:
+            f.write(image_data)
+
+        click.echo()  # Add a newline for better spacing
+        click.secho("✅ Image generation successful", fg="green", bold=True)
+        click.echo(f"Image saved to: {output}")
+
+    except Exception as e:
+        click.echo(f"Error generating image: {str(e)}")
+
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
     cli()
