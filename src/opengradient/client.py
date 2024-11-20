@@ -730,7 +730,7 @@ class Client:
             OpenGradientError: If the image generation fails
         """
         try:
-            url = "https://api.opengradient.ai/api/v0/inference/image"
+            url = "18.217.25.69"
             
             headers = {
                 'Content-Type': 'application/json'
