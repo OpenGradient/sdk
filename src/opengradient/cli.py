@@ -608,16 +608,10 @@ def list_files(client: Client, repo_name: str, version: str):
 @click.option('--model', '-m', required=True, help='Model identifier for image generation')
 @click.option('--prompt', '-p', required=True, help='Text prompt for generating the image')
 @click.option('--output', '-o', required=True, help='Output file path for the generated image')
-@click.option('--steps', type=int, default=50, help='Number of inference steps')
-@click.option('--guidance-scale', type=float, default=7.5, help='Guidance scale for generation')
-@click.option('--negative-prompt', help='Negative prompt to guide generation')
 @click.option('--width', type=int, default=1024, help='Output image width')
 @click.option('--height', type=int, default=1024, help='Output image height')
-@click.option('--seed', type=int, help='Random seed for reproducibility')
 @click.pass_context
-def generate_image(ctx, model: str, prompt: str, output: str, steps: int, 
-                  guidance_scale: float, negative_prompt: str, width: int, 
-                  height: int, seed: int):
+def generate_image(ctx, model: str, prompt: str, output: str, width: int, height: int):
     """
     Generate an image using a diffusion model.
 
@@ -631,12 +625,8 @@ def generate_image(ctx, model: str, prompt: str, output: str, steps: int,
         image_data = client.generate_image(
             model_cid=model,
             prompt=prompt,
-            num_inference_steps=steps,
-            guidance_scale=guidance_scale,
-            negative_prompt=negative_prompt,
             width=width,
-            height=height,
-            seed=seed
+            height=height
         )
 
         # Save the image

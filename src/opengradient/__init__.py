@@ -75,14 +75,15 @@ def list_files(model_name: str, version: str) -> List[Dict]:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.list_files(model_name, version)
 
-def generate_image(model: str, prompt: str, **kwargs) -> bytes:
+def generate_image(model: str, prompt: str, height: Optional[int] = None, width: Optional[int] = None) -> bytes:
     """
     Generate an image using the specified model and prompt.
 
     Args:
         model (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
         prompt (str): The text prompt to generate the image from
-        **kwargs: Additional parameters (num_inference_steps, guidance_scale, etc.)
+        height (Optional[int]): Height of the generated image. Default is None.
+        width (Optional[int]): Width of the generated image. Default is None.
 
     Returns:
         bytes: The raw image data bytes
@@ -93,4 +94,4 @@ def generate_image(model: str, prompt: str, **kwargs) -> bytes:
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.generate_image(model, prompt, **kwargs)
+    return _client.generate_image(model, prompt, height=height, width=width)
