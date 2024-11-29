@@ -347,26 +347,8 @@ class Client:
             )
             logging.debug("Run function prepared successfully")
 
-            # Get the next valid nonce considering pending transactions
-            nonce = self._get_next_valid_nonce()
-            logging.debug(f"Using nonce: {nonce}")
-
-            # Estimate gas
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
-            logging.debug(f"Estimated gas: {estimated_gas}")
-
-            # Increase gas limit by 20%
-            gas_limit = int(estimated_gas * 3)
-            logging.debug(f"Gas limit set to: {gas_limit}")
-
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
-            })
-
-            logging.debug(f"Transaction built: {transaction}")
+            # Build transaction
+            transaction = self._build_transaction(run_function)
 
             # Sign transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
@@ -455,24 +437,8 @@ class Client:
             # Prepare run function
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            # Get the next valid nonce considering pending transactions
-            nonce = self._get_next_valid_nonce()
-            logging.debug(f"Using nonce: {nonce}")
-
-            # Estimate gas
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
-            logging.debug(f"Estimated gas: {estimated_gas}")
-
-            # Increase gas limit by 20%
-            gas_limit = int(estimated_gas * 1.2)
-            logging.debug(f"Gas limit set to: {gas_limit}")
-
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
-            })
+            # Build transaction
+            transaction = self._build_transaction(run_function)
 
             # Sign and send transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
@@ -621,24 +587,8 @@ class Client:
             # Prepare run function
             run_function = contract.functions.runLLMChat(llm_request)
 
-            # Get the next valid nonce considering pending transactions
-            nonce = self._get_next_valid_nonce()
-            logging.debug(f"Using nonce: {nonce}")
-
-            # Estimate gas
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
-            logging.debug(f"Estimated gas: {estimated_gas}")
-
-            # Increase gas limit by 20%
-            gas_limit = int(estimated_gas * 1.2)
-            logging.debug(f"Gas limit set to: {gas_limit}")
-
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
-            })
+            # Build transaction
+            transaction = self._build_transaction(run_function)
 
             # Sign and send transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
@@ -738,4 +688,37 @@ class Client:
                 
         except Exception as e:
             logging.error(f"Error getting next valid nonce: {str(e)}")
+            raise
+
+    def _build_transaction(self, run_function):
+        """
+        Build a transaction with proper nonce and gas management.
+
+        Args:
+            run_function: The contract function to execute
+
+        Returns:
+            dict: The built transaction
+        """
+        try:
+            # Get the next valid nonce considering pending transactions
+            nonce = self._get_next_valid_nonce()
+            logging.debug(f"Using nonce: {nonce}")
+
+            # Estimate gas
+            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            logging.debug(f"Estimated gas: {estimated_gas}")
+
+            # Increase gas limit by 20%
+            gas_limit = int(estimated_gas * 1.2)
+            logging.debug(f"Gas limit set to: {gas_limit}")
+
+            return {
+                'from': self.wallet_address,
+                'nonce': nonce,
+                'gas': gas_limit,
+                'gasPrice': self._w3.eth.gas_price,
+            }
+        except Exception as e:
+            logging.error(f"Error building transaction: {str(e)}")
             raise
