@@ -673,17 +673,12 @@ class Client:
 
     def _get_next_valid_nonce(self):
         """
-        Get the next valid nonce for transactions, allowing parallel transactions in mempool.
+        Get the next valid nonce for transactions by getting the pending transaction count.
         """
         try:
-            # Get both the latest confirmed nonce and pending nonce
-            latest_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
-            pending_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
-            
-            # Use the higher nonce + 1 to get the next available nonce
-            next_nonce = max(latest_nonce, pending_nonce) + 1
-            logging.debug(f"Latest nonce: {latest_nonce}, Pending nonce: {pending_nonce}, Using: {next_nonce}")
-            
+            # Get pending nonce (will include both pending and mined transactions)
+            next_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            logging.debug(f"Using nonce: {next_nonce}")
             return next_nonce
                 
         except Exception as e:
