@@ -721,54 +721,21 @@ class Client:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
-    def _wait_for_pending_transactions(self):
-        """
-        Wait for any pending transactions from this account to be mined.
-        """
-        try:
-            # Get the latest confirmed nonce
-            confirmed_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
-            
-            # Get the next pending nonce
-            pending_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
-            
-            # If there are pending transactions, wait for them
-            if pending_nonce > confirmed_nonce:
-                logging.info(f"Waiting for {pending_nonce - confirmed_nonce} pending transactions...")
-                
-                # Wait for each pending transaction
-                for nonce in range(confirmed_nonce, pending_nonce):
-                    # Find the transaction with this nonce
-                    # Note: This is a simplified approach and might need optimization for production
-                    block = self._w3.eth.get_block('pending', full_transactions=True)
-                    for tx in block.transactions:
-                        if (tx['from'].lower() == self.wallet_address.lower() and 
-                            tx['nonce'] == nonce):
-                            # Wait for this transaction
-                            self._w3.eth.wait_for_transaction_receipt(tx['hash'])
-                            logging.debug(f"Transaction with nonce {nonce} confirmed")
-                            break
-                            
-            return pending_nonce
-            
-        except Exception as e:
-            logging.error(f"Error waiting for pending transactions: {str(e)}")
-            raise
-
     def _get_next_valid_nonce(self):
         """
-        Get the next valid nonce for transactions, considering pending transactions.
+        Get the next valid nonce for transactions, allowing parallel transactions in mempool.
         """
         try:
-            # Wait for pending transactions first
-            pending_nonce = self._wait_for_pending_transactions()
+            # Get both the latest confirmed nonce and pending nonce
+            latest_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
+            pending_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
             
-            # Get the latest nonce again to be sure
-            latest_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            # Use the higher nonce to ensure we don't reuse nonces
+            next_nonce = max(latest_nonce, pending_nonce)
+            logging.debug(f"Latest nonce: {latest_nonce}, Pending nonce: {pending_nonce}, Using: {next_nonce}")
             
-            # Use the maximum of pending and latest nonce
-            return max(pending_nonce, latest_nonce)
-            
+            return next_nonce
+                
         except Exception as e:
             logging.error(f"Error getting next valid nonce: {str(e)}")
             raise
