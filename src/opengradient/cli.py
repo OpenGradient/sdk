@@ -607,17 +607,18 @@ def list_files(client: Client, repo_name: str, version: str):
 @cli.command()
 @click.option('--model', '-m', required=True, help='Model identifier for image generation')
 @click.option('--prompt', '-p', required=True, help='Text prompt for generating the image')
-@click.option('--output', '-o', required=True, help='Output file path for the generated image')
+@click.option('--output-path', '-o', required=True, type=click.Path(path_type=Path), 
+              help='Output file path for the generated image')
 @click.option('--width', type=int, default=1024, help='Output image width')
 @click.option('--height', type=int, default=1024, help='Output image height')
 @click.pass_context
-def generate_image(ctx, model: str, prompt: str, output: str, width: int, height: int):
+def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, height: int):
     """
     Generate an image using a diffusion model.
 
     Example usage:
     opengradient generate-image --model stabilityai/stable-diffusion-xl-base-1.0 
-        --prompt "A beautiful sunset over mountains" --output sunset.png
+        --prompt "A beautiful sunset over mountains" --output-path sunset.png
     """
     client: Client = ctx.obj['client']
     try:
@@ -630,12 +631,12 @@ def generate_image(ctx, model: str, prompt: str, output: str, width: int, height
         )
 
         # Save the image
-        with open(output, 'wb') as f:
+        with open(output_path, 'wb') as f:
             f.write(image_data)
 
         click.echo()  # Add a newline for better spacing
         click.secho("✅ Image generation successful", fg="green", bold=True)
-        click.echo(f"Image saved to: {output}")
+        click.echo(f"Image saved to: {output_path}")
 
     except Exception as e:
         click.echo(f"Error generating image: {str(e)}")
