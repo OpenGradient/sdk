@@ -319,6 +319,7 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
+        # TODO (Kyle): Add input support for JSON tensors
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
