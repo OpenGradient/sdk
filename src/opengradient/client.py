@@ -680,8 +680,8 @@ class Client:
             latest_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
             pending_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
             
-            # Use the higher nonce to ensure we don't reuse nonces
-            next_nonce = max(latest_nonce, pending_nonce)
+            # Use the higher nonce + 1 to get the next available nonce
+            next_nonce = max(latest_nonce, pending_nonce) + 1
             logging.debug(f"Latest nonce: {latest_nonce}, Pending nonce: {pending_nonce}, Using: {next_nonce}")
             
             return next_nonce
