@@ -19,9 +19,8 @@ import time
 import uuid
 from google.protobuf import timestamp_pb2
 
-from opengradient.proto import inference_pb2
-from opengradient.proto import inference_pb2_grpc
-
+from opengradient.proto import infer_pb2
+from opengradient.proto import infer_pb2_grpc
 
 class Client:
     FIREBASE_CONFIG = {
@@ -720,7 +719,7 @@ class Client:
             model_cid: str,
             prompt: str,
             host: str = "18.217.25.69",  # AWS URL
-            port: int = 50051,
+            port: int = 5125, 
             width: int = 1024,
             height: int = 1024,
             timeout: int = 300,  # 5 minute timeout
@@ -760,10 +759,10 @@ class Client:
                 try:
                     # Initialize gRPC channel and stub
                     channel = grpc.insecure_channel(f'{host}:{port}')
-                    stub = inference_pb2_grpc.InferenceServiceStub(channel)
+                    stub = infer_pb2_grpc.InferenceServiceStub(channel)
 
                     # Create image generation request
-                    image_request = inference_pb2.ImageGenerationRequest(
+                    image_request = infer_pb2.ImageGenerationRequest(
                         model=model_cid,
                         prompt=prompt,
                         height=height,
@@ -772,7 +771,7 @@ class Client:
 
                     # Create inference request with random transaction ID
                     tx_id = str(uuid.uuid4())
-                    request = inference_pb2.InferenceRequest(
+                    request = infer_pb2.InferenceRequest(
                         tx=tx_id,
                         image_generation=image_request
                     )
@@ -790,7 +789,7 @@ class Client:
                         if time.time() - start_time > timeout:
                             raise TimeoutError(f"Image generation timed out after {timeout} seconds")
 
-                        status_request = inference_pb2.InferenceTxId(id=response_id.id)
+                        status_request = infer_pb2.InferenceTxId(id=response_id.id)
                         try:
                             status = stub.GetInferenceStatus(
                                 status_request,
@@ -802,11 +801,11 @@ class Client:
                             attempt += 1
                             continue
 
-                        if status == inference_pb2.InferenceStatus.STATUS_COMPLETED:
+                        if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
                             break
-                        elif status == inference_pb2.InferenceStatus.STATUS_ERROR:
+                        elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
                             raise OpenGradientError("Image generation failed on server")
-                        elif status != inference_pb2.InferenceStatus.STATUS_IN_PROGRESS:
+                        elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
                             raise OpenGradientError(f"Unexpected status: {status}")
 
                         exponential_backoff(attempt)
