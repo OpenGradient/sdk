@@ -1,6 +1,7 @@
 import logging
 from decimal import Decimal
 from typing import Dict, List, Tuple
+import json
 
 import numpy as np
 from web3.datastructures import AttributeDict
@@ -52,6 +53,7 @@ def convert_to_model_input(
     logging.debug("Converting the following input dictionary to ModelInput: %s", inputs)
     number_tensors = []
     string_tensors = []
+    json_tensors = []
     for tensor_name, tensor_data in inputs.items():
         # Convert to NP array if list or single object
         if isinstance(tensor_data, list):
@@ -151,7 +153,18 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
                 values = tensor.get('values', [])
                 output_dict[name] = np.array(values).reshape(shape)
             else:
-                    logging.warning(f"Unexpected tensor type: {type(tensor)}")
+                logging.warning(f"Unexpected tensor type: {type(tensor)}")
+
+        # Parse JSON dicts
+        for tensor in output.get('jsons', []):
+            logging.debug(f"Processing JSON tensor: {tensor}")
+            if isinstance(tensor, AttributeDict):
+                name = tensor.get('name')
+                value = tensor.get('value')
+                output_dict[name] = np.array(json.loads(value))
+            else:
+                logging.warning(f"Unexpected tensor type: {type(tensor)}")
+
     else:
         logging.warning(f"Unexpected output type: {type(output)}")
 
