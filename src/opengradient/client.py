@@ -21,6 +21,7 @@ from google.protobuf import timestamp_pb2
 
 from opengradient.proto import infer_pb2
 from opengradient.proto import infer_pb2_grpc
+from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 class Client:
     FIREBASE_CONFIG = {
@@ -718,8 +719,8 @@ class Client:
             self,
             model_cid: str,
             prompt: str,
-            host: str = "18.217.25.69",  # AWS URL
-            port: int = 5125, 
+            host: str = DEFAULT_IMAGE_GEN_HOST,
+            port: int = DEFAULT_IMAGE_GEN_PORT,
             width: int = 1024,
             height: int = 1024,
             timeout: int = 300,  # 5 minute timeout
@@ -731,8 +732,8 @@ class Client:
         Args:
             model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
             prompt (str): The text prompt to generate the image from
-            host (str, optional): gRPC host address. Defaults to AWS URL.
-            port (int, optional): gRPC port number. Defaults to 50051.
+            host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
+            port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
             width (int, optional): Output image width. Defaults to 1024.
             height (int, optional): Output image height. Defaults to 1024.
             timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
