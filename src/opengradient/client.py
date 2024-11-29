@@ -347,9 +347,9 @@ class Client:
             )
             logging.debug("Run function prepared successfully")
 
-            # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
-            logging.debug(f"Nonce: {nonce}")
+            # Get the next valid nonce considering pending transactions
+            nonce = self._get_next_valid_nonce()
+            logging.debug(f"Using nonce: {nonce}")
 
             # Estimate gas
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
@@ -455,10 +455,17 @@ class Client:
             # Prepare run function
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            # Get the next valid nonce considering pending transactions
+            nonce = self._get_next_valid_nonce()
+            logging.debug(f"Using nonce: {nonce}")
+
+            # Estimate gas
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            logging.debug(f"Estimated gas: {estimated_gas}")
+
+            # Increase gas limit by 20%
             gas_limit = int(estimated_gas * 1.2)
+            logging.debug(f"Gas limit set to: {gas_limit}")
 
             transaction = run_function.build_transaction({
                 'from': self.wallet_address,
@@ -614,10 +621,17 @@ class Client:
             # Prepare run function
             run_function = contract.functions.runLLMChat(llm_request)
 
-            # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            # Get the next valid nonce considering pending transactions
+            nonce = self._get_next_valid_nonce()
+            logging.debug(f"Using nonce: {nonce}")
+
+            # Estimate gas
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            logging.debug(f"Estimated gas: {estimated_gas}")
+
+            # Increase gas limit by 20%
             gas_limit = int(estimated_gas * 1.2)
+            logging.debug(f"Gas limit set to: {gas_limit}")
 
             transaction = run_function.build_transaction({
                 'from': self.wallet_address,
@@ -706,3 +720,55 @@ class Client:
         except Exception as e:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
+
+    def _wait_for_pending_transactions(self):
+        """
+        Wait for any pending transactions from this account to be mined.
+        """
+        try:
+            # Get the latest confirmed nonce
+            confirmed_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
+            
+            # Get the next pending nonce
+            pending_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            
+            # If there are pending transactions, wait for them
+            if pending_nonce > confirmed_nonce:
+                logging.info(f"Waiting for {pending_nonce - confirmed_nonce} pending transactions...")
+                
+                # Wait for each pending transaction
+                for nonce in range(confirmed_nonce, pending_nonce):
+                    # Find the transaction with this nonce
+                    # Note: This is a simplified approach and might need optimization for production
+                    block = self._w3.eth.get_block('pending', full_transactions=True)
+                    for tx in block.transactions:
+                        if (tx['from'].lower() == self.wallet_address.lower() and 
+                            tx['nonce'] == nonce):
+                            # Wait for this transaction
+                            self._w3.eth.wait_for_transaction_receipt(tx['hash'])
+                            logging.debug(f"Transaction with nonce {nonce} confirmed")
+                            break
+                            
+            return pending_nonce
+            
+        except Exception as e:
+            logging.error(f"Error waiting for pending transactions: {str(e)}")
+            raise
+
+    def _get_next_valid_nonce(self):
+        """
+        Get the next valid nonce for transactions, considering pending transactions.
+        """
+        try:
+            # Wait for pending transactions first
+            pending_nonce = self._wait_for_pending_transactions()
+            
+            # Get the latest nonce again to be sure
+            latest_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            
+            # Use the maximum of pending and latest nonce
+            return max(pending_nonce, latest_nonce)
+            
+        except Exception as e:
+            logging.error(f"Error getting next valid nonce: {str(e)}")
+            raise
