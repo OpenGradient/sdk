@@ -17,6 +17,14 @@ from opengradient import utils
 from opengradient.exceptions import OpenGradientError
 from opengradient.types import InferenceMode, LLM
 
+import grpc
+import time
+import uuid
+from google.protobuf import timestamp_pb2
+
+from opengradient.proto import infer_pb2
+from opengradient.proto import infer_pb2_grpc
+from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 class Client:
     FIREBASE_CONFIG = {
@@ -325,6 +333,7 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
+        # TODO (Kyle): Add input support for JSON tensors
         try:
             logging.debug("Entering infer method")
             self._initialize_web3()
@@ -677,6 +686,7 @@ class Client:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
+<<<<<<< HEAD
     def _get_next_valid_nonce(self):
         """
         Get the next valid nonce for transactions by getting the pending transaction count.
@@ -743,3 +753,129 @@ class Client:
                     raise
                 retry_count += 1
                 time.sleep(1)  # Wait before retry
+=======
+    def generate_image(
+            self,
+            model_cid: str,
+            prompt: str,
+            host: str = DEFAULT_IMAGE_GEN_HOST,
+            port: int = DEFAULT_IMAGE_GEN_PORT,
+            width: int = 1024,
+            height: int = 1024,
+            timeout: int = 300,  # 5 minute timeout
+            max_retries: int = 3
+        ) -> bytes:
+        """
+        Generate an image using a diffusion model through gRPC.
+
+        Args:
+            model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+            prompt (str): The text prompt to generate the image from
+            host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
+            port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
+            width (int, optional): Output image width. Defaults to 1024.
+            height (int, optional): Output image height. Defaults to 1024.
+            timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
+            max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
+
+        Returns:
+            bytes: The raw image data bytes
+
+        Raises:
+            OpenGradientError: If the image generation fails
+            TimeoutError: If the generation exceeds the timeout period
+        """
+        def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
+            """Calculate and sleep for exponential backoff duration"""
+            delay = min(0.1 * (2 ** attempt), max_delay)
+            time.sleep(delay)
+
+        channel = None
+        start_time = time.time()
+        retry_count = 0
+
+        try:
+            while retry_count < max_retries:
+                try:
+                    # Initialize gRPC channel and stub
+                    channel = grpc.insecure_channel(f'{host}:{port}')
+                    stub = infer_pb2_grpc.InferenceServiceStub(channel)
+
+                    # Create image generation request
+                    image_request = infer_pb2.ImageGenerationRequest(
+                        model=model_cid,
+                        prompt=prompt,
+                        height=height,
+                        width=width
+                    )
+
+                    # Create inference request with random transaction ID
+                    tx_id = str(uuid.uuid4())
+                    request = infer_pb2.InferenceRequest(
+                        tx=tx_id,
+                        image_generation=image_request
+                    )
+
+                    # Send request with timeout
+                    response_id = stub.RunInferenceAsync(
+                        request,
+                        timeout=min(30, timeout)  # Initial request timeout
+                    )
+
+                    # Poll for completion
+                    attempt = 0
+                    while True:
+                        # Check timeout
+                        if time.time() - start_time > timeout:
+                            raise TimeoutError(f"Image generation timed out after {timeout} seconds")
+
+                        status_request = infer_pb2.InferenceTxId(id=response_id.id)
+                        try:
+                            status = stub.GetInferenceStatus(
+                                status_request,
+                                timeout=min(5, timeout)  # Status check timeout
+                            ).status
+                        except grpc.RpcError as e:
+                            logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
+                            exponential_backoff(attempt)
+                            attempt += 1
+                            continue
+
+                        if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
+                            break
+                        elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
+                            raise OpenGradientError("Image generation failed on server")
+                        elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
+                            raise OpenGradientError(f"Unexpected status: {status}")
+
+                        exponential_backoff(attempt)
+                        attempt += 1
+
+                    # Get result
+                    result = stub.GetInferenceResult(
+                        response_id,
+                        timeout=min(30, timeout)  # Result fetch timeout
+                    )
+                    return result.image_generation_result.image_data
+
+                except (grpc.RpcError, TimeoutError) as e:
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
+                    
+                    logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
+                    exponential_backoff(retry_count)
+
+        except grpc.RpcError as e:
+            logging.error(f"gRPC error: {str(e)}")
+            raise OpenGradientError(f"Image generation failed: {str(e)}")
+        except TimeoutError as e:
+            logging.error(f"Timeout error: {str(e)}")
+            raise
+        except Exception as e:
+            logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"Image generation failed: {str(e)}")
+        finally:
+            if channel:
+                channel.close()       
+>>>>>>> main

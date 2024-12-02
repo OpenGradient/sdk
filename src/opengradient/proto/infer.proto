@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package inference;
+
+// The inference service definition
+service InferenceService {
+    rpc RunInferenceAsync(InferenceRequest) returns (InferenceTxId);
+    rpc GetInferenceStatus(InferenceTxId) returns (InferenceStatus);
+    rpc GetInferenceResult(InferenceTxId) returns (InferenceResult);
+}
+
+// Request messages
+message InferenceRequest {
+    string tx = 1;
+    ImageGenerationRequest image_generation = 6;  // Field number 6 matches original proto
+}
+
+message ImageGenerationRequest {
+    string model = 1;
+    string prompt = 2;
+    optional int32 height = 3;
+    optional int32 width = 4;
+}
+
+message InferenceTxId {
+    string id = 1;
+}
+
+// Status messages
+message InferenceStatus {
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_IN_PROGRESS = 1;
+        STATUS_COMPLETED = 2;
+        STATUS_ERROR = 3;
+    }
+    Status status = 1;
+    optional string error_message = 2;  // For error handling
+}
+
+// Result messages
+message InferenceResult {
+    ImageGenerationResponse image_generation_result = 5;  // Field number 5 matches original proto
+    optional string public_key = 7;
+    optional string signature = 8;
+}
+
+message ImageGenerationResponse {
+    bytes image_data = 1;
+}
