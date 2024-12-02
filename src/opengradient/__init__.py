@@ -5,7 +5,7 @@ from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LLM
 from . import llm
 
-__version__ = "0.3.103"
+__version__ = "0.3.13"
 
 _client = None
 
@@ -74,3 +74,24 @@ def list_files(model_name: str, version: str) -> List[Dict]:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.list_files(model_name, version)
+
+def generate_image(model: str, prompt: str, height: Optional[int] = None, width: Optional[int] = None) -> bytes:
+    """
+    Generate an image using the specified model and prompt.
+
+    Args:
+        model (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+        prompt (str): The text prompt to generate the image from
+        height (Optional[int]): Height of the generated image. Default is None.
+        width (Optional[int]): Width of the generated image. Default is None.
+
+    Returns:
+        bytes: The raw image data bytes
+
+    Raises:
+        RuntimeError: If the client is not initialized
+        OpenGradientError: If the image generation fails
+    """
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.generate_image(model, prompt, height=height, width=width)
