@@ -2,6 +2,9 @@ import json
 import logging
 import os
 from typing import Dict, List, Optional, Tuple, Union
+from threading import Lock
+import time
+import threading
 
 import firebase
 import numpy as np
@@ -24,6 +27,9 @@ class Client:
         "appId": "1:487761246229:web:259af6423a504d2316361c",
         "databaseURL": ""
     }
+    
+    _global_nonce = 0
+    _nonce_lock = threading.Lock()
     
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
@@ -676,9 +682,19 @@ class Client:
         Get the next valid nonce for transactions by getting the pending transaction count.
         """
         try:
-            # Get pending nonce (will include both pending and mined transactions)
-            next_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
-            logging.debug(f"Using nonce: {next_nonce}")
+            # Get both latest and pending nonces
+            latest_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
+            pending_nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            
+            logging.info(f"Wallet: {self.wallet_address}")
+            logging.info(f"Latest nonce: {latest_nonce}")
+            logging.info(f"Pending nonce: {pending_nonce}")
+            logging.info(f"Difference (pending - latest): {pending_nonce - latest_nonce}")
+            
+            # Use max of latest and pending to be safe
+            next_nonce = max(latest_nonce, pending_nonce)
+            logging.info(f"Using nonce: {next_nonce}")
+            
             return next_nonce
                 
         except Exception as e:
@@ -688,32 +704,42 @@ class Client:
     def _build_transaction(self, run_function):
         """
         Build a transaction with proper nonce and gas management.
-
-        Args:
-            run_function: The contract function to execute
-
-        Returns:
-            dict: The built transaction
+        Added retry logic for gas estimation.
         """
-        try:
-            # Get the next valid nonce considering pending transactions
-            nonce = self._get_next_valid_nonce()
-            logging.debug(f"Using nonce: {nonce}")
+        MAX_RETRIES = 3
+        retry_count = 0
+        
+        while retry_count < MAX_RETRIES:
+            try:
+                # Get the next valid nonce considering pending transactions
+                nonce = self._get_next_valid_nonce()
+                logging.debug(f"Using nonce: {nonce}")
 
-            # Estimate gas
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
-            logging.debug(f"Estimated gas: {estimated_gas}")
+                # Estimate gas with retry
+                try:
+                    estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+                except Exception as gas_error:
+                    if retry_count == MAX_RETRIES - 1:
+                        raise
+                    logging.warning(f"Gas estimation failed, retrying: {str(gas_error)}")
+                    retry_count += 1
+                    time.sleep(1)  # Wait before retry
+                    continue
 
-            # Increase gas limit by 20%
-            gas_limit = int(estimated_gas * 1.2)
-            logging.debug(f"Gas limit set to: {gas_limit}")
+                # Increase gas limit by 20%
+                gas_limit = int(estimated_gas * 1.2)
+                logging.debug(f"Gas limit set to: {gas_limit}")
 
-            return {
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
-            }
-        except Exception as e:
-            logging.error(f"Error building transaction: {str(e)}")
-            raise
+                return {
+                    'from': self.wallet_address,
+                    'nonce': nonce,
+                    'gas': gas_limit,
+                    'gasPrice': self._w3.eth.gas_price,
+                }
+                
+            except Exception as e:
+                if retry_count == MAX_RETRIES - 1:
+                    logging.error(f"Error building transaction: {str(e)}")
+                    raise
+                retry_count += 1
+                time.sleep(1)  # Wait before retry
