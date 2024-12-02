@@ -686,7 +686,6 @@ class Client:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
-<<<<<<< HEAD
     def _get_next_valid_nonce(self):
         """
         Get the next valid nonce for transactions by getting the pending transaction count.
@@ -714,46 +713,36 @@ class Client:
     def _build_transaction(self, run_function):
         """
         Build a transaction with proper nonce and gas management.
-        Added retry logic for gas estimation.
+
+        Args:
+            run_function: The contract function to execute
+
+        Returns:
+            dict: The built transaction
         """
-        MAX_RETRIES = 3
-        retry_count = 0
-        
-        while retry_count < MAX_RETRIES:
-            try:
-                # Get the next valid nonce considering pending transactions
-                nonce = self._get_next_valid_nonce()
-                logging.debug(f"Using nonce: {nonce}")
+        try:
+            # Get the next valid nonce considering pending transactions
+            nonce = self._get_next_valid_nonce()
+            logging.debug(f"Using nonce: {nonce}")
 
-                # Estimate gas with retry
-                try:
-                    estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
-                except Exception as gas_error:
-                    if retry_count == MAX_RETRIES - 1:
-                        raise
-                    logging.warning(f"Gas estimation failed, retrying: {str(gas_error)}")
-                    retry_count += 1
-                    time.sleep(1)  # Wait before retry
-                    continue
+            # Estimate gas
+            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            logging.debug(f"Estimated gas: {estimated_gas}")
 
-                # Increase gas limit by 20%
-                gas_limit = int(estimated_gas * 1.2)
-                logging.debug(f"Gas limit set to: {gas_limit}")
+            # Increase gas limit by 20%
+            gas_limit = int(estimated_gas * 1.2)
+            logging.debug(f"Gas limit set to: {gas_limit}")
 
-                return {
-                    'from': self.wallet_address,
-                    'nonce': nonce,
-                    'gas': gas_limit,
-                    'gasPrice': self._w3.eth.gas_price,
-                }
-                
-            except Exception as e:
-                if retry_count == MAX_RETRIES - 1:
-                    logging.error(f"Error building transaction: {str(e)}")
-                    raise
-                retry_count += 1
-                time.sleep(1)  # Wait before retry
-=======
+            return {
+                'from': self.wallet_address,
+                'nonce': nonce,
+                'gas': gas_limit,
+                'gasPrice': self._w3.eth.gas_price,
+            }
+        except Exception as e:
+            logging.error(f"Error building transaction: {str(e)}")
+            raise
+
     def generate_image(
             self,
             model_cid: str,
@@ -878,4 +867,3 @@ class Client:
         finally:
             if channel:
                 channel.close()       
->>>>>>> main
