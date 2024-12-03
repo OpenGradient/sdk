@@ -30,11 +30,10 @@ class TestLLM(unittest.TestCase):
         events = agent_executor.stream(
             {"messages": [("user", "What is my balance?")]},
             stream_mode="values",
-            debug=True
+            debug=False
         )
 
-        for event in events:
-            event["messages"][-1].pretty_print()
+        self.assertIn("0.145", list(events)[-1]['messages'][-1].content)
 
 
 if __name__ == '__main__':
