@@ -3,6 +3,7 @@ import os
 
 from opengradient.llm import OpenGradientChatModel
 from langgraph.prebuilt import create_react_agent
+from langchain_core.tools import tool
 
 class TestLLM(unittest.TestCase):
     def setUp(self):
@@ -20,7 +21,12 @@ class TestLLM(unittest.TestCase):
         self.assertIn("hello", message.content)
 
     def test_tool_call(self):
-        agent_executor = create_react_agent(self.llm, tools)
+        @tool
+        def get_balance():
+            """Returns the user's balance"""
+            return "Your balance is 0.145"
+
+        agent_executor = create_react_agent(self.llm, [get_balance])
         events = agent_executor.stream(
             {"messages": [("user", "What is my balance?")]},
             stream_mode="values",

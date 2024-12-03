@@ -87,7 +87,7 @@ class OpenGradientChatModel(BaseChatModel):
             tools=self.tools
         )
 
-        if "tool_calls" in chat_response and not chat_response["tool_calls"]:
+        if "tool_calls" in chat_response and chat_response["tool_calls"]:
             tool_calls = []
             for tool_call in chat_response["tool_calls"]:
                 tool_calls.append(
