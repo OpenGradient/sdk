@@ -2,9 +2,6 @@ import json
 import logging
 import os
 from typing import Dict, List, Optional, Tuple, Union
-from threading import Lock
-import time
-import threading
 
 import firebase
 import numpy as np
