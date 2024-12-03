@@ -87,7 +87,7 @@ class OpenGradientChatModel(BaseChatModel):
             tools=self.tools
         )
 
-        if "tool_calls" in chat_response:
+        if "tool_calls" in chat_response and not chat_response["tool_calls"]:
             tool_calls = []
             for tool_call in chat_response["tool_calls"]:
                 tool_calls.append(
@@ -99,7 +99,7 @@ class OpenGradientChatModel(BaseChatModel):
                 )
             
             message = AIMessage(
-                content='',
+                content=chat_response['content'],
                 tool_calls=tool_calls
             )
         else:
