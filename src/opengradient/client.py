@@ -357,7 +357,7 @@ class Client:
             logging.debug("Run function prepared successfully")
 
             # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            nonce = self._get_nonce_with_retry()
             logging.debug(f"Nonce: {nonce}")
 
             # Estimate gas
@@ -465,7 +465,7 @@ class Client:
             run_function = contract.functions.runLLMCompletion(llm_request)
 
             # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            nonce = self._get_nonce_with_retry()
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
@@ -521,6 +521,7 @@ class Client:
                 This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
                 Example:
                 [
+                
                     {
                         "role": "system",
                         "content": "You are a helpful assistant."
@@ -624,7 +625,7 @@ class Client:
             run_function = contract.functions.runLLMChat(llm_request)
 
             # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            nonce = self._get_nonce_with_retry()
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
@@ -840,3 +841,28 @@ class Client:
         finally:
             if channel:
                 channel.close()       
+
+    def _get_nonce_with_retry(self, max_retries=3, initial_delay=1):
+        """
+        Get nonce with exponential backoff retry mechanism.
+        
+        Args:
+            max_retries (int): Maximum number of retry attempts
+            initial_delay (int): Initial delay in seconds between retries
+            
+        Returns:
+            int: The nonce value
+            
+        Raises:
+            OpenGradientError: If unable to get valid nonce after retries
+        """
+        for attempt in range(max_retries):
+            try:
+                nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+                return nonce
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise OpenGradientError(f"Failed to get valid nonce after {max_retries} attempts: {str(e)}")
+                delay = initial_delay * (2 ** attempt)  # Exponential backoff
+                logging.warning(f"Failed to get nonce (attempt {attempt + 1}/{max_retries}). Retrying in {delay}s...")
+                time.sleep(delay)
