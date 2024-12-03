@@ -2,6 +2,7 @@ import unittest
 import os
 
 from opengradient.llm import OpenGradientChatModel
+from langgraph.prebuilt import create_react_agent
 
 class TestLLM(unittest.TestCase):
     def setUp(self):
@@ -17,7 +18,18 @@ class TestLLM(unittest.TestCase):
     def test_simple_completion(self):
         message = self.llm.invoke("say 'hello'. literally")
         self.assertIn("hello", message.content)
-        
-    
+
+    def test_tool_call(self):
+        agent_executor = create_react_agent(self.llm, tools)
+        events = agent_executor.stream(
+            {"messages": [("user", "What is my balance?")]},
+            stream_mode="values",
+            debug=True
+        )
+
+        for event in events:
+            event["messages"][-1].pretty_print()
+
+
 if __name__ == '__main__':
     unittest.main()
