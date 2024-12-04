@@ -10,6 +10,9 @@ from langchain.schema import (
     ChatResult,
     ChatGeneration,
 )
+from langchain_core.messages.tool import (
+    ToolMessage
+)
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.tools import BaseTool
 from langchain_core.messages import ToolCall
@@ -70,24 +73,36 @@ class OpenGradientChatModel(BaseChatModel):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> ChatResult:
-        chat_messages = []
+
+        sdk_messages = []
         for message in messages:
             if isinstance(message, SystemMessage):
-                chat_messages.append({"role": "system", "content": message.content})
+                sdk_messages.append({"role": "system", "content": message.content})
             elif isinstance(message, HumanMessage):
-                chat_messages.append({"role": "user", "content": message.content})
+                sdk_messages.append({"role": "user", "content": message.content})
             elif isinstance(message, AIMessage):
-                chat_messages.append({"role": "assistant", "content": message.content})
+                sdk_messages.append({
+                    "role": "assistant", 
+                    "content": message.content, 
+                    "tool_calls": [{
+                        "id": call["id"],
+                        "name": call["name"],
+                        "arguments": json.dumps(call["args"])
+                    } for call in message.tool_calls]})
+            elif isinstance(message, ToolMessage):
+                sdk_messages.append({"role": "tool", "content": message.content, "tool_call_id": message.tool_call_id})
+            else:
+                raise ValueError(f"Unexpected message type: {message}")
 
-        tx_hash, finish_reason, chat_response = self.client.llm_chat(
+        _, finish_reason, chat_response = self.client.llm_chat(
             model_cid=self.model_cid,
-            messages=chat_messages,
+            messages=sdk_messages,
             stop_sequence=stop,
             max_tokens=self.max_tokens,
             tools=self.tools
         )
 
-        if "tool_calls" in chat_response:
+        if "tool_calls" in chat_response and chat_response["tool_calls"]:
             tool_calls = []
             for tool_call in chat_response["tool_calls"]:
                 tool_calls.append(
@@ -104,7 +119,7 @@ class OpenGradientChatModel(BaseChatModel):
             )
         else:
             message = AIMessage(content=chat_response["content"])
-        
+
         return ChatResult(
             generations=[ChatGeneration(
                 message=message,
