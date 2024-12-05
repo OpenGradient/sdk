@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "opengradient"
-version = "0.3.8"
+version = "0.3.15"
 description = "Python SDK for OpenGradient decentralized model management & inference services"
 authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
 license = {file = "LICENSE"}
@@ -62,16 +62,17 @@ dependencies = [
     "google-resumable-media==2.7.2",
     "googleapis-common-protos==1.65.0",
     "grpcio==1.66.2",
-    "grpcio-status==1.66.2",
+    "grpcio-tools==1.66.2",
+    "protobuf>=4.24.0",
     "hexbytes==1.2.1",
     "idna==3.10",
     "jaraco.classes==3.4.0",
     "jwcrypto==1.5.6",
     "keyring==24.3.1",
+    "langchain==0.3.7",
     "more-itertools==10.5.0",
     "msgpack==1.1.0",
     "multidict==6.1.0",
-    "numpy==2.1.1",
     "packaging==24.1",
     "pandas==2.2.3",
     "parsimonious==0.10.0",
@@ -145,3 +146,13 @@ ignore = []
 
 [tool.ruff.mccabe]
 max-complexity = 10
+
+[tool.hatch.build]
+include = [
+    "src/opengradient/**/*.py",
+    "src/opengradient/proto/*.proto",
+    "src/opengradient/abi/*.abi"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opengradient"]

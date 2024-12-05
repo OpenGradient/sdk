@@ -417,7 +417,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
               help='Temperature for LLM inference (0.0 to 1.0)')
 @click.option('--tools',
               type=str,
-              default="[]",
+              default=None,
               help='Tool configurations in JSON format')
 @click.option('--tools-file',
               type=click.Path(exists=True, path_type=Path),
@@ -452,7 +452,6 @@ def chat(
     opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
     opengradient chat --model mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --tools-file tools.json --max-tokens 200 --stop-sequence "." --stop-sequence "\\n"
     """
-    # TODO (Kyle): Probably refer to our own docs here once they're written ^^
     client: Client = ctx.obj['client']
     try:
         click.echo(f"Running LLM chat inference for model \"{model_cid}\"\n")
@@ -622,6 +621,44 @@ def list_files(client: Client, repo_name: str, version: str):
             click.echo(f"No files found for {repo_name} version {version}")
     except Exception as e:
         click.echo(f"Error listing files: {str(e)}")
+
+
+@cli.command()
+@click.option('--model', '-m', required=True, help='Model identifier for image generation')
+@click.option('--prompt', '-p', required=True, help='Text prompt for generating the image')
+@click.option('--output-path', '-o', required=True, type=click.Path(path_type=Path), 
+              help='Output file path for the generated image')
+@click.option('--width', type=int, default=1024, help='Output image width')
+@click.option('--height', type=int, default=1024, help='Output image height')
+@click.pass_context
+def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, height: int):
+    """
+    Generate an image using a diffusion model.
+
+    Example usage:
+    opengradient generate-image --model stabilityai/stable-diffusion-xl-base-1.0 
+        --prompt "A beautiful sunset over mountains" --output-path sunset.png
+    """
+    client: Client = ctx.obj['client']
+    try:
+        click.echo(f"Generating image with model \"{model}\"")
+        image_data = client.generate_image(
+            model_cid=model,
+            prompt=prompt,
+            width=width,
+            height=height
+        )
+
+        # Save the image
+        with open(output_path, 'wb') as f:
+            f.write(image_data)
+
+        click.echo()  # Add a newline for better spacing
+        click.secho("✅ Image generation successful", fg="green", bold=True)
+        click.echo(f"Image saved to: {output_path}")
+
+    except Exception as e:
+        click.echo(f"Error generating image: {str(e)}")
 
 
 if __name__ == '__main__':

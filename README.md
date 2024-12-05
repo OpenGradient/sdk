@@ -51,6 +51,39 @@ og.infer(model_cid, model_inputs, inference_mode)
 ```
  - inference mode can be `VANILLA`, `ZKML`, or `TEE`
 
+### LLM Inference
+#### LLM Completion
+```python
+tx_hash, response = og.llm_completion(
+    model_cid='meta-llama/Meta-Llama-3-8B-Instruct',
+    prompt="Translate the following English text to French: 'Hello, how are you?'",
+    max_tokens=50,
+    temperature=0.0
+)
+``` 
+
+#### LLM Chat
+```python
+# create messages history
+messages = [
+    {
+        "role": "system",
+        "content": "You are a helpful AI assistant.",
+        "name": "HAL"
+    },
+    {
+        "role": "user",
+        "content": "Hello! How are you doing? Can you repeat my name?",
+    }]
+
+# run LLM inference
+tx_hash, finish_reason, message = og.llm_chat(
+  model_cid=og.LLM.MISTRAL_7B_INSTRUCT_V3,
+  messages=messages
+)
+```
+
+
 
 ## Using the CLI
 
@@ -91,8 +124,18 @@ opengradient infer QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ VANILLA --inpu
 ```
 
 #### Run LLM Inference
+We also have explicit support for using LLMs through the completion and chat commands in the CLI.
+
+For example, you can run a competion inference with Llama-3 using the following command:
+
+``` bash
+opengradient completion --model "meta-llama/Meta-Llama-3-8B-Instruct" --prompt "hello who are you?" --max-tokens 50
+```
+
+Or you can use files instead of text input in order to simplify your command:
+
 ```bash
-opengradient llm --model "meta-llama/Meta-Llama-3-8B-Instruct" --prompt "Translate to French: Hello, how are you?" --max-tokens 50 --temperature 0.7
+opengradient chat --model "mistralai/Mistral-7B-Instruct-v0.3" --messages-file messages.json --tools-file tools.json --max-tokens 200
 ```
 
 For more information read the OpenGradient [documentation](https://docs.opengradient.ai/).
