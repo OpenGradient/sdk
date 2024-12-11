@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import random
 from typing import Dict, List, Optional, Tuple, Union
 
 import firebase
@@ -329,21 +330,22 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
+        self._initialize_web3()
+        contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+        
+        inference_mode_uint8 = int(inference_mode)
+        converted_model_input = utils.convert_to_model_input(model_input)
+        
+        run_function = contract.functions.run(
+            model_cid,
+            inference_mode_uint8,
+            converted_model_input
+        )
+
         for attempt in range(max_retries):
             try:
-                self._initialize_web3()
-                contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
                 
-                inference_mode_uint8 = int(inference_mode)
-                converted_model_input = utils.convert_to_model_input(model_input)
-                
-                run_function = contract.functions.run(
-                    model_cid,
-                    inference_mode_uint8,
-                    converted_model_input
-                )
-
-                nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'latest')
+                nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
                 estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
                 gas_limit = int(estimated_gas * 3)
 
@@ -370,84 +372,45 @@ class Client:
 
             except Exception as e:
                 if "nonce too low" in str(e).lower() and attempt < max_retries - 1:
-                    time.sleep(1)
+                    time.sleep(random.uniform(1,5))
+
                     continue
                 raise OpenGradientError(f"Inference failed: {str(e)}")
         
-    def llm_completion(self, 
-                      model_cid: LLM, 
-                      prompt: str, 
-                      max_tokens: int = 100, 
-                      stop_sequence: Optional[List[str]] = None, 
+    def llm_completion(self,
+                      model_cid: str,
+                      prompt: str,
+                      max_tokens: int = 100,
+                      stop_sequence: Optional[List[str]] = None,
                       temperature: float = 0.0,
-                      max_retries: int = 5) -> Tuple[str, str]:
-        """
-        Perform inference on an LLM model using chat.
+                      max_retries: Optional[int] = None) -> Tuple[str, str]:
+        """Perform inference on an LLM model using completion."""
 
-        Args:
-            model_cid (LLM): The unique content identifier for the model.
-            prompt (str): The input prompt for the LLM.
-            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
-            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
-            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-            tools (List[dict], optional): Set of tools
-                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
-                Example:
-                [
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": "get_current_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "location": {
-                                        "type": "string",
-                                        "description": "The city and state, e.g. San Francisco, CA"
-                                    },
-                                    "unit": {
-                                        "type": "string",
-                                        "enum": ["celsius", "fahrenheit"]
-                                    }
-                                },
-                                "required": ["location"]
-                            }
-                        }
-                    }
-                ]
-            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
+        self._initialize_web3()
+        
+        abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
+        with open(abi_path, 'r') as abi_file:
+            llm_abi = json.load(abi_file)
+        contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
 
-        Returns:
-            Tuple[str, str]: The transaction hash and the LLM completion output.
-        Raises:
-            OpenGradientError: If the inference fails.
-        """
-        for attempt in range(max_retries):
+        # Prepare LLM input
+        llm_request = {
+            "mode": InferenceMode.VANILLA,
+            "modelCID": model_cid,
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "stop_sequence": stop_sequence or [],
+            "temperature": int(temperature * 100)  # Scale to 0-100 range
+        }
+        logging.debug(f"Prepared LLM request: {llm_request}")
+
+        # Prepare run function
+        run_function = contract.functions.runLLMCompletion(llm_request)
+
+
+        for attempt in range(max_retries if max_retries is not None else 5):
             try:
-                self._initialize_web3()
-                
-                abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
-                with open(abi_path, 'r') as abi_file:
-                    llm_abi = json.load(abi_file)
-                contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
-
-                # Prepare LLM input
-                llm_request = {
-                    "mode": InferenceMode.VANILLA,
-                    "modelCID": model_cid,
-                    "prompt": prompt,
-                    "max_tokens": max_tokens,
-                    "stop_sequence": stop_sequence or [],
-                    "temperature": int(temperature * 100)  # Scale to 0-100 range
-                }
-                logging.debug(f"Prepared LLM request: {llm_request}")
-
-                # Prepare run function
-                run_function = contract.functions.runLLMCompletion(llm_request)
-
-                # Build transaction
-                nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+                nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
                 estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
                 gas_limit = int(estimated_gas * 1.2)
 
@@ -458,11 +421,9 @@ class Client:
                     'gasPrice': self._w3.eth.gas_price,
                 })
 
-                # Sign and send transaction
                 signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
                 tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
-
+                
                 # Wait for transaction receipt
                 tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -478,11 +439,13 @@ class Client:
 
                 llm_answer = llm_result['args']['response']['answer']
                 return tx_hash.hex(), llm_answer
+
             except Exception as e:
-                if "nonce too low" in str(e).lower() and attempt < max_retries - 1:
-                    time.sleep(1)
+                if attempt < (max_retries if max_retries is not None else 5) - 1:
+                    time.sleep(random.uniform(1,5))
+                    print(e)
                     continue
-                raise OpenGradientError(f"LLM inference failed: {str(e)}")
+                raise OpenGradientError(f"LLM completion failed: {str(e)} (Status code: {getattr(e, 'status_code', None)})")
 
     def llm_chat(self,
                  model_cid: str,
@@ -490,65 +453,11 @@ class Client:
                  max_tokens: int = 100,
                  stop_sequence: Optional[List[str]] = None,
                  temperature: float = 0.0,
-                 tools: Optional[List[Dict]] = [],
+                 tools: Optional[List[Dict]] = None,
                  tool_choice: Optional[str] = None,
-                 max_retries: int = 5) -> Tuple[str, str]:
-        """
-        Perform inference on an LLM model using chat.
-
-        Args:
-            model_cid (LLM): The unique content identifier for the model.
-            messages (dict): The messages that will be passed into the chat. 
-                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
-                Example:
-                [
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant."
-                    },
-                    {
-                        "role": "user",
-                        "content": "Hello!"
-                    }
-                ]
-            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
-            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
-            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-            tools (List[dict], optional): Set of tools
-                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
-                Example:
-                [
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": "get_current_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "location": {
-                                        "type": "string",
-                                        "description": "The city and state, e.g. San Francisco, CA"
-                                    },
-                                    "unit": {
-                                        "type": "string",
-                                        "enum": ["celsius", "fahrenheit"]
-                                    }
-                                },
-                                "required": ["location"]
-                            }
-                        }
-                    }
-                ]
-            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
-
-        Returns:
-            Tuple[str, str, dict]: The transaction hash, finish reason, and a dictionary struct of LLM chat messages.
-
-        Raises:
-            OpenGradientError: If the inference fails.
-        """
-        for attempt in range(max_retries):
+                 max_retries: Optional[int] = None) -> Tuple[str, str, Dict]:
+        """Perform inference on an LLM model using chat."""
+        for attempt in range(max_retries if max_retries is not None else 5):
             try:
                 self._initialize_web3()
                 
@@ -605,8 +514,7 @@ class Client:
                 # Prepare run function
                 run_function = contract.functions.runLLMChat(llm_request)
 
-                # Build transaction
-                nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+                nonce = self._w3.eth.get_transaction_count('pendings')
                 estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
                 gas_limit = int(estimated_gas * 1.2)
 
@@ -617,11 +525,9 @@ class Client:
                     'gasPrice': self._w3.eth.gas_price,
                 })
 
-                # Sign and send transaction
                 signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
                 tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
-
+                
                 # Wait for transaction receipt
                 tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -643,12 +549,13 @@ class Client:
                         new_tool_calls.append(dict(tool_call))
                     message['tool_calls'] = new_tool_calls
 
-                return (tx_hash.hex(), llm_result['finish_reason'], message)
+                return tx_hash.hex(), llm_result['finish_reason'], message
+
             except Exception as e:
-                if "nonce too low" in str(e).lower() and attempt < max_retries - 1:
-                    time.sleep(1)
+                if attempt < (max_retries if max_retries is not None else 5) - 1:
+                    time.sleep(random.uniform(1,5))
                     continue
-                raise OpenGradientError(f"LLM chat failed: {str(e)}")
+                raise OpenGradientError(f"LLM chat failed: {str(e)} (Status code: {getattr(e, 'status_code', None)})")
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """

@@ -5,7 +5,7 @@ from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LLM
 from . import llm
 
-__version__ = "0.3.15"
+__version__ = "0.3.19"
 
 _client = None
 
@@ -40,30 +40,74 @@ def create_version(model_name, notes=None, is_major=False):
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.create_version(model_name, notes, is_major)
 
-def infer(model_cid, inference_mode, model_input):
+def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None):
+    """
+    Perform inference on a model.
+
+    Args:
+        model_cid: Model CID to use for inference
+        inference_mode: Mode of inference (e.g. VANILLA)
+        model_input: Input data for the model
+        max_retries: Optional maximum number of retry attempts for transaction errors
+
+    Returns:
+        Tuple of (transaction hash, model output)
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.infer(model_cid, inference_mode, model_input)
+    return _client.infer(model_cid, inference_mode, model_input, max_retries=max_retries)
 
 def llm_completion(model_cid: LLM, 
-                         prompt: str, 
-                         max_tokens: int = 100, 
-                         stop_sequence: Optional[List[str]] = None, 
-                         temperature: float = 0.0) -> Tuple[str, str]:
+                  prompt: str, 
+                  max_tokens: int = 100, 
+                  stop_sequence: Optional[List[str]] = None, 
+                  temperature: float = 0.0,
+                  max_retries: Optional[int] = None) -> Tuple[str, str]:
+    """
+    Perform inference on an LLM model using completion.
+
+    Args:
+        model_cid: LLM model to use
+        prompt: Input prompt
+        max_tokens: Maximum tokens to generate
+        stop_sequence: Optional list of sequences where the model should stop generating
+        temperature: Sampling temperature (0.0 to 1.0)
+        max_retries: Optional maximum number of retry attempts for transaction errors
+
+    Returns:
+        Tuple of (transaction hash, generated text)
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.llm_completion(model_cid, prompt, max_tokens, stop_sequence, temperature)
+    return _client.llm_completion(model_cid, prompt, max_tokens, stop_sequence, temperature, max_retries=max_retries)
 
 def llm_chat(model_cid: LLM,
-                   messages: List[Dict],
-                   max_tokens: int = 100,
-                   stop_sequence: Optional[List[str]] = None,
-                   temperature: float = 0.0,
-                   tools: Optional[List[Dict]] = None,
-                   tool_choice: Optional[str] = None):
+             messages: List[Dict],
+             max_tokens: int = 100,
+             stop_sequence: Optional[List[str]] = None,
+             temperature: float = 0.0,
+             tools: Optional[List[Dict]] = None,
+             tool_choice: Optional[str] = None,
+             max_retries: Optional[int] = None):
+    """
+    Perform inference on an LLM model using chat format.
+
+    Args:
+        model_cid: LLM model to use
+        messages: List of message dictionaries
+        max_tokens: Maximum tokens to generate
+        stop_sequence: Optional list of sequences where the model should stop generating
+        temperature: Sampling temperature (0.0 to 1.0)
+        tools: Optional list of tools available to the model
+        tool_choice: Optional specific tool to use
+        max_retries: Optional maximum number of retry attempts for transaction errors
+
+    Returns:
+        Model response
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.llm_chat(model_cid, messages, max_tokens, stop_sequence, temperature, tools, tool_choice)
+    return _client.llm_chat(model_cid, messages, max_tokens, stop_sequence, temperature, tools, tool_choice, max_retries=max_retries)
 
 def login(email: str, password: str):
     if _client is None:
