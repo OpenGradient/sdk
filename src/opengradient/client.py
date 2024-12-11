@@ -419,8 +419,7 @@ class Client:
             tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
 
         Returns:
-            Tuple[str, str, dict]: The transaction hash, finish reason, and a dictionary struct of LLM chat messages.
-
+            Tuple[str, str]: The transaction hash and the LLM completion output.
         Raises:
             OpenGradientError: If the inference fails.
         """
