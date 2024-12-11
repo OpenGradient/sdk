@@ -386,19 +386,7 @@ class Client:
 
         Args:
             model_cid (LLM): The unique content identifier for the model.
-            messages (dict): The messages that will be passed into the chat. 
-                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
-                Example:
-                [
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant."
-                    },
-                    {
-                        "role": "user",
-                        "content": "Hello!"
-                    }
-                ]
+            prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
