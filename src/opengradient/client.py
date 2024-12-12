@@ -372,7 +372,7 @@ class Client:
 
             except Exception as e:
                 if "nonce too low" in str(e).lower() and attempt < max_retries - 1:
-                    time.sleep(random.uniform(1,5))
+                    time.sleep(1)
 
                     continue
                 raise OpenGradientError(f"Inference failed: {str(e)}")
@@ -442,7 +442,7 @@ class Client:
 
             except Exception as e:
                 if attempt < (max_retries if max_retries is not None else 5) - 1:
-                    time.sleep(random.uniform(1,5))
+                    time.sleep(1)
                     print(e)
                     continue
                 raise OpenGradientError(f"LLM completion failed: {str(e)} (Status code: {getattr(e, 'status_code', None)})")
@@ -553,7 +553,7 @@ class Client:
 
             except Exception as e:
                 if attempt < (max_retries if max_retries is not None else 5) - 1:
-                    time.sleep(random.uniform(1,5))
+                    time.sleep(1)
                     continue
                 raise OpenGradientError(f"LLM chat failed: {str(e)} (Status code: {getattr(e, 'status_code', None)})")
 
