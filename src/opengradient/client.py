@@ -313,7 +313,7 @@ class Client:
             model_cid: str, 
             inference_mode: InferenceMode, 
             model_input: Dict[str, Union[str, int, float, List, np.ndarray]],
-            max_retries: int = 5
+            max_retries: Optional[int] = None
             ) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
@@ -342,7 +342,7 @@ class Client:
             converted_model_input
         )
 
-        for attempt in range(max_retries):
+        for attempt in range(max_retries if max_retries is not None else 5):
             try:
                 
                 nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
