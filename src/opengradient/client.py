@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import random
 from typing import Dict, List, Optional, Tuple, Union
 
 import firebase
@@ -22,6 +23,31 @@ from google.protobuf import timestamp_pb2
 from opengradient.proto import infer_pb2
 from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
+
+from functools import wraps
+
+def run_with_retry(txn_function, max_retries=5):
+    """
+    Execute a blockchain transaction with retry logic.
+    
+    Args:
+        txn_function: Function that executes the transaction
+        max_retries (int): Maximum number of retry attempts
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return txn_function()
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                if "nonce too low" in str(e) or "nonce too high" in str(e):
+                    time.sleep(1)  # Wait before retry
+                    continue
+                # If it's not a nonce error, raise immediately
+                raise
+    # If we've exhausted all retries, raise the last error
+    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
 
 class Client:
     FIREBASE_CONFIG = {
@@ -311,7 +337,8 @@ class Client:
             self, 
             model_cid: str, 
             inference_mode: InferenceMode, 
-            model_input: Dict[str, Union[str, int, float, List, np.ndarray]]
+            model_input: Dict[str, Union[str, int, float, List, np.ndarray]],
+            max_retries: Optional[int] = None
             ) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
@@ -320,6 +347,7 @@ class Client:
             model_cid (str): The unique content identifier for the model from IPFS.
             inference_mode (InferenceMode): The inference mode.
             model_input (Dict[str, Union[str, int, float, List, np.ndarray]]): The input data for the model.
+            max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
 
         Returns:
             Tuple[str, Dict[str, np.ndarray]]: The transaction hash and the model output.
@@ -327,46 +355,22 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        # TODO (Kyle): Add input support for JSON tensors
-        try:
-            logging.debug("Entering infer method")
+        def execute_transaction():
             self._initialize_web3()
-            logging.debug(f"Web3 initialized. Connected: {self._w3.is_connected()}")
-
-            logging.debug(f"Creating contract instance. Address: {self.contract_address}")
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
-            logging.debug("Contract instance created successfully")
-
-            logging.debug(f"Model ID: {model_cid}")
-            logging.debug(f"Inference Mode: {inference_mode}")
-            logging.debug(f"Model Input: {model_input}")
-
-            # Convert InferenceMode to uint8
+            
             inference_mode_uint8 = int(inference_mode)
-
-            # Prepare ModelInput tuple
             converted_model_input = utils.convert_to_model_input(model_input)
-            logging.debug(f"Prepared model input tuple: {converted_model_input}")
-
-            logging.debug("Preparing run function")
+            
             run_function = contract.functions.run(
                 model_cid,
                 inference_mode_uint8,
                 converted_model_input
             )
-            logging.debug("Run function prepared successfully")
 
-            # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
-            logging.debug(f"Nonce: {nonce}")
-
-            # Estimate gas
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
-            logging.debug(f"Estimated gas: {estimated_gas}")
-
-            # Increase gas limit by 20%
             gas_limit = int(estimated_gas * 3)
-            logging.debug(f"Gas limit set to: {gas_limit}")
 
             transaction = run_function.build_transaction({
                 'from': self.wallet_address,
@@ -375,58 +379,30 @@ class Client:
                 'gasPrice': self._w3.eth.gas_price,
             })
 
-            logging.debug(f"Transaction built: {transaction}")
-
-            # Sign transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            logging.debug("Transaction signed successfully")
-
-            # Send transaction
             tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
-
-            # Wait for transaction receipt
             tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
-            logging.debug(f"Transaction receipt received: {tx_receipt}")
 
-            # Check if the transaction was successful
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
-            # Process the InferenceResult event
             parsed_logs = contract.events.InferenceResult().process_receipt(tx_receipt, errors=DISCARD)
-
             if len(parsed_logs) < 1:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
-            inference_result = parsed_logs[0]
 
-            # Extract the ModelOutput from the event
-            event_data = inference_result['args']
-            logging.debug(f"Raw event data: {event_data}")
-
-            try:
-                model_output = utils.convert_to_model_output(event_data)
-                logging.debug(f"Parsed ModelOutput: {model_output}")
-            except Exception as e:
-                logging.error(f"Error parsing event data: {str(e)}", exc_info=True)
-                raise OpenGradientError(f"Failed to parse event data: {str(e)}")
-
+            model_output = utils.convert_to_model_output(parsed_logs[0]['args'])
             return tx_hash.hex(), model_output
 
-        except ContractLogicError as e:
-            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"Inference failed due to contract logic error: {str(e)}")
-        except Exception as e:
-            logging.error(f"Error in infer method: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"Inference failed: {str(e)}")
-        
+        return run_with_retry(execute_transaction, max_retries or 5)
+
     def llm_completion(self, 
                        model_cid: LLM, 
                        inference_mode: InferenceMode,
                        prompt: str, 
                        max_tokens: int = 100, 
                        stop_sequence: Optional[List[str]] = None, 
-                       temperature: float = 0.0) -> Tuple[str, str]:
+                       temperature: float = 0.0,
+                       max_retries: Optional[int] = None) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
 
@@ -444,7 +420,7 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        try:
+        def execute_transaction():
             # Check inference mode and supported model
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
@@ -453,11 +429,7 @@ class Client:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
             self._initialize_web3()
-            
-            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
-            with open(abi_path, 'r') as abi_file:
-                llm_abi = json.load(abi_file)
-            contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
+            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
 
             # Prepare LLM input
             llm_request = {
@@ -470,11 +442,9 @@ class Client:
             }
             logging.debug(f"Prepared LLM request: {llm_request}")
 
-            # Prepare run function
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
@@ -485,34 +455,22 @@ class Client:
                 'gasPrice': self._w3.eth.gas_price,
             })
 
-            # Sign and send transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
             tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
-
-            # Wait for transaction receipt
             tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
-            # Process the LLMResult event
             parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
-
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM completion result event not found in transaction logs")
-            llm_result = parsed_logs[0]
 
-            llm_answer = llm_result['args']['response']['answer']
+            llm_answer = parsed_logs[0]['args']['response']['answer']
             return tx_hash.hex(), llm_answer
 
-        except ContractLogicError as e:
-            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"LLM inference failed due to contract logic error: {str(e)}")
-        except Exception as e:
-            logging.error(f"Error in infer completion method: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"LLM inference failed: {str(e)}")
-        
+        return run_with_retry(execute_transaction, max_retries or 5)
+
     def llm_chat(self,
                  model_cid: str,
                  inference_mode: InferenceMode,
@@ -521,7 +479,8 @@ class Client:
                  stop_sequence: Optional[List[str]] = None,
                  temperature: float = 0.0,
                  tools: Optional[List[Dict]] = [],
-                 tool_choice: Optional[str] = None) -> Tuple[str, str]:
+                 tool_choice: Optional[str] = None,
+                 max_retries: Optional[int] = None) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using chat.
 
@@ -578,7 +537,7 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        try:
+        def execute_transaction():
             # Check inference mode and supported model
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
@@ -587,11 +546,7 @@ class Client:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
             
             self._initialize_web3()
-            
-            abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
-            with open(abi_path, 'r') as abi_file:
-                llm_abi = json.load(abi_file)
-            contract = self._w3.eth.contract(address=self.contract_address, abi=llm_abi)
+            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
@@ -603,17 +558,10 @@ class Client:
                     message['name'] = ""
 
             # Create simplified tool structure for smart contract
-            #
-            #   struct ToolDefinition {
-            #       string description;
-            #       string name;
-            #       string parameters; // This must be a JSON 
-            #   }
             converted_tools = []
             if tools is not None:
                 for tool in tools:
                     function = tool['function']
-
                     converted_tool = {}
                     converted_tool['name'] = function['name']
                     converted_tool['description'] = function['description']
@@ -622,7 +570,6 @@ class Client:
                             converted_tool['parameters'] = json.dumps(parameters)
                         except Exception as e:
                             raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
-                    
                     converted_tools.append(converted_tool)
 
             # Prepare LLM input
@@ -638,11 +585,9 @@ class Client:
             }
             logging.debug(f"Prepared LLM request: {llm_request}")
 
-            # Prepare run function
             run_function = contract.functions.runLLMChat(llm_request)
 
-            # Build transaction
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address)
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
@@ -653,41 +598,25 @@ class Client:
                 'gasPrice': self._w3.eth.gas_price,
             })
 
-            # Sign and send transaction
             signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
             tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            logging.debug(f"Transaction sent. Hash: {tx_hash.hex()}")
-
-            # Wait for transaction receipt
             tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
-            # Process the LLMResult event
             parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
-
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
+
             llm_result = parsed_logs[0]['args']['response']
-
-            # Turn tool calls into normal dicts
             message = dict(llm_result['message'])
-            if (tool_calls := message.get('tool_calls')) != None:
-                new_tool_calls = []
-                for tool_call in tool_calls:
-                    new_tool_calls.append(dict(tool_call))
-                message['tool_calls'] = new_tool_calls
+            if (tool_calls := message.get('tool_calls')) is not None:
+                message['tool_calls'] = [dict(tool_call) for tool_call in tool_calls]
 
-            return (tx_hash.hex(), llm_result['finish_reason'], message)
+            return tx_hash.hex(), llm_result['finish_reason'], message
 
-        except ContractLogicError as e:
-            logging.error(f"Contract logic error: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"LLM inference failed due to contract logic error: {str(e)}")
-        except Exception as e:
-            logging.error(f"Error in infer chat method: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"LLM inference failed: {str(e)}")
-
+        return run_with_retry(execute_transaction, max_retries or 5)
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
