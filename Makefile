@@ -3,12 +3,13 @@ MESSAGES_FILE := messages.json
 TOOLS_FILE := tools.json
 LLAMA_3B_MODEL := meta-llama/Meta-Llama-3-8B-Instruct
 MISTRAL_MODEL := mistralai/Mistral-7B-Instruct-v0.3
+LLAMA_70B_MODEL := meta-llama/Llama-3.1-70B-Instruct
 
 infer:
 	pip install -e .
 	python -m opengradient.cli infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNX"], "str_input2":" world"}'
 
-llm:
+completion:
 	pip install -e .
 	python -m opengradient.cli completion --model $(LLAMA_3B_MODEL) --prompt "hello doctor" --max-tokens 50
 
@@ -37,3 +38,11 @@ chat_files: generate
 		--messages-file $(MESSAGES_FILE) \
 		--tools-file $(TOOLS_FILE) \
 		--max-tokens 200
+
+tee_completion:
+	pip install -e .
+	python -m opengradient.cli completion --model $(LLAMA_70B_MODEL) --mode TEE --prompt "hello doctor" --max-tokens 150
+
+tee_chat:
+	pip install -e .
+	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --mode TEE --messages '[{"role":"user","content":"hello"}]' --max-tokens 150

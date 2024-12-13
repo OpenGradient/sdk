@@ -13,7 +13,7 @@ from web3.logs import DISCARD
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import InferenceMode, LLM
+from opengradient.types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 
 import grpc
 import time
@@ -395,17 +395,45 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries or 5)
 
-    def llm_completion(self, model_cid: str, prompt: str, max_tokens: int = 100,
-                      stop_sequence: Optional[List[str]] = None, temperature: float = 0.0,
-                      max_retries: Optional[int] = None) -> Tuple[str, str]:
-        
+    def llm_completion(self, 
+                       model_cid: LLM, 
+                       inference_mode: InferenceMode,
+                       prompt: str, 
+                       max_tokens: int = 100, 
+                       stop_sequence: Optional[List[str]] = None, 
+                       temperature: float = 0.0,
+                       max_retries: Optional[int] = None) -> Tuple[str, str]:
+        """
+        Perform inference on an LLM model using completions.
+
+        Args:
+            model_cid (LLM): The unique content identifier for the model.
+            inference_mode (InferenceMode): The inference mode.
+            prompt (str): The input prompt for the LLM.
+            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
+            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
+            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+
+        Returns:
+            Tuple[str, str]: The transaction hash and the LLM completion output.
+
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
         def execute_transaction():
+            # Check inference mode and supported model
+            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
+                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
+            
+            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
+                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+
             self._initialize_web3()
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
 
             # Prepare LLM input
             llm_request = {
-                "mode": InferenceMode.VANILLA,
+                "mode": inference_mode,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
@@ -443,12 +471,80 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries or 5)
 
-    def llm_chat(self, model_cid: str, messages: List[Dict], max_tokens: int = 100,
-                 stop_sequence: Optional[List[str]] = None, temperature: float = 0.0,
-                 tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None,
-                 max_retries: Optional[int] = None) -> Tuple[str, str, Dict]:
-        
+    def llm_chat(self,
+                 model_cid: str,
+                 inference_mode: InferenceMode,
+                 messages: List[Dict],
+                 max_tokens: int = 100,
+                 stop_sequence: Optional[List[str]] = None,
+                 temperature: float = 0.0,
+                 tools: Optional[List[Dict]] = [],
+                 tool_choice: Optional[str] = None,
+                 max_retries: Optional[int] = None) -> Tuple[str, str]:
+        """
+        Perform inference on an LLM model using chat.
+
+        Args:
+            model_cid (LLM): The unique content identifier for the model.
+            inference_mode (InferenceMode): The inference mode.
+            messages (dict): The messages that will be passed into the chat. 
+                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
+                Example:
+                [
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant."
+                    },
+                    {
+                        "role": "user",
+                        "content": "Hello!"
+                    }
+                ]
+            max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
+            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
+            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+            tools (List[dict], optional): Set of tools
+                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
+                Example:
+                [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_current_weather",
+                            "description": "Get the current weather in a given location",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "location": {
+                                        "type": "string",
+                                        "description": "The city and state, e.g. San Francisco, CA"
+                                    },
+                                    "unit": {
+                                        "type": "string",
+                                        "enum": ["celsius", "fahrenheit"]
+                                    }
+                                },
+                                "required": ["location"]
+                            }
+                        }
+                    }
+                ]
+            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
+
+        Returns:
+            Tuple[str, str, dict]: The transaction hash, finish reason, and a dictionary struct of LLM chat messages.
+
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
         def execute_transaction():
+            # Check inference mode and supported model
+            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
+                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
+            
+            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
+                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            
             self._initialize_web3()
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
 
@@ -478,7 +574,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": InferenceMode.VANILLA,
+                "mode": inference_mode,
                 "modelCID": model_cid,
                 "messages": messages,
                 "max_tokens": max_tokens,

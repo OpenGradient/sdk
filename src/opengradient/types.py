@@ -27,6 +27,10 @@ class InferenceMode:
     ZKML = 1
     TEE = 2
 
+class LlmInferenceMode:
+    VANILLA = 0
+    TEE = 1
+
 @dataclass
 class ModelOutput:
     numbers: List[NumberTensor]
@@ -79,4 +83,7 @@ class LLM(str, Enum):
     LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
     MISTRAL_7B_INSTRUCT_V3 = "mistralai/Mistral-7B-Instruct-v0.3"
     HERMES_3_LLAMA_3_1_70B = "NousResearch/Hermes-3-Llama-3.1-70B"
+    META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
+
+class TEE_LLM(str, Enum):
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
