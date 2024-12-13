@@ -74,7 +74,8 @@ LlmInferenceModes = {
 LlmModels = {
     "meta-llama/Meta-Llama-3-8B-Instruct",
     "meta-llama/Llama-3.2-3B-Instruct",
-    "mistralai/Mistral-7B-Instruct-v0.3"
+    "mistralai/Mistral-7B-Instruct-v0.3",
+    "meta-llama/Llama-3.1-70B-Instruct",
 }
 
 def initialize_config(ctx):
@@ -344,7 +345,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
         click.echo(f"Error running inference: {str(e)}")
 
 @cli.command()
-@click.option('--model', '-m', 'model_cid', type=click.Choice(LlmModels), required=True, help='CID of the LLM model to run inference on')
+@click.option('--model', '-m', 'model_cid', type=click.Choice([e.value for e in types.LLM]), required=True, help='CID of the LLM model to run inference on')
 @click.option('--mode', 'inference_mode', type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", 
               help='Inference mode (default: VANILLA)')
 @click.option('--prompt', '-p', required=True, help='Input prompt for the LLM completion')
