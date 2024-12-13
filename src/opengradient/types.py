@@ -27,6 +27,10 @@ class InferenceMode:
     ZKML = 1
     TEE = 2
 
+class LlmInferenceMode:
+    VANILLA = 0
+    TEE = 1
+
 @dataclass
 class ModelOutput:
     numbers: List[NumberTensor]

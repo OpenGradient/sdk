@@ -20,7 +20,7 @@ from .defaults import (
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
 )
-from .types import InferenceMode
+from .types import InferenceMode, LlmInferenceMode
 
 OG_CONFIG_FILE = Path.home() / '.opengradient_config.json'
 
@@ -63,6 +63,11 @@ InferenceModes = {
     "VANILLA": InferenceMode.VANILLA,
     "ZKML": InferenceMode.ZKML,
     "TEE": InferenceMode.TEE,
+}
+
+LlmInferenceModes = {
+    "VANILLA": LlmInferenceMode.VANILLA,
+    "TEE": LlmInferenceMode.TEE,
 }
 
 # Supported LLMs
@@ -340,7 +345,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 
 @cli.command()
 @click.option('--model', '-m', 'model_cid', type=click.Choice(LlmModels), required=True, help='CID of the LLM model to run inference on')
-@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
+@click.option('--mode', 'inference_mode', type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", 
               help='Inference mode (default: VANILLA)')
 @click.option('--prompt', '-p', required=True, help='Input prompt for the LLM completion')
 @click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM completion output')
@@ -364,7 +369,7 @@ def completion(ctx, model_cid: str, inference_mode: str,  prompt: str, max_token
         click.echo(f"Running LLM completion inference for model \"{model_cid}\"\n")
         tx_hash, llm_output = client.llm_completion(
             model_cid=model_cid,
-            inference_mode=InferenceModes[inference_mode],
+            inference_mode=LlmInferenceModes[inference_mode],
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
@@ -397,7 +402,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
               type=click.Choice([e.value for e in types.LLM]), 
               required=True, 
               help='CID of the LLM model to run inference on')
-@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), 
+@click.option('--mode', 'inference_mode', type=click.Choice(LlmInferenceModes.keys()), 
               default="VANILLA", 
               help='Inference mode (default: VANILLA)')
 @click.option('--messages', 
@@ -518,7 +523,7 @@ def chat(
 
         tx_hash, finish_reason, llm_chat_output = client.llm_chat(
             model_cid=model_cid,
-            inference_mode=InferenceModes[inference_mode],
+            inference_mode=LlmInferenceModes[inference_mode],
             messages=messages,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),

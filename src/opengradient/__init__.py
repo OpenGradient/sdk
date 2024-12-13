@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import InferenceMode, LLM, TEE_LLM
+from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 from . import llm
 
 __version__ = "0.3.15"
@@ -46,11 +46,11 @@ def infer(model_cid, inference_mode, model_input):
     return _client.infer(model_cid, inference_mode, model_input)
 
 def llm_completion(model_cid: LLM, 
-                         prompt: str, 
-                         inference_mode: str = InferenceMode.VANILLA,
-                         max_tokens: int = 100, 
-                         stop_sequence: Optional[List[str]] = None, 
-                         temperature: float = 0.0) -> Tuple[str, str]:
+                        prompt: str, 
+                        inference_mode: str = LlmInferenceMode.VANILLA,
+                        max_tokens: int = 100, 
+                        stop_sequence: Optional[List[str]] = None, 
+                        temperature: float = 0.0) -> Tuple[str, str]:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_completion(model_cid=model_cid, 
@@ -62,7 +62,7 @@ def llm_completion(model_cid: LLM,
 
 def llm_chat(model_cid: LLM,
                    messages: List[Dict],
-                   inference_mode: str = InferenceMode.VANILLA,
+                   inference_mode: str = LlmInferenceMode.VANILLA,
                    max_tokens: int = 100,
                    stop_sequence: Optional[List[str]] = None,
                    temperature: float = 0.0,

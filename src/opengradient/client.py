@@ -12,7 +12,7 @@ from web3.logs import DISCARD
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import InferenceMode, LLM, TEE_LLM
+from opengradient.types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 
 import grpc
 import time
@@ -446,15 +446,11 @@ class Client:
         """
         try:
             # Check inference mode and supported model
-            if inference_mode != InferenceMode.VANILLA and inference_mode != InferenceMode.TEE:
+            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
             
-            if inference_mode == InferenceMode.TEE and model_cid not in TEE_LLM:
+            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
-            
-            # This has a different enumeration than in normal inference (LLMs only support Vanilla and TEE)
-            if inference_mode == InferenceMode.TEE:
-                inference_mode = 1
 
             self._initialize_web3()
             
@@ -584,15 +580,11 @@ class Client:
         """
         try:
             # Check inference mode and supported model
-            if inference_mode != InferenceMode.VANILLA and inference_mode != InferenceMode.TEE:
+            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
             
-            if inference_mode == InferenceMode.TEE and model_cid not in TEE_LLM:
+            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
-            
-            # This has a different enumeration than in normal inference (LLMs only support Vanilla and TEE)
-            if inference_mode == InferenceMode.TEE:
-                inference_mode = 1
             
             self._initialize_web3()
             
