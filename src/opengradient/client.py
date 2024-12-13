@@ -12,7 +12,7 @@ from web3.logs import DISCARD
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import InferenceMode, LLM
+from opengradient.types import InferenceMode, LLM, TEE_LLM
 
 import grpc
 import time
@@ -422,6 +422,7 @@ class Client:
         
     def llm_completion(self, 
                        model_cid: LLM, 
+                       inference_mode: InferenceMode,
                        prompt: str, 
                        max_tokens: int = 100, 
                        stop_sequence: Optional[List[str]] = None, 
@@ -431,6 +432,7 @@ class Client:
 
         Args:
             model_cid (LLM): The unique content identifier for the model.
+            inference_mode (InferenceMode): The inference mode.
             prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
@@ -443,6 +445,17 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         try:
+            # Check inference mode and supported model
+            if inference_mode != InferenceMode.VANILLA and inference_mode != InferenceMode.TEE:
+                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
+            
+            if inference_mode == InferenceMode.TEE and model_cid not in TEE_LLM:
+                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            
+            # This has a different enumeration than in normal inference (LLMs only support Vanilla and TEE)
+            if inference_mode == InferenceMode.TEE:
+                inference_mode = 1
+
             self._initialize_web3()
             
             abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
@@ -452,7 +465,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": InferenceMode.VANILLA,
+                "mode": inference_mode,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
@@ -506,6 +519,7 @@ class Client:
         
     def llm_chat(self,
                  model_cid: str,
+                 inference_mode: InferenceMode,
                  messages: List[Dict],
                  max_tokens: int = 100,
                  stop_sequence: Optional[List[str]] = None,
@@ -517,6 +531,7 @@ class Client:
 
         Args:
             model_cid (LLM): The unique content identifier for the model.
+            inference_mode (InferenceMode): The inference mode.
             messages (dict): The messages that will be passed into the chat. 
                 This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
                 Example:
@@ -568,6 +583,17 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         try:
+            # Check inference mode and supported model
+            if inference_mode != InferenceMode.VANILLA and inference_mode != InferenceMode.TEE:
+                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
+            
+            if inference_mode == InferenceMode.TEE and model_cid not in TEE_LLM:
+                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            
+            # This has a different enumeration than in normal inference (LLMs only support Vanilla and TEE)
+            if inference_mode == InferenceMode.TEE:
+                inference_mode = 1
+            
             self._initialize_web3()
             
             abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
@@ -609,7 +635,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": InferenceMode.VANILLA,
+                "mode": inference_mode,
                 "modelCID": model_cid,
                 "messages": messages,
                 "max_tokens": max_tokens,

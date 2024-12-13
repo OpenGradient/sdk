@@ -340,12 +340,14 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
 
 @cli.command()
 @click.option('--model', '-m', 'model_cid', type=click.Choice(LlmModels), required=True, help='CID of the LLM model to run inference on')
+@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
+              help='Inference mode (default: VANILLA)')
 @click.option('--prompt', '-p', required=True, help='Input prompt for the LLM completion')
 @click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM completion output')
 @click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
 @click.option('--temperature', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
 @click.pass_context
-def completion(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
+def completion(ctx, model_cid: str, inference_mode: str,  prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
     """
     Run completion inference on an LLM model.
 
@@ -362,6 +364,7 @@ def completion(ctx, model_cid: str, prompt: str, max_tokens: int, stop_sequence:
         click.echo(f"Running LLM completion inference for model \"{model_cid}\"\n")
         tx_hash, llm_output = client.llm_completion(
             model_cid=model_cid,
+            inference_mode=InferenceModes[inference_mode],
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
@@ -394,6 +397,9 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
               type=click.Choice([e.value for e in types.LLM]), 
               required=True, 
               help='CID of the LLM model to run inference on')
+@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), 
+              default="VANILLA", 
+              help='Inference mode (default: VANILLA)')
 @click.option('--messages', 
               type=str,
               required=False, 
@@ -431,6 +437,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
 def chat(
     ctx,
     model_cid: str,
+    inference_mode: str,
     messages: Optional[str],
     messages_file: Optional[Path],
     max_tokens: int,
@@ -511,6 +518,7 @@ def chat(
 
         tx_hash, finish_reason, llm_chat_output = client.llm_chat(
             model_cid=model_cid,
+            inference_mode=InferenceModes[inference_mode],
             messages=messages,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),

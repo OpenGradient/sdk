@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import InferenceMode, LLM
+from .types import InferenceMode, LLM, TEE_LLM
 from . import llm
 
 __version__ = "0.3.15"
@@ -47,15 +47,22 @@ def infer(model_cid, inference_mode, model_input):
 
 def llm_completion(model_cid: LLM, 
                          prompt: str, 
+                         inference_mode: str = InferenceMode.VANILLA,
                          max_tokens: int = 100, 
                          stop_sequence: Optional[List[str]] = None, 
                          temperature: float = 0.0) -> Tuple[str, str]:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.llm_completion(model_cid, prompt, max_tokens, stop_sequence, temperature)
+    return _client.llm_completion(model_cid=model_cid, 
+                                  inference_mode=inference_mode, 
+                                  prompt=prompt,
+                                  max_tokens=max_tokens, 
+                                  stop_sequence=stop_sequence, 
+                                  temperature=temperature)
 
 def llm_chat(model_cid: LLM,
                    messages: List[Dict],
+                   inference_mode: str = InferenceMode.VANILLA,
                    max_tokens: int = 100,
                    stop_sequence: Optional[List[str]] = None,
                    temperature: float = 0.0,
@@ -63,7 +70,14 @@ def llm_chat(model_cid: LLM,
                    tool_choice: Optional[str] = None):
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.llm_chat(model_cid, messages, max_tokens, stop_sequence, temperature, tools, tool_choice)
+    return _client.llm_chat(model_cid=model_cid, 
+                            inference_mode=inference_mode, 
+                            messages=messages, 
+                            max_tokens=max_tokens, 
+                            stop_sequence=stop_sequence, 
+                            temperature=temperature, 
+                            tools=tools, 
+                            tool_choice=tool_choice)
 
 def login(email: str, password: str):
     if _client is None:
