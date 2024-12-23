@@ -383,7 +383,7 @@ def completion(ctx, model_cid: str, inference_mode: str,  prompt: str, max_token
 
 def print_llm_completion_result(model_cid, tx_hash, llm_output):
     click.secho("✅ LLM completion Successful", fg="green", bold=True)
-    click.echo("──────────────────────────────────────")
+    click.echo("──────────��───────────────────────────")
     click.echo("Model CID: ", nl=False)
     click.secho(model_cid, fg="cyan", bold=True)
     click.echo("Transaction hash: ", nl=False)
@@ -547,7 +547,7 @@ def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
     block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
     click.echo("Block explorer link: ", nl=False)
     click.secho(block_explorer_link, fg="blue", underline=True)
-    click.echo("──────────────────────────────────────")
+    click.echo("─────────────────────────���────────────")
     click.secho("Finish Reason: ", fg="yellow", bold=True)
     click.echo()
     click.echo(finish_reason)
@@ -673,6 +673,31 @@ def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, 
 
     except Exception as e:
         click.echo(f"Error generating image: {str(e)}")
+
+
+@cli.command("new_workflow")
+def new_workflow_command():
+    """
+    Deploy a new user-defined contract (ModelExecutorVolatility by default).
+    """
+    if _client is None:
+        click.echo("Error: OpenGradient client not initialized. Call og.init(...) first.")
+        return
+    addr = _client.new_workflow()
+    click.secho("Contract Deployed Successfully!", fg="green", bold=True)
+    click.echo(f"New Workflow Contract Address: {addr}")
+
+@cli.command("read_workflow")
+@click.option("--contract-address", required=True, help="Address of the workflow contract to invoke.")
+def read_workflow_command(contract_address):
+    """
+    Invoke the 'run()' function on a deployed user-defined contract.
+    """
+    if _client is None:
+        click.echo("Error: OpenGradient client not initialized. Call og.init(...) first.")
+        return
+    tx_hash = _client.read_workflow(contract_address)
+    click.secho(f"'run()' called successfully. TX hash: {tx_hash}", fg="green", bold=True)
 
 
 if __name__ == '__main__':

@@ -25,6 +25,7 @@ from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 from functools import wraps
+from .workflow import WorkflowManager
 
 def run_with_retry(txn_function, max_retries=5):
     """
@@ -95,6 +96,8 @@ class Client:
 
         if email is not None:
             self.login(email, password)
+
+        self._workflow_manager = WorkflowManager(self._w3, self.private_key)
 
     def login(self, email, password):
         try:
@@ -787,3 +790,17 @@ class Client:
         finally:
             if channel:
                 channel.close()       
+
+    def new_workflow(self) -> str:
+        """
+        Deploys a new contract using the default example in workflow.py
+        Returns the contract address.
+        """
+        return self._workflow_manager.new_workflow()
+
+    def read_workflow(self, contract_address: str) -> str:
+        """
+        Calls the 'run()' function on the specified contract address.
+        Returns the resulting transaction hash.
+        """
+        return self._workflow_manager.read_workflow(contract_address)
