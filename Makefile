@@ -11,15 +11,15 @@ infer:
 
 completion:
 	pip install -e .
-	python -m opengradient.cli completion --model $(LLAMA_3B_MODEL) --prompt "hello doctor" --max-tokens 50
+	python -m opengradient.cli completion --model $(LLAMA_70B_MODEL) --prompt "hello doctor?!??!!" --max-tokens 50
 
 chat:
 	pip install -e .
-	python -m opengradient.cli chat --model $(LLAMA_3B_MODEL) --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
 
 tool:
 	pip install -e .
-	python -m opengradient.cli chat --model $(MISTRAL_MODEL) --messages '[{"role": "system", "content": "You are a AI assistant that helps the user with tasks. Use tools if necessary."}, {"role": "user", "content": "Hi! How are you doing today?"}, {"role": "assistant", "content": "I'\''m doing well! How can I help you?", "name": "HAL"}, {"role": "user", "content": "Can you tell me what the temperate will be in Dallas, in fahrenheit?"}]' --tools '[{"type": "function", "function": {"name": "get_current_weather", "description": "Get the current weather in a given location", "parameters": {"type": "object", "properties": {"city": {"type": "string", "description": "The city to find the weather for, e.g. '\''San Francisco'\''"}, "state": {"type": "string", "description": "the two-letter abbreviation for the state that the city is in, e.g. '\''CA'\'' which would mean '\''California'\''"}, "unit": {"type": "string", "description": "The unit to fetch the temperature in", "enum": ["celsius", "fahrenheit"]}}, "required": ["city", "state", "unit"]}}}]' --max-tokens 200
+	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --messages '[{"role": "system", "content": "You are a AI assistant that helps the user with tasks. Use tools if necessary."}, {"role": "user", "content": "Hi! How are you doing today?"}, {"role": "assistant", "content": "I'\''m doing well! How can I help you?", "name": "HAL"}, {"role": "user", "content": "Can you tell me what the temperate will be in Dallas, in fahrenheit?"}]' --tools '[{"type": "function", "function": {"name": "get_current_weather", "description": "Get the current weather in a given location", "parameters": {"type": "object", "properties": {"city": {"type": "string", "description": "The city to find the weather for, e.g. '\''San Francisco'\''"}, "state": {"type": "string", "description": "the two-letter abbreviation for the state that the city is in, e.g. '\''CA'\'' which would mean '\''California'\''"}, "unit": {"type": "string", "description": "The unit to fetch the temperature in", "enum": ["celsius", "fahrenheit"]}}, "required": ["city", "state", "unit"]}}}]' --max-tokens 200
 
 # Create the messages JSON file
 messages:

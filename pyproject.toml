@@ -73,6 +73,7 @@ dependencies = [
     "more-itertools==10.5.0",
     "msgpack==1.1.0",
     "multidict==6.1.0",
+    "openai==1.58.1",
     "packaging==24.1",
     "pandas==2.2.3",
     "parsimonious==0.10.0",
