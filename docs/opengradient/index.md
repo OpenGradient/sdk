@@ -1,5 +1,6 @@
 Module opengradient
 ===================
+OpenGradient Python SDK
 
 Sub-modules
 -----------
@@ -9,10 +10,10 @@ Functions
 ---------
 
 `create_model(model_name: str, model_desc: str, model_path: str = None)`
-:   
+:   Creates a new model repo
 
 `create_version(model_name, notes=None, is_major=False)`
-:   
+:   Creates a new version for the specified model repo
 
 `generate_image(model: str, prompt: str, height: int | None = None, width: int | None = None) ‑> bytes`
 :   Generate an image using the specified model and prompt.
@@ -43,13 +44,13 @@ Functions
         Tuple of (transaction hash, model output)
 
 `init(email: str, password: str, private_key: str, rpc_url='http://18.218.115.248:8545', contract_address='0x3fDCb0394CF4919ff4361f4EbA0750cEc2e3bBc7')`
-:   
+:   Initializes the OpenGradient SDK
 
 `llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: str = 0, max_tokens: int = 100, stop_sequence: List[str] | None = None, temperature: float = 0.0, tools: List[Dict] | None = None, tool_choice: str | None = None, max_retries: int | None = None) ‑> Tuple[str, str, Dict]`
-:   
+:   Perform LLM Chat Completion
 
 `llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: str = 0, max_tokens: int = 100, stop_sequence: List[str] | None = None, temperature: float = 0.0, max_retries: int | None = None) ‑> Tuple[str, str]`
-:   
+:   Perform LLM Completion
 
 `upload(model_path, model_name, version)`
-:
+:   Uploads a new file to the given model repo and version

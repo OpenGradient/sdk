@@ -49,3 +49,5 @@ tee_chat:
 
 docs:
 	pdoc opengradient -o docs --force
+
+.PHONY: docs
