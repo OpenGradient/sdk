@@ -14,15 +14,18 @@ def init(email: str,
          private_key: str,
          rpc_url=DEFAULT_RPC_URL,
          contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
+    """Initializes the OpenGradient SDK"""
     global _client
     _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
 
 def upload(model_path, model_name, version):
+    """Uploads a new file to the given model repo and version"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.upload(model_path, model_name, version)
 
 def create_model(model_name: str, model_desc: str, model_path: str = None):
+    """Creates a new model repo"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     
@@ -36,6 +39,7 @@ def create_model(model_name: str, model_desc: str, model_path: str = None):
     return result
 
 def create_version(model_name, notes=None, is_major=False):
+    """Creates a new version for the specified model repo"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.create_version(model_name, notes, is_major)
@@ -64,6 +68,7 @@ def llm_completion(model_cid: LLM,
                   stop_sequence: Optional[List[str]] = None, 
                   temperature: float = 0.0,
                   max_retries: Optional[int] = None) -> Tuple[str, str]:
+    """Perform LLM Completion"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_completion(model_cid=model_cid, 
@@ -83,6 +88,7 @@ def llm_chat(model_cid: LLM,
              tools: Optional[List[Dict]] = None,
              tool_choice: Optional[str] = None,
              max_retries: Optional[int] = None) -> Tuple[str, str, Dict]:
+    """Perform LLM Chat Completion"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_chat(model_cid=model_cid, 
@@ -96,11 +102,13 @@ def llm_chat(model_cid: LLM,
                           max_retries=max_retries)
 
 def login(email: str, password: str):
+    """Logs in to the Model Hub using the given credentials"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.login(email, password)
 
 def list_files(model_name: str, version: str) -> List[Dict]:
+    """Lists the files in the given model repo and version"""
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.list_files(model_name, version)
