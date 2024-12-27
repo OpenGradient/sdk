@@ -1,11 +1,6 @@
 Module opengradient.llm
 =======================
 
-Sub-modules
------------
-* opengradient.llm.chat
-* opengradient.llm.openai
-
 Classes
 -------
 
@@ -52,3 +47,14 @@ Classes
 
     `bind_tools(self, tools: Sequence[langchain_core.tools.base.BaseTool | Dict]) ‑> opengradient.llm.chat.OpenGradientChatModel`
     :   Bind tools to the model.
+
+`OpenGradientOpenAIClient(private_key: str)`
+:   
+
+    ### Class variables
+
+    `chat: opengradient.llm.openai.OGChat`
+    :
+
+    `client: opengradient.client.Client`
+    :
