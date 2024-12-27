@@ -1,3 +1,12 @@
+"""
+OpenGradient LLM Adapters
+=========================
+
+This module provides adapter interfaces to use OpenGradient LLMs with popular AI frameworks
+like LangChain and OpenAI. These adapters allow seamless integration of OpenGradient models
+into existing applications and agent frameworks.
+"""
+
 from .og_langchain import *
 from .og_openai import *
 
