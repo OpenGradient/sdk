@@ -46,3 +46,8 @@ tee_completion:
 tee_chat:
 	pip install -e .
 	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --mode TEE --messages '[{"role":"user","content":"hello"}]' --max-tokens 150
+
+docs:
+	pdoc opengradient -o docs --force
+
+.PHONY: docs
