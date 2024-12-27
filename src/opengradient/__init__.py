@@ -125,3 +125,28 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.generate_image(model, prompt, height=height, width=width)
+
+__all__ = [
+    'generate_image',
+    'list_files'
+    'login',
+    'llm_chat',
+    'llm_completion',
+    'infer',
+    'create_version',
+    'create_model',
+    'upload',
+    'init'
+]
+
+__pdoc__ = {
+    'account': False,
+    'cli': False,
+    'client': False,
+    'defaults': False,
+    'exceptions': False,
+    'llm': True,
+    'proto': False,
+    'types': False,
+    'utils': False
+}
