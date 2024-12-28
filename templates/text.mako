@@ -17,7 +17,13 @@
         if returns:
             returns = ' \N{non-breaking hyphen}> ' + returns
 %>
-`${func.name}(${", ".join(func.params(annotate=show_type_annotations))})${returns}`
+
+${"###"} ${func.qualname}
+
+```python
+${func.funcdef()} ${func.name}(${", ".join(func.params(annotate=show_type_annotations))})${returns}
+```
+
 ${func.docstring | deflist}
 </%def>
 
@@ -96,22 +102,20 @@ ${function(m) | indent}
   heading = 'Namespace' if module.is_namespace else 'Module'
 %>
 
-${heading} ${module.name}
-=${'=' * (len(module.name) + len(heading))}
+# ${heading} ${module.name}
 ${module.docstring}
 
-
 % if submodules:
-Sub-modules
------------
+${"##"} Sub-modules
+
     % for m in submodules:
-* ${m.name}
+* `${m.name}`
     % endfor
 % endif
 
 % if variables:
-Variables
----------
+${"##"} Variables
+
     % for v in variables:
 ${variable(v)}
 
@@ -119,8 +123,8 @@ ${variable(v)}
 % endif
 
 % if functions:
-Functions
----------
+${"##"} Functions
+
     % for f in functions:
 ${function(f)}
 
@@ -128,8 +132,8 @@ ${function(f)}
 % endif
 
 % if classes:
-Classes
--------
+${"##"} Classes
+
     % for c in classes:
 ${class_(c)}
 
