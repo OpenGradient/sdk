@@ -106,6 +106,7 @@ class OGChat(object):
         self.completions = OGCompletions(client)
 
 class OpenGradientOpenAIClient(object):
+    """OpenAI client implementation"""
     client: og.Client
     chat: OGChat
 

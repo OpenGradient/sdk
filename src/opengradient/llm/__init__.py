@@ -1,6 +1,5 @@
 """
 OpenGradient LLM Adapters
-=========================
 
 This module provides adapter interfaces to use OpenGradient LLMs with popular AI frameworks
 like LangChain and OpenAI. These adapters allow seamless integration of OpenGradient models
@@ -28,7 +27,9 @@ def openai_adapter(private_key: str) -> OpenGradientOpenAIClient:
 
 __all__ = [
     'langchain_adapter',
-    'openai_adapter'
+    'openai_adapter',
+    'OpenGradientOpenAIClient',
+    'OpenGradientChatModel'
 ]
 
 __pdoc__ = {
