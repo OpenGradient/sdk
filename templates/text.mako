@@ -38,7 +38,7 @@
     return '[**{}**](./{})'.format(module, module)
 
   def get_annotation(bound_method, sep=':'):
-    annot = show_type_annotations and bound_method(link=link) or ''
+    annot = show_type_annotations and bound_method() or ''
     if annot:
         annot = ' ' + sep + '\N{NBSP}' + annot
     return annot
