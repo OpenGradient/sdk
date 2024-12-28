@@ -1,6 +1,5 @@
 """
 OpenGradient LLM Adapters
-=========================
 
 This module provides adapter interfaces to use OpenGradient LLMs with popular AI frameworks
 like LangChain and OpenAI. These adapters allow seamless integration of OpenGradient models
@@ -22,13 +21,15 @@ def langchain_adapter(private_key: str, model_cid: str, max_tokens: int = 300) -
 
 def openai_adapter(private_key: str) -> OpenGradientOpenAIClient:
     """
-    Returns an OpenAI LLM client that can be plugged into Swarm.
+    Returns an generic OpenAI LLM client that can be plugged into Swarm and can
+    be used with any LLM model on OpenGradient. The LLM is usually defined in the
+    agent.
     """
     return OpenGradientOpenAIClient(private_key=private_key)
 
 __all__ = [
     'langchain_adapter',
-    'openai_adapter'
+    'openai_adapter',
 ]
 
 __pdoc__ = {

@@ -249,7 +249,9 @@ __all__ = [
     'create_version',
     'create_model',
     'upload',
-    'init'
+    'init',
+    'LLM',
+    'TEE_LLM'
 ]
 
 __pdoc__ = {
