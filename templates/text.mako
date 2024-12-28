@@ -1,3 +1,7 @@
+---
+outline: [2,3]
+---
+
 <%
   import os
   import pdoc

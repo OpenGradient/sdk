@@ -1,3 +1,9 @@
+---
+outline: [2,3]
+---
+
+  
+
 # Package opengradient
 
 OpenGradient Python SDK for interacting with AI models and infrastructure.
