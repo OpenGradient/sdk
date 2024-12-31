@@ -9,7 +9,7 @@ from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 from . import llm
 
-__version__ = "0.3.17"
+__version__ = "0.3.20"
 
 _client = None
 
