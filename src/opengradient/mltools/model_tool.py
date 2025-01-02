@@ -1,10 +1,19 @@
+from enum import Enum
 from typing import Callable
 
 from langchain_core.tools import BaseTool, StructuredTool
 
 import opengradient as og
 
+class ToolType(Enum):
+    LANGCHAIN = "langchain"
+    SWARM = "swarm"
+    
+    def __str__(self) -> str:
+        return self.value
+
 def create_og_model_tool(
+    tool_type: ToolType,
     model_cid: str, 
     tool_name: str,
     input_getter: Callable,
@@ -19,6 +28,9 @@ def create_og_model_tool(
     inference using the specified OpenGradient model.
 
     Args:
+        tool_type (ToolType): Specifies the framework to create the tool for. Use 
+            ToolType.LANGCHAIN for LangChain integration or ToolType.SWARM for Swarm
+            integration. 
         model_cid (str): The CID of the OpenGradient model to be executed.
         tool_name (str): The name to assign to the created tool. This will be used to identify
             and invoke the tool within the agent.
@@ -37,6 +49,7 @@ def create_og_model_tool(
         >>> def get_input():
         ...     return {"text": "Sample input text"}
         >>> tool = create_og_model_tool(
+        ...     tool_type=ToolType.LANGCHAIN,
         ...     model_cid="Qm...",
         ...     tool_name="text_classifier",
         ...     input_getter=get_input,

@@ -4,7 +4,6 @@ from opengradient.defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_AD
 
 from typing import List
 import time
-import json
 import uuid
 
 class OGCompletions(object):
