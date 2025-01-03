@@ -17,16 +17,17 @@ def create_og_model_tool(
     model_cid: str, 
     tool_name: str,
     input_getter: Callable,
+    output_formatter: Callable[..., str],
     input_schema: Dict[str, Any] = None,
     tool_description: str = "Executes the given ML model", 
     inference_mode: og.InferenceMode= og.InferenceMode.VANILLA) -> BaseTool:
     """
-        Creates a LangChain-compatible tool that wraps an OpenGradient model for inference.
+    Creates a tool that wraps an OpenGradient model for inference.
 
-    This function generates a tool that can be integrated into a LangChain pipeline,
-    allowing the model to be executed as part of a chain of operations. The tool uses
-    the provided input_getter function to obtain the necessary input data and runs
-    inference using the specified OpenGradient model.
+    This function generates a tool that can be integrated into either a LangChain pipeline
+    or a Swarm system, allowing the model to be executed as part of a chain of operations.
+    The tool uses the provided input_getter function to obtain the necessary input data and
+    runs inference using the specified OpenGradient model.
 
     Args:
         tool_type (ToolType): Specifies the framework to create the tool for. Use 
@@ -37,20 +38,30 @@ def create_og_model_tool(
             and invoke the tool within the agent.
         input_getter (Callable): A function that returns the input data required by the model.
             The function should return data in a format compatible with the model's expectations.
+        output_formatter (Callable[..., str]): A function that takes the model output and 
+            formats it into a string. This is required to ensure the output is compatible
+            with the tool framework.
         input_schema (Dict[str, Any], optional): Schema defining the expected LLM input structure.
-            This helps the LLM format its input correctly. Default is None.
+            This helps the LLM format its input correctly. For LangChain tools, this defines
+            the argument schema. For Swarm tools, this is added to function annotations.
+            Default is None.
         tool_description (str, optional): A description of what the tool does. Defaults to
             "Executes the given ML model".
         inference_mode (og.InferenceMode, optional): The inference mode to use when running
             the model. Defaults to VANILLA.
 
     Returns:
-        BaseTool: A LangChain tool that can be used to execute the OpenGradient model
-            within a LangChain pipeline.
+        BaseTool: For ToolType.LANGCHAIN, returns a LangChain StructuredTool.
+        Callable: For ToolType.SWARM, returns a decorated function with appropriate metadata.
+
+    Raises:
+        ValueError: If an invalid tool_type is provided.
 
     Examples:
         >>> def get_input():
         ...     return {"text": "Sample input text"}
+        >>> def format_output(output):
+        ...     return str(output.get("class", "Unknown"))
         >>> input_schema = {
         ...     "type": "object",
         ...     "properties": {
@@ -58,34 +69,32 @@ def create_og_model_tool(
         ...         "parameters": {"type": "object", "description": "Additional parameters"}
         ...     }
         ... }
-        >>> tool = create_og_model_tool(
+        >>> # Create a LangChain tool
+        >>> langchain_tool = create_og_model_tool(
         ...     tool_type=ToolType.LANGCHAIN,
         ...     model_cid="Qm...",
         ...     tool_name="text_classifier",
         ...     input_getter=get_input,
+        ...     output_formatter=format_output,
         ...     input_schema=input_schema,
         ...     tool_description="Classifies text into categories"
         ... )
-        >>> # Use in LangChain
-        >>> agent = Agent(tools=[tool])
     """
     # define runnable
     def model_executor(**llm_input):
-        # Get additional context from input_getter
-        context = input_getter()
-        
-        # Combine LLM input with context
+        # Combine LLM input with input provided by code
         combined_input = {
             **llm_input,
-            "context": context
+            **input_getter()
         }
+
         _, output = og.infer(
             model_cid=model_cid,
             inference_mode=inference_mode,
             model_input=combined_input
         )
 
-        return output
+        return output_formatter(output)
 
     if tool_type == ToolType.LANGCHAIN:
         return StructuredTool.from_function(
