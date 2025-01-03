@@ -11,6 +11,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 ## Submodules
 
 * [**llm**](./llm): OpenGradient LLM Adapters
+* [**mltools**](./mltools): OpenGradient AlphaSense Tools
 
 ## Functions
 
@@ -162,6 +163,35 @@ Initialize the OpenGradient SDK with authentication and network settings.
 
   
 
+### List files 
+
+```python
+def list_files(model_name: str, version: str) ‑> List[Dict]
+```
+
+  
+
+  
+List files in a model repository version.
+  
+
+**Arguments**
+
+* **`model_name`**: Name of the model repository
+* **`version`**: Version string to list files from
+
+  
+**Returns**
+
+List[Dict]: List of file metadata dictionaries
+
+**Raises**
+
+* **`RuntimeError`**: If SDK is not initialized
+  
+
+  
+
 ### Llm chat 
 
 ```python
@@ -224,6 +254,35 @@ Generate text completion using an LLM.
 **Returns**
 
 Tuple[str, str]: Transaction hash and generated text
+
+**Raises**
+
+* **`RuntimeError`**: If SDK is not initialized
+  
+
+  
+
+### Login 
+
+```python
+def login(email: str, password: str)
+```
+
+  
+
+  
+Login to OpenGradient.
+  
+
+**Arguments**
+
+* **`email`**: User's email address
+* **`password`**: User's password
+
+  
+**Returns**
+
+dict: Login response with authentication tokens
 
 **Raises**
 
