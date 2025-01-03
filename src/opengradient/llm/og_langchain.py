@@ -17,7 +17,7 @@ from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.tools import BaseTool
 from langchain_core.messages import ToolCall
 
-from opengradient import Client
+from opengradient import Client, LlmInferenceMode
 from opengradient.defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS
 
 
@@ -99,7 +99,8 @@ class OpenGradientChatModel(BaseChatModel):
             messages=sdk_messages,
             stop_sequence=stop,
             max_tokens=self.max_tokens,
-            tools=self.tools
+            tools=self.tools,
+            inference_mode=LlmInferenceMode.VANILLA
         )
 
         if "tool_calls" in chat_response and chat_response["tool_calls"]:
