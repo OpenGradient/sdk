@@ -7,7 +7,9 @@ from typing import Dict, List, Optional, Tuple
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+
 from . import llm
+from . import mltools
 
 __version__ = "0.3.20"
 
@@ -241,7 +243,7 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
 
 __all__ = [
     'generate_image',
-    'list_files'
+    'list_files',
     'login',
     'llm_chat',
     'llm_completion',
@@ -261,6 +263,7 @@ __pdoc__ = {
     'defaults': False,
     'exceptions': False,
     'llm': True,
+    'mltools': True,
     'proto': False,
     'types': False,
     'utils': False
