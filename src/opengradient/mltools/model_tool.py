@@ -102,9 +102,9 @@ def create_og_model_tool(
     elif tool_type == ToolType.SWARM:
         model_executor.__name__ = tool_name
         model_executor.__doc__ = tool_description
-        # Add schema information to function metadata
+        # Convert Pydantic model to Swarm annotations if provided
         if input_schema:
-            model_executor.__annotations__ = input_schema
+            model_executor.__annotations__ = _convert_pydantic_to_annotations(input_schema)
         return model_executor
     else:
         raise ValueError(f"Invalid tooltype: {tool_type}")
