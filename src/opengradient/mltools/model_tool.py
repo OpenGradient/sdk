@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Type
 
+from pydantic import BaseModel
 from langchain_core.tools import BaseTool, StructuredTool
-
 import opengradient as og
 
 class ToolType(Enum):
@@ -18,7 +18,7 @@ def create_og_model_tool(
     tool_name: str,
     input_getter: Callable,
     output_formatter: Callable[..., str],
-    input_schema: Dict[str, Any] = None,
+    input_schema: Type[BaseModel] = None,
     tool_description: str = "Executes the given ML model", 
     inference_mode: og.InferenceMode= og.InferenceMode.VANILLA) -> BaseTool:
     """
@@ -41,10 +41,9 @@ def create_og_model_tool(
         output_formatter (Callable[..., str]): A function that takes the model output and 
             formats it into a string. This is required to ensure the output is compatible
             with the tool framework.
-        input_schema (Dict[str, Any], optional): Schema defining the expected LLM input structure.
-            This helps the LLM format its input correctly. For LangChain tools, this defines
-            the argument schema. For Swarm tools, this is added to function annotations.
-            Default is None.
+        input_schema (Type[BaseModel], optional): A Pydantic BaseModel class defining the
+            input schema. This will be used directly for LangChain tools and converted
+            to appropriate annotations for Swarm tools. Default is None.
         tool_description (str, optional): A description of what the tool does. Defaults to
             "Executes the given ML model".
         inference_mode (og.InferenceMode, optional): The inference mode to use when running
@@ -58,17 +57,14 @@ def create_og_model_tool(
         ValueError: If an invalid tool_type is provided.
 
     Examples:
+        >>> from pydantic import BaseModel, Field
+        >>> class ClassifierInput(BaseModel):
+        ...     query: str = Field(description="User query to analyze")
+        ...     parameters: dict = Field(description="Additional parameters")
         >>> def get_input():
         ...     return {"text": "Sample input text"}
         >>> def format_output(output):
         ...     return str(output.get("class", "Unknown"))
-        >>> input_schema = {
-        ...     "type": "object",
-        ...     "properties": {
-        ...         "query": {"type": "string", "description": "User query to analyze"},
-        ...         "parameters": {"type": "object", "description": "Additional parameters"}
-        ...     }
-        ... }
         >>> # Create a LangChain tool
         >>> langchain_tool = create_og_model_tool(
         ...     tool_type=ToolType.LANGCHAIN,
@@ -76,7 +72,7 @@ def create_og_model_tool(
         ...     tool_name="text_classifier",
         ...     input_getter=get_input,
         ...     output_formatter=format_output,
-        ...     input_schema=input_schema,
+        ...     input_schema=ClassifierInput
         ...     tool_description="Classifies text into categories"
         ... )
     """
@@ -112,3 +108,20 @@ def create_og_model_tool(
         return model_executor
     else:
         raise ValueError(f"Invalid tooltype: {tool_type}")
+
+def _convert_pydantic_to_annotations(model: Type[BaseModel]) -> Dict[str, Any]:
+    """
+    Convert a Pydantic model to function annotations format used by Swarm.
+    
+    Args:
+        model: A Pydantic BaseModel class
+        
+    Returns:
+        Dict mapping field names to (type, description) tuples
+    """
+    annotations = {}
+    for field_name, field in model.model_fields.items():
+        field_type = field.annotation
+        description = field.description or ""
+        annotations[field_name] = (field_type, description)
+    return annotations
