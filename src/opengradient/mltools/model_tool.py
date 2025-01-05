@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from langchain_core.tools import BaseTool, StructuredTool
 import opengradient as og
 
-class ToolType(Enum):
+class ToolType(str, Enum):
+    """Indicates the framework the tool is compatible with."""
+
     LANGCHAIN = "langchain"
     SWARM = "swarm"
     
