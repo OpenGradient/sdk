@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import random
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
 
 import firebase
@@ -26,6 +27,8 @@ from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 from functools import wraps
 from .workflow import WorkflowManager
+
+from solcx import compile_source, install_solc
 
 def run_with_retry(txn_function, max_retries=5):
     """
@@ -71,14 +74,17 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.email = email
-        self.password = password
         self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
+        self.email = email
+        self.password = password
+        
+        # Initialize Web3 and workflow manager immediately
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.wallet_account = self._w3.eth.account.from_key(private_key)
-        self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
+        self.wallet_address = self._w3.eth.account.from_key(self.private_key).address
+        self.workflow_manager = WorkflowManager(self._w3, self.private_key)
+        
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
@@ -96,8 +102,6 @@ class Client:
 
         if email is not None:
             self.login(email, password)
-
-        self._workflow_manager = WorkflowManager(self._w3, self.private_key)
 
     def login(self, email, password):
         try:
@@ -795,78 +799,49 @@ class Client:
         self,
         model_cid: str,
         input_query: Dict[str, Any],
-        historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
+        historical_contract_address: str
     ) -> str:
-        """
-        Returns a parameterized Solidity contract template for ModelExecutorVolatility.
+        """Generate contract source from template with parameters"""
+        template_path = Path(__file__).parent / 'contracts' / 'templates' / 'ModelExecutorHistorical.sol'
         
-        Args:
-            model_cid (str): The model CID to use for inference
-            input_query (Dict[str, Any]): Dictionary containing the HistoricalInputQuery parameters
-            historical_contract_address (str): Address of the historical data contract
+        with open(template_path) as f:
+            template = f.read()
         
-        Returns:
-            str: The generated contract source code
-        """
-        # Validate candle types and convert to enum references
-        valid_types = {"Open", "High", "Low", "Close"}
-        candle_types = input_query.get('candle_types', [])
-        if not all(t in valid_types for t in candle_types):
-            raise ValueError(f"Invalid candle type. Must be one of: {valid_types}")
+        # Convert input query to Solidity struct initialization
+        candle_types = [f"CandleType.{t.upper()}" for t in input_query["candle_types"]]
+        order = input_query['order'].upper() if 'order' in input_query else "ASCENDING"
         
-        # Generate the candle type array initialization code
-        candle_array_init = [f"CandleType.{t}" for t in candle_types]
-        candle_array_str = f"new CandleType[]({len(candle_array_init)})"
-        candle_assignments = [f"candles[{i}] = {t};" for i, t in enumerate(candle_array_init)]
+        # Create the constructor body with proper initialization
+        constructor_body = f"""{{
+            modelCID = "{model_cid}";
+            
+            // Create and initialize the candleTypes array
+            CandleType[] memory types = new CandleType[]({len(candle_types)});
+            {chr(10).join(f'types[{i}] = {ct};' for i, ct in enumerate(candle_types))}
+            
+            // Create and initialize the input query
+            inputQuery = HistoricalInputQuery({{
+                currency_pair: "{input_query.get('currency_pair', 'BTC/USD')}",
+                total_candles: {input_query.get('total_candles', 100)},
+                candle_duration_in_mins: {input_query.get('candle_duration_in_mins', 1)},
+                order: CandleOrder.{order},
+                candle_types: types
+            }});
+            
+            // Initialize the historical contract
+            historicalContract = OGHistorical({historical_contract_address});
+            numValues = 0;
+        }}"""
         
-        return f"""
-        // SPDX-License-Identifier: MIT
-        pragma solidity ^0.8.18;
-
-        import "./IModelExecutor.sol";
-        import "x/evm/contracts/og_inference/OGInference.sol";
-        import "x/evm/contracts/historical/OGHistorical.sol";
-
-        /**
-         * @title ModelExecutorVolatility
-         * @dev Implementation of IModelExecutor to predict {input_query.get('currency_pair', 'ETH/USD')} volatility using OpenGradient's model.
-         */
-        contract ModelExecutorVolatility is IModelExecutor {{
-            OGHistorical public historicalContract;
-
-            event InferenceResultEmitted(address indexed caller, ModelOutput result);
-            ModelOutput private inferenceResult;
-
-            constructor() {{
-                address historicalContractAddress = {historical_contract_address};
-                historicalContract = OGHistorical(historicalContractAddress);
-            }}
-
-            function run() public override {{
-                CandleType[] memory candles = {candle_array_str};
-                {chr(10).join(candle_assignments)}
-
-                HistoricalInputQuery memory input_query = HistoricalInputQuery({{
-                    currency_pair: "{input_query.get('currency_pair', 'ETH/USD')}",
-                    total_candles: {input_query.get('total_candles', 10)},
-                    candle_duration_in_mins: {input_query.get('candle_duration_in_mins', 30)},
-                    order: CandleOrder.{input_query.get('order', 'Ascending')},
-                    candle_types: candles
-                }});
-
-                inferenceResult = historicalContract.runInferenceOnPriceFeed(
-                    "{model_cid}",
-                    "open_high_low_close",
-                    input_query
-                );
-                emit InferenceResultEmitted(msg.sender, inferenceResult);
-            }}
-
-            function getInferenceResult() public view override returns (ModelOutput memory) {{
-                return inferenceResult;
-            }}
-        }}
-        """
+        # Replace just the constructor body in the template
+        return template.replace(
+            """{
+        modelCID = _modelCID;
+        inputQuery = _inputQuery;
+        historicalContract = OGHistorical(_historicalContractAddress);
+    }""",
+            constructor_body
+        )
 
     def new_workflow(
         self,
@@ -874,56 +849,19 @@ class Client:
         input_query: Dict[str, Any],
         historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
     ) -> str:
-        """
-        Deploy a new contract that implements IModelExecutor interface.
-        
-        Args:
-            model_cid (str): The model CID to use for inference
-            input_query (Dict[str, Any]): Dictionary containing the HistoricalInputQuery parameters
-            historical_contract_address (str, optional): Address of historical data contract
-            
-        Returns:
-            str: The deployed contract address
-        """
-        if not self._w3:
-            self._initialize_web3()
-
+        """Deploy a new workflow contract"""
         contract_source = self._parameterized_historical_contract(
             model_cid=model_cid,
             input_query=input_query,
             historical_contract_address=historical_contract_address
         )
         
-        # Compile the contract
+        # Compile and deploy using workflow manager
         compiled_contract = self._compile_contract(contract_source)
-        
-        # Deploy the contract
-        contract = self._w3.eth.contract(
+        return self.workflow_manager.deploy_contract(
             abi=compiled_contract['abi'],
             bytecode=compiled_contract['bytecode']
         )
-        
-        # Get transaction parameters
-        wallet_address = self._w3.toChecksumAddress(self.wallet_address)
-        nonce = self._w3.eth.get_transaction_count(wallet_address, 'pending')
-        
-        transaction = contract.constructor().build_transaction({
-            'from': wallet_address,
-            'nonce': nonce,
-            'gasPrice': self._w3.eth.gas_price,
-        })
-
-        # Sign and send transaction
-        signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-        tx_hash = self._w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-        receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
-
-        if receipt.status == 0:
-            raise ContractLogicError(f"Deployment failed. Receipt: {receipt}")
-
-        contract_address = receipt.contractAddress
-        logging.info(f"New workflow contract deployed at: {contract_address}")
-        return contract_address
 
     def read_workflow(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
         """
@@ -941,11 +879,38 @@ class Client:
         try:
             # Get the contract interface
             contract = self._w3.eth.contract(
-                address=self._w3.toChecksumAddress(contract_address),
+                address=Web3.to_checksum_address(contract_address),
                 abi=self._get_model_executor_abi()
             )
             
-            # Call getInferenceResult()
+            # First call run() to execute the inference
+            try:
+                # Build the transaction
+                nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+                
+                run_function = contract.functions.run()
+                transaction = run_function.build_transaction({
+                    'from': self.wallet_address,
+                    'nonce': nonce,
+                    'gas': 1000000,  # Adjust gas limit as needed
+                    'gasPrice': self._w3.eth.gas_price,
+                })
+                
+                # Sign and send the transaction
+                signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+                tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+                receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+                
+                if receipt.status == 0:
+                    raise Exception("run() transaction failed")
+            except Exception as e:
+                logging.error(f"Error executing run(): {e}")
+                return {
+                    "status": "error",
+                    "error": f"Failed to execute run(): {str(e)}"
+                }
+            
+            # Now get the result
             result = contract.functions.getInferenceResult().call()
             return {
                 "status": "success",
@@ -960,12 +925,40 @@ class Client:
 
     def _compile_contract(self, source_code: str) -> Dict[str, Any]:
         """
-        Compiles a Solidity contract.
-        Returns dict with 'abi' and 'bytecode'.
+        Compile a Solidity contract using solcx.
+        
+        Args:
+            source_code (str): The Solidity source code
+            
+        Returns:
+            Dict[str, Any]: Dictionary containing 'abi' and 'bytecode'
         """
-        # Implementation depends on your Solidity compiler setup
-        # This is a placeholder - implement actual compilation logic
-        pass
+        try:
+            # Ensure solc is installed
+            install_solc('0.8.18')
+            
+            # Get the contracts directory path for imports
+            base_path = str(Path(__file__).parent / 'contracts')
+            
+            # Compile the contract
+            compiled_sol = compile_source(
+                source_code,
+                output_values=['abi', 'bin'],
+                solc_version='0.8.18',
+                base_path=base_path,
+                allow_paths=[base_path]
+            )
+            
+            # Get the contract interface
+            contract_id, contract_interface = compiled_sol.popitem()
+            
+            return {
+                'abi': contract_interface['abi'],
+                'bytecode': contract_interface['bin']
+            }
+        except Exception as e:
+            logging.error(f"Contract compilation failed: {e}")
+            raise OpenGradientError(f"Failed to compile contract: {e}")
 
     def _get_model_executor_abi(self) -> List[Dict]:
         """

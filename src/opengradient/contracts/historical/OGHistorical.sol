@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import "../types/Types.sol";
+import "../types/CommonTypes.sol";
+import "../og_inference/OGInference.sol";
 
 interface OGHistorical {
     function queryHistoricalCandles(HistoricalInputQuery memory input) external returns (TensorLib.Number[] memory);

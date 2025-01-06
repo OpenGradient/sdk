@@ -19,14 +19,4 @@ struct HistoricalInputQuery {
     uint32 candle_duration_in_mins;
     CandleOrder order;
     CandleType[] candle_types;
-}
-
-library TensorLib {
-    struct Number {
-        uint256 value;
-    }
-}
-
-struct ModelOutput {
-    uint256 value;
 } 

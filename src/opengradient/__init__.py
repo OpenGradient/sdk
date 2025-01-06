@@ -1,11 +1,11 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any, Union
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 from . import llm
 
-__version__ = "0.3.17"
+__version__ = "0.3.55"
 
 _client = None
 
@@ -125,3 +125,17 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.generate_image(model, prompt, height=height, width=width)
+
+def new_workflow(
+    model_cid: str,
+    input_query: Dict[str, Any],
+    historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
+) -> str:
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.new_workflow(model_cid, input_query, historical_contract_address)
+
+def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.read_workflow(contract_address)
