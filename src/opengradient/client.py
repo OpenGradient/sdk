@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import random
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 import firebase
 import numpy as np
@@ -791,16 +791,208 @@ class Client:
             if channel:
                 channel.close()       
 
-    def new_workflow(self) -> str:
+    def _parameterized_historical_contract(
+        self,
+        model_cid: str,
+        input_query: Dict[str, Any],
+        historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
+    ) -> str:
         """
-        Deploys a new contract using the default example in workflow.py
-        Returns the contract address.
+        Returns a parameterized Solidity contract template for ModelExecutorVolatility.
+        
+        Args:
+            model_cid (str): The model CID to use for inference
+            input_query (Dict[str, Any]): Dictionary containing the HistoricalInputQuery parameters
+            historical_contract_address (str): Address of the historical data contract
+        
+        Returns:
+            str: The generated contract source code
         """
-        return self._workflow_manager.new_workflow()
+        # Validate candle types and convert to enum references
+        valid_types = {"Open", "High", "Low", "Close"}
+        candle_types = input_query.get('candle_types', [])
+        if not all(t in valid_types for t in candle_types):
+            raise ValueError(f"Invalid candle type. Must be one of: {valid_types}")
+        
+        # Generate the candle type array initialization code
+        candle_array_init = [f"CandleType.{t}" for t in candle_types]
+        candle_array_str = f"new CandleType[]({len(candle_array_init)})"
+        candle_assignments = [f"candles[{i}] = {t};" for i, t in enumerate(candle_array_init)]
+        
+        return f"""
+        // SPDX-License-Identifier: MIT
+        pragma solidity ^0.8.18;
 
-    def read_workflow(self, contract_address: str) -> str:
+        import "./IModelExecutor.sol";
+        import "x/evm/contracts/og_inference/OGInference.sol";
+        import "x/evm/contracts/historical/OGHistorical.sol";
+
+        /**
+         * @title ModelExecutorVolatility
+         * @dev Implementation of IModelExecutor to predict {input_query.get('currency_pair', 'ETH/USD')} volatility using OpenGradient's model.
+         */
+        contract ModelExecutorVolatility is IModelExecutor {{
+            OGHistorical public historicalContract;
+
+            event InferenceResultEmitted(address indexed caller, ModelOutput result);
+            ModelOutput private inferenceResult;
+
+            constructor() {{
+                address historicalContractAddress = {historical_contract_address};
+                historicalContract = OGHistorical(historicalContractAddress);
+            }}
+
+            function run() public override {{
+                CandleType[] memory candles = {candle_array_str};
+                {chr(10).join(candle_assignments)}
+
+                HistoricalInputQuery memory input_query = HistoricalInputQuery({{
+                    currency_pair: "{input_query.get('currency_pair', 'ETH/USD')}",
+                    total_candles: {input_query.get('total_candles', 10)},
+                    candle_duration_in_mins: {input_query.get('candle_duration_in_mins', 30)},
+                    order: CandleOrder.{input_query.get('order', 'Ascending')},
+                    candle_types: candles
+                }});
+
+                inferenceResult = historicalContract.runInferenceOnPriceFeed(
+                    "{model_cid}",
+                    "open_high_low_close",
+                    input_query
+                );
+                emit InferenceResultEmitted(msg.sender, inferenceResult);
+            }}
+
+            function getInferenceResult() public view override returns (ModelOutput memory) {{
+                return inferenceResult;
+            }}
+        }}
         """
-        Calls the 'run()' function on the specified contract address.
-        Returns the resulting transaction hash.
+
+    def new_workflow(
+        self,
+        model_cid: str,
+        input_query: Dict[str, Any],
+        historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
+    ) -> str:
         """
-        return self._workflow_manager.read_workflow(contract_address)
+        Deploy a new contract that implements IModelExecutor interface.
+        
+        Args:
+            model_cid (str): The model CID to use for inference
+            input_query (Dict[str, Any]): Dictionary containing the HistoricalInputQuery parameters
+            historical_contract_address (str, optional): Address of historical data contract
+            
+        Returns:
+            str: The deployed contract address
+        """
+        if not self._w3:
+            self._initialize_web3()
+
+        contract_source = self._parameterized_historical_contract(
+            model_cid=model_cid,
+            input_query=input_query,
+            historical_contract_address=historical_contract_address
+        )
+        
+        # Compile the contract
+        compiled_contract = self._compile_contract(contract_source)
+        
+        # Deploy the contract
+        contract = self._w3.eth.contract(
+            abi=compiled_contract['abi'],
+            bytecode=compiled_contract['bytecode']
+        )
+        
+        # Get transaction parameters
+        wallet_address = self._w3.toChecksumAddress(self.wallet_address)
+        nonce = self._w3.eth.get_transaction_count(wallet_address, 'pending')
+        
+        transaction = contract.constructor().build_transaction({
+            'from': wallet_address,
+            'nonce': nonce,
+            'gasPrice': self._w3.eth.gas_price,
+        })
+
+        # Sign and send transaction
+        signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+        receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        if receipt.status == 0:
+            raise ContractLogicError(f"Deployment failed. Receipt: {receipt}")
+
+        contract_address = receipt.contractAddress
+        logging.info(f"New workflow contract deployed at: {contract_address}")
+        return contract_address
+
+    def read_workflow(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
+        """
+        Reads the latest inference result from any deployed IModelExecutor contract.
+        
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+            
+        Returns:
+            Dict[str, Union[str, Dict]]: Status and ModelOutput result from the contract
+        """
+        if not self._w3:
+            self._initialize_web3()
+        
+        try:
+            # Get the contract interface
+            contract = self._w3.eth.contract(
+                address=self._w3.toChecksumAddress(contract_address),
+                abi=self._get_model_executor_abi()
+            )
+            
+            # Call getInferenceResult()
+            result = contract.functions.getInferenceResult().call()
+            return {
+                "status": "success",
+                "result": result
+            }
+        except Exception as e:
+            logging.error(f"Error reading workflow state: {e}")
+            return {
+                "status": "error", 
+                "error": str(e)
+            }
+
+    def _compile_contract(self, source_code: str) -> Dict[str, Any]:
+        """
+        Compiles a Solidity contract.
+        Returns dict with 'abi' and 'bytecode'.
+        """
+        # Implementation depends on your Solidity compiler setup
+        # This is a placeholder - implement actual compilation logic
+        pass
+
+    def _get_model_executor_abi(self) -> List[Dict]:
+        """
+        Returns the ABI for the IModelExecutor interface.
+        """
+        return [
+            {
+                "inputs": [],
+                "name": "run",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getInferenceResult",
+                "outputs": [
+                    {
+                        "components": [
+                            # Define your ModelOutput struct components here
+                        ],
+                        "internalType": "struct ModelOutput",
+                        "name": "",
+                        "type": "tuple"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ]
