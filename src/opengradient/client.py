@@ -880,6 +880,8 @@ class Client:
             input_query,
             historical_contract_address
         )
+
+        logging.info(source_code)
         
         # Compile the contract
         contract_interface = self._compile_contract(source_code)
@@ -918,17 +920,62 @@ class Client:
         historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
     ) -> str:
         """Deploy a new workflow contract with the specified model and input query."""
-
-        loop = asyncio.get_event_loop()
-        contract_address = loop.run_until_complete(
-            self._deploy_historical_contract(
-                model_cid,
-                input_query,
-                historical_contract_address
-            )
+        
+        # Convert candle types to proper format
+        candle_types = []
+        for ct in input_query['candle_types']:
+            if ct.upper() == 'OPEN':
+                candle_types.append(2)  # CandleType.Open
+            elif ct.upper() == 'HIGH':
+                candle_types.append(0)  # CandleType.High
+            elif ct.upper() == 'LOW':
+                candle_types.append(1)  # CandleType.Low
+            elif ct.upper() == 'CLOSE':
+                candle_types.append(3)  # CandleType.Close
+        
+        # Create historical input query matching the HistoricalInputQuery struct
+        historical_input = (
+            input_query['currency_pair'],          # string
+            int(input_query['total_candles']),     # uint32
+            int(input_query['candle_duration_in_mins']), # uint32
+            0 if input_query['order'].upper() == 'ASCENDING' else 1,  # uint8
+            candle_types                           # uint8[]
         )
         
-        return contract_address
+        # Get contract interface with ABI and bytecode
+        abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
+        bytecode_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.bin'
+        
+        with open(abi_path, 'r') as f:
+            abi = json.load(f)
+        with open(bytecode_path, 'r') as f:
+            bytecode = f.read().strip()
+        
+        # Create and deploy contract
+        Contract = self._w3.eth.contract(
+            abi=abi,
+            bytecode=bytecode
+        )
+        
+        nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+        
+        transaction = Contract.constructor(
+            model_cid,
+            historical_input,
+            historical_contract_address
+        ).build_transaction({
+            'from': self.wallet_address,
+            'nonce': nonce,
+            'gas': 15000000,
+            'gasPrice': self._w3.eth.gas_price,
+            'chainId': self._w3.eth.chain_id
+        })
+        
+        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        
+        return tx_receipt.contractAddress
 
     def read_workflow(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
         """
@@ -950,109 +997,122 @@ class Client:
                 abi=self._get_model_executor_abi()
             )
             
-            # First call run() to execute the inference
-            try:
-                # Build the transaction
-                nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
-                
-                run_function = contract.functions.run()
-                transaction = run_function.build_transaction({
-                    'from': self.wallet_address,
-                    'nonce': nonce,
-                    'gas': 1000000,  # Adjust gas limit as needed
-                    'gasPrice': self._w3.eth.gas_price,
-                })
-                
-                # Sign and send the transaction
-                signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-                tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-                receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
-                
-                if receipt.status == 0:
-                    raise Exception("run() transaction failed")
-            except Exception as e:
-                logging.error(f"Error executing run(): {e}")
-                return {
-                    "status": "error",
-                    "error": f"Failed to execute run(): {str(e)}"
-                }
+            # Add retries and delay for getting result
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    # Wait between attempts
+                    time.sleep(2)
+                    
+                    result = contract.functions.getInferenceResult().call()
+                    if result:  # Check if we got a valid result
+                        return {
+                            "status": "success",
+                            "result": result
+                        }
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        raise
+                    logging.warning(f"Attempt {attempt + 1} failed, retrying...")
+                    continue
+                    
+            return {
+                "status": "error",
+                "error": "Failed to get result after maximum retries"
+            }
             
-            # Now get the result
+        except Exception as e:
+            logging.error(f"Error reading workflow result: {e}")
+            return {
+                "status": "error", 
+                "error": str(e)
+            }
+
+    def _get_model_executor_abi(self) -> List[Dict]:
+        """
+        Returns the ABI for the ModelExecutorHistorical contract.
+        """
+        abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
+        with open(abi_path, 'r') as f:
+            return json.load(f)
+
+    def read_workflow_result(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
+        """
+        Reads the latest inference result from a deployed workflow contract.
+        
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+            
+        Returns:
+            Dict[str, Union[str, Dict]]: Status and ModelOutput result from the contract
+        """
+        if not self._w3:
+            self._initialize_web3()
+        
+        try:
+            # Get the contract interface
+            contract = self._w3.eth.contract(
+                address=Web3.to_checksum_address(contract_address),
+                abi=self._get_model_executor_abi()
+            )
+            
+            # Get the result
             result = contract.functions.getInferenceResult().call()
             return {
                 "status": "success",
                 "result": result
             }
         except Exception as e:
-            logging.error(f"Error reading workflow state: {e}")
+            logging.error(f"Error reading workflow result: {e}")
             return {
                 "status": "error", 
                 "error": str(e)
             }
 
-    def _compile_contract(self, source_code: str) -> Dict[str, Any]:
+    def run_workflow(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
         """
-        Compile a Solidity contract using solcx.
+        Executes the workflow by calling run() on the contract to pull latest data and perform inference.
+        """
+        if not self._w3:
+            self._initialize_web3()
         
-        Args:
-            source_code (str): The Solidity source code
-            
-        Returns:
-            Dict[str, Any]: Dictionary containing 'abi' and 'bytecode'
-        """
         try:
-            # Ensure solc is installed
-            install_solc('0.8.18')
+            abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
+            with open(abi_path, 'r') as f:
+                abi = json.load(f)
             
-            # Get the contracts directory path for imports
-            base_path = str(Path(__file__).parent / 'contracts')
-            
-            # Compile the contract
-            compiled_sol = compile_source(
-                source_code,
-                output_values=['abi', 'bin'],
-                solc_version='0.8.18',
-                base_path=base_path,
-                allow_paths=[base_path]
+            contract = self._w3.eth.contract(
+                address=Web3.to_checksum_address(contract_address),
+                abi=abi
             )
             
-            # Get the contract interface
-            contract_id, contract_interface = compiled_sol.popitem()
+            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            
+            run_function = contract.functions.run()
+            
+            transaction = run_function.build_transaction({
+                'from': self.wallet_address,
+                'nonce': nonce,
+                'gas': 30000000,
+                'gasPrice': self._w3.eth.gas_price,
+                'chainId': self._w3.eth.chain_id
+            })
+            
+            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            if receipt.status == 0:
+                raise Exception("run() transaction failed")
             
             return {
-                'abi': contract_interface['abi'],
-                'bytecode': contract_interface['bin']
+                "status": "success",
+                "tx_hash": tx_hash.hex()
             }
+            
         except Exception as e:
-            logging.error(f"Contract compilation failed: {e}")
-            raise OpenGradientError(f"Failed to compile contract: {e}")
-
-    def _get_model_executor_abi(self) -> List[Dict]:
-        """
-        Returns the ABI for the IModelExecutor interface.
-        """
-        return [
-            {
-                "inputs": [],
-                "name": "run",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "getInferenceResult",
-                "outputs": [
-                    {
-                        "components": [
-                            # Define your ModelOutput struct components here
-                        ],
-                        "internalType": "struct ModelOutput",
-                        "name": "",
-                        "type": "tuple"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
+            logging.error(f"Error executing workflow run: {e}")
+            return {
+                "status": "error",
+                "error": str(e)
             }
-        ]
