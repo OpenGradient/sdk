@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -12,6 +13,7 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
+from deploy_dynamic import deploy_contract
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
 from opengradient.types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
@@ -843,25 +845,90 @@ class Client:
             constructor_body
         )
 
+    async def _deploy_historical_contract(
+        self,
+        model_cid: str,
+        input_query: Dict[str, Any],
+        historical_contract_address: str
+    ) -> str:
+        """Deploy a historical data contract with the given parameters"""
+        
+        # Convert candle types to proper format
+        candle_types = []
+        for ct in input_query['candle_types']:
+            if ct.upper() == 'OPEN':
+                candle_types.append(2)
+            elif ct.upper() == 'HIGH':
+                candle_types.append(0)
+            elif ct.upper() == 'LOW':
+                candle_types.append(1)
+            elif ct.upper() == 'CLOSE':
+                candle_types.append(3)
+        
+        # Create historical input query matching the HistoricalInputQuery struct
+        historical_input = (
+            input_query['currency_pair'],
+            input_query['total_candles'],
+            input_query['candle_duration_in_mins'],
+            0 if input_query['order'].upper() == 'ASCENDING' else 1,
+            candle_types
+        )
+        
+        # Generate parameterized contract source
+        source_code = self._parameterized_historical_contract(
+            model_cid,
+            input_query,
+            historical_contract_address
+        )
+        
+        # Compile the contract
+        contract_interface = self._compile_contract(source_code)
+        
+        # Create contract instance
+        Contract = self._w3.eth.contract(
+            abi=contract_interface['abi'],
+            bytecode=contract_interface['bytecode']
+        )
+        
+        # Deploy the contract
+        nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+        
+        transaction = Contract.constructor(
+            model_cid,
+            historical_input,
+            historical_contract_address
+        ).build_transaction({
+            'from': self.wallet_address,
+            'nonce': nonce,
+            'gas': 15000000,
+            'gasPrice': self._w3.eth.gas_price,
+            'chainId': self._w3.eth.chain_id
+        })
+        
+        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        
+        return tx_receipt.contractAddress
+
     def new_workflow(
         self,
         model_cid: str,
         input_query: Dict[str, Any],
         historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
     ) -> str:
-        """Deploy a new workflow contract"""
-        contract_source = self._parameterized_historical_contract(
-            model_cid=model_cid,
-            input_query=input_query,
-            historical_contract_address=historical_contract_address
+        """Deploy a new workflow contract with the specified model and input query."""
+
+        loop = asyncio.get_event_loop()
+        contract_address = loop.run_until_complete(
+            self._deploy_historical_contract(
+                model_cid,
+                input_query,
+                historical_contract_address
+            )
         )
         
-        # Compile and deploy using workflow manager
-        compiled_contract = self._compile_contract(contract_source)
-        return self.workflow_manager.deploy_contract(
-            abi=compiled_contract['abi'],
-            bytecode=compiled_contract['bytecode']
-        )
+        return contract_address
 
     def read_workflow(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
         """
