@@ -82,7 +82,6 @@ class Client:
         self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         
-        # Initialize Web3 and workflow manager immediately
         self.workflow_manager = WorkflowManager(self._w3, self.private_key)
         
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
