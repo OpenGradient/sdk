@@ -4,10 +4,10 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
 from .client import Client
-from .defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS
+from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import LlmInferenceMode, LLM
 
-__version__ = "0.3.23"
+__version__ = "0.3.22"
 
 _client = None
 
@@ -36,7 +36,8 @@ def init(email: str,
         private_key=private_key,
         rpc_url=rpc_url,
         email=email,
-        password=password
+        password=password,
+        contract_address=contract_address
     )
     return _client
 

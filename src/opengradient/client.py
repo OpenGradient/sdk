@@ -63,33 +63,24 @@ class Client:
         "databaseURL": ""
     }
     
-    def __init__(
-        self,
-        private_key: str,
-        rpc_url: str,
-        email: Optional[str] = None,
-        password: Optional[str] = None
-    ):
-        """Initialize the OpenGradient client.
-        
-        Args:
-            private_key: Ethereum private key for signing transactions
-            rpc_url: URL of the RPC endpoint
-            email: Optional email for authentication
-            password: Optional password for authentication
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
-        self.private_key = private_key
-        self.rpc_url = rpc_url
+        Initialize the Client with private key, RPC URL, and contract address.
+        Args:
+            private_key (str): The private key for the wallet.
+            rpc_url (str): The RPC URL for the Ethereum node.
+            contract_address (str): The contract address for the smart contract.
+            email (str, optional): Email for authentication. Defaults to "test@test.com".
+            password (str, optional): Password for authentication. Defaults to "Test-123".
+        """
         self.email = email
         self.password = password
-        
-        # Initialize Web3 connection
-        self._w3 = None
-        self._initialize_web3()
-        
-        # Set wallet address from private key
-        account = self._w3.eth.account.from_key(private_key)
-        self.wallet_address = account.address
+        self.private_key = private_key
+        self.rpc_url = rpc_url
+        self.contract_address = contract_address
+        self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+        self.wallet_account = self._w3.eth.account.from_key(private_key)
+        self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         
         # Initialize Web3 and workflow manager immediately
         self.workflow_manager = WorkflowManager(self._w3, self.private_key)
