@@ -4,7 +4,7 @@ from .client import Client
 from .defaults import DEFAULT_RPC_URL
 from .types import LlmInferenceMode, LLM
 
-__version__ = "0.3.105"
+__version__ = "0.3.18"
 
 _client = None
 

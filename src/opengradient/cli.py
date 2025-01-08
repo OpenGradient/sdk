@@ -383,7 +383,7 @@ def completion(ctx, model_cid: str, inference_mode: str,  prompt: str, max_token
 
 def print_llm_completion_result(model_cid, tx_hash, llm_output):
     click.secho("✅ LLM completion Successful", fg="green", bold=True)
-    click.echo("──────────��───────────────────────────")
+    click.echo("──────────────────────────────────────")
     click.echo("Model CID: ", nl=False)
     click.secho(model_cid, fg="cyan", bold=True)
     click.echo("Transaction hash: ", nl=False)
@@ -547,7 +547,7 @@ def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
     block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
     click.echo("Block explorer link: ", nl=False)
     click.secho(block_explorer_link, fg="blue", underline=True)
-    click.echo("─────────────────────────���────────────")
+    click.echo("──────────────────────────────────────")
     click.secho("Finish Reason: ", fg="yellow", bold=True)
     click.echo()
     click.echo(finish_reason)
@@ -676,28 +676,49 @@ def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, 
 
 
 @cli.command("new_workflow")
-def new_workflow_command():
-    """
-    Deploy a new user-defined contract (ModelExecutorVolatility by default).
-    """
-    if _client is None:
-        click.echo("Error: OpenGradient client not initialized. Call og.init(...) first.")
-        return
-    addr = _client.new_workflow()
+@click.option("--model-cid", required=True, help="IPFS CID of the model")
+@click.option("--input-tensor-name", required=True, help="Name of the input tensor")
+@click.pass_obj
+def new_workflow_command(client: Client, model_cid: str, input_tensor_name: str):
+    """Deploy a new workflow contract."""
+    # Default input query
+    input_query = {
+        'currency_pair': "ETH/USD",
+        'total_candles': 10,
+        'candle_duration_in_mins': 30,
+        'order': "Ascending",
+        'candle_types': ['OPEN', 'HIGH', 'LOW', 'CLOSE']
+    }
+    
+    addr = client.new_workflow(model_cid, input_query, input_tensor_name)
     click.secho("Contract Deployed Successfully!", fg="green", bold=True)
     click.echo(f"New Workflow Contract Address: {addr}")
 
 @cli.command("read_workflow")
 @click.option("--contract-address", required=True, help="Address of the workflow contract to invoke.")
-def read_workflow_command(contract_address):
+@click.pass_obj
+def read_workflow_command(client: Client, contract_address):
     """
     Invoke the 'run()' function on a deployed user-defined contract.
     """
-    if _client is None:
-        click.echo("Error: OpenGradient client not initialized. Call og.init(...) first.")
-        return
-    tx_hash = _client.read_workflow(contract_address)
+    tx_hash = client.read_workflow(contract_address)
     click.secho(f"'run()' called successfully. TX hash: {tx_hash}", fg="green", bold=True)
+
+@cli.command("run_workflow")
+@click.option("--contract-address", required=True, help="Address of the workflow contract to run.")
+@click.pass_obj
+def run_workflow_command(client: Client, contract_address):
+    """
+    Execute the workflow by calling run() on the contract to pull latest data and perform inference.
+    """
+    result = client.run_workflow(contract_address)
+    
+    if result["status"] == "success":
+        click.secho("Workflow executed successfully!", fg="green", bold=True)
+        click.echo(f"Transaction hash: {result.get('tx_hash', 'N/A')}")
+    else:
+        click.secho("Workflow execution failed!", fg="red", bold=True)
+        click.echo(f"Error: {result.get('error', 'Unknown error')}")
 
 
 if __name__ == '__main__':
