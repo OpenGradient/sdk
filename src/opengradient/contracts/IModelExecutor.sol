@@ -13,15 +13,9 @@ import "./og_inference/OGInference.sol"; // Import for shared types like ModelOu
 interface IModelExecutor {
     /**
      * @dev Executes the model task.
-     * @param modelCID The CID of the model to run
-     * @param inferenceMode The mode of inference (0=VANILLA, 1=ZK, 2=TEE)
-     * @param input The model input data
+     * This function will be called by the OG-Model-Executor module.
      */
-    function run(
-        string memory modelCID,
-        uint8 inferenceMode,
-        ModelInput memory input
-    ) external;
+    function run() external;
 
     /**
      * @dev Retrieves the result of the last executed model task.

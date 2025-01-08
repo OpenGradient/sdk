@@ -1,21 +1,42 @@
 from typing import Dict, List, Optional, Tuple, Any, Union
-
+from pathlib import Path
 from .client import Client
-from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
-from . import llm
+from .defaults import DEFAULT_RPC_URL
+from .types import LlmInferenceMode, LLM
 
-__version__ = "0.3.76"
+__version__ = "0.3.105"
 
 _client = None
 
-def init(email: str,
-         password: str,
-         private_key: str,
-         rpc_url=DEFAULT_RPC_URL,
-         contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
+def init(
+    email: str,
+    password: str, 
+    private_key: str,
+    rpc_url: str = DEFAULT_RPC_URL
+) -> None:
+    """Initialize the OpenGradient SDK with authentication and network settings.
+
+    Args:
+        email: User's email address for authentication
+        password: User's password for authentication
+        private_key: Ethereum private key for blockchain transactions
+        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
+    """
     global _client
-    _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
+    
+    # Just use abi directory relative to current file
+    abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
+    
+    if not abi_path.exists():
+        raise FileNotFoundError(f"Inference ABI not found at {abi_path}")
+    
+    _client = Client(
+        private_key=private_key,
+        rpc_url=rpc_url,
+        email=email,
+        password=password
+    )
+    return _client
 
 def upload(model_path, model_name, version):
     if _client is None:
@@ -129,13 +150,42 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
 def new_workflow(
     model_cid: str,
     input_query: Dict[str, Any],
-    historical_contract_address: str = "0x00000000000000000000000000000000000000F5"
+    input_tensor_name: str
 ) -> str:
+    """
+    Deploy a new workflow contract with the specified parameters.
+    
+    Args:
+        model_cid: IPFS CID of the model
+        input_query: Dictionary containing query parameters
+        input_tensor_name: Name of the input tensor
+    
+    Returns:
+        str: Deployed contract address
+    """
     if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.new_workflow(model_cid, input_query, historical_contract_address)
+        raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
+    return _client.new_workflow(model_cid, input_query, input_tensor_name)
 
 def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
+    """
+    Reads the latest inference result from a deployed workflow contract.
+    
+    This function retrieves the most recent output from a deployed model executor contract.
+    It includes built-in retry logic to handle blockchain state delays.
+    
+    Args:
+        contract_address (str): Address of the deployed workflow contract
+            
+    Returns:
+        Dict[str, Union[str, Dict]]: A dictionary containing:
+            - status: "success" or "error"
+            - result: The model output data if successful
+            - error: Error message if status is "error"
+            
+    Raises:
+        RuntimeError: If OpenGradient client is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.read_workflow(contract_address)
