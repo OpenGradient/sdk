@@ -1,19 +1,21 @@
+"""
+OpenGradient Python SDK for interacting with AI models and infrastructure.
+"""
 from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
 from .client import Client
 from .defaults import DEFAULT_RPC_URL
 from .types import LlmInferenceMode, LLM
 
-__version__ = "0.3.18"
+__version__ = "0.3.22"
 
 _client = None
 
-def init(
-    email: str,
-    password: str, 
-    private_key: str,
-    rpc_url: str = DEFAULT_RPC_URL
-) -> None:
+def init(email: str,
+         password: str,
+         private_key: str,
+         rpc_url=DEFAULT_RPC_URL,
+         contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
     """Initialize the OpenGradient SDK with authentication and network settings.
 
     Args:
@@ -21,6 +23,7 @@ def init(
         password: User's password for authentication
         private_key: Ethereum private key for blockchain transactions
         rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
+        contract_address: Optional inference contract address
     """
     global _client
     
@@ -39,11 +42,37 @@ def init(
     return _client
 
 def upload(model_path, model_name, version):
+    """Upload a model file to OpenGradient.
+
+    Args:
+        model_path: Path to the model file on local filesystem
+        model_name: Name of the model repository
+        version: Version string for this model upload
+
+    Returns:
+        dict: Upload response containing file metadata
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.upload(model_path, model_name, version)
 
 def create_model(model_name: str, model_desc: str, model_path: str = None):
+    """Create a new model repository.
+
+    Args:
+        model_name: Name for the new model repository
+        model_desc: Description of the model
+        model_path: Optional path to model file to upload immediately
+
+    Returns:
+        dict: Creation response with model metadata and optional upload results
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     
@@ -57,22 +86,37 @@ def create_model(model_name: str, model_desc: str, model_path: str = None):
     return result
 
 def create_version(model_name, notes=None, is_major=False):
+    """Create a new version for an existing model.
+
+    Args:
+        model_name: Name of the model repository
+        notes: Optional release notes for this version
+        is_major: If True, creates a major version bump instead of minor
+
+    Returns:
+        dict: Version creation response with version metadata
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.create_version(model_name, notes, is_major)
 
 def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None):
-    """
-    Perform inference on a model.
+    """Run inference on a model.
 
     Args:
-        model_cid: Model CID to use for inference
+        model_cid: CID of the model to use
         inference_mode: Mode of inference (e.g. VANILLA)
         model_input: Input data for the model
-        max_retries: Optional maximum number of retry attempts for transaction errors
+        max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple of (transaction hash, model output)
+        Tuple[str, Any]: Transaction hash and model output
+
+    Raises:
+        RuntimeError: If SDK is not initialized
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
@@ -85,6 +129,23 @@ def llm_completion(model_cid: LLM,
                   stop_sequence: Optional[List[str]] = None, 
                   temperature: float = 0.0,
                   max_retries: Optional[int] = None) -> Tuple[str, str]:
+    """Generate text completion using an LLM.
+
+    Args:
+        model_cid: CID of the LLM model to use
+        prompt: Text prompt for completion
+        inference_mode: Mode of inference, defaults to VANILLA
+        max_tokens: Maximum tokens to generate
+        stop_sequence: Optional list of sequences where generation should stop
+        temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
+        max_retries: Maximum number of retries for failed transactions
+
+    Returns:
+        Tuple[str, str]: Transaction hash and generated text
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_completion(model_cid=model_cid, 
@@ -104,6 +165,25 @@ def llm_chat(model_cid: LLM,
              tools: Optional[List[Dict]] = None,
              tool_choice: Optional[str] = None,
              max_retries: Optional[int] = None) -> Tuple[str, str, Dict]:
+    """Have a chat conversation with an LLM.
+
+    Args:
+        model_cid: CID of the LLM model to use
+        messages: List of chat messages, each with 'role' and 'content'
+        inference_mode: Mode of inference, defaults to VANILLA
+        max_tokens: Maximum tokens to generate
+        stop_sequence: Optional list of sequences where generation should stop
+        temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
+        tools: Optional list of tools the model can use
+        tool_choice: Optional specific tool to use
+        max_retries: Maximum number of retries for failed transactions
+
+    Returns:
+        Tuple[str, str, Dict]: Transaction hash, model response, and metadata
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_chat(model_cid=model_cid, 
@@ -117,31 +197,54 @@ def llm_chat(model_cid: LLM,
                           max_retries=max_retries)
 
 def login(email: str, password: str):
+    """Login to OpenGradient.
+
+    Args:
+        email: User's email address
+        password: User's password
+
+    Returns:
+        dict: Login response with authentication tokens
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.login(email, password)
 
 def list_files(model_name: str, version: str) -> List[Dict]:
+    """List files in a model repository version.
+
+    Args:
+        model_name: Name of the model repository
+        version: Version string to list files from
+
+    Returns:
+        List[Dict]: List of file metadata dictionaries
+
+    Raises:
+        RuntimeError: If SDK is not initialized
+    """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.list_files(model_name, version)
 
 def generate_image(model: str, prompt: str, height: Optional[int] = None, width: Optional[int] = None) -> bytes:
-    """
-    Generate an image using the specified model and prompt.
+    """Generate an image from a text prompt.
 
     Args:
-        model (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-        prompt (str): The text prompt to generate the image from
-        height (Optional[int]): Height of the generated image. Default is None.
-        width (Optional[int]): Width of the generated image. Default is None.
+        model: Model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+        prompt: Text description of the desired image
+        height: Optional height of the generated image in pixels
+        width: Optional width of the generated image in pixels
 
     Returns:
-        bytes: The raw image data bytes
+        bytes: Raw image data as bytes
 
     Raises:
-        RuntimeError: If the client is not initialized
-        OpenGradientError: If the image generation fails
+        RuntimeError: If SDK is not initialized
+        OpenGradientError: If image generation fails
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
@@ -203,3 +306,34 @@ def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.run_workflow(contract_address)
+
+  __all__ = [
+    'generate_image',
+    'list_files',
+    'login',
+    'llm_chat',
+    'llm_completion',
+    'infer',
+    'create_version',
+    'create_model',
+    'upload',
+    'init',
+    'LLM',
+    'TEE_LLM'
+    'new_workflow',
+    'read_workflow_result',
+    'run_workflow'
+]
+
+__pdoc__ = {
+    'account': False,
+    'cli': False,
+    'client': False,
+    'defaults': False,
+    'exceptions': False,
+    'llm': True,
+    'mltools': True,
+    'proto': False,
+    'types': False,
+    'utils': False
+}
