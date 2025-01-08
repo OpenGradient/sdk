@@ -4,7 +4,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
 from .client import Client
-from .defaults import DEFAULT_RPC_URL
+from .defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS
 from .types import LlmInferenceMode, LLM
 
 __version__ = "0.3.22"
@@ -307,7 +307,7 @@ def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.run_workflow(contract_address)
 
-  __all__ = [
+__all__ = [
     'generate_image',
     'list_files',
     'login',
