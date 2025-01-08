@@ -50,4 +50,20 @@ tee_chat:
 docs:
 	pdoc opengradient -o docs --force  --template-dir ./templates
 
+build:
+	python -m build
+
+
+publish:
+	@echo "📋 Current version:" $$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
+	@echo "🧹 Cleaning dist directory..."
+	rm -rf dist/*
+	@echo "🏗️  Building distributions..."
+	python -m build
+	@echo "📦 Generated files in dist/:"
+	ls -l dist/
+	@echo "🚀 Uploading to PyPI..."
+	twine upload dist/*
+	@echo "✨ Done! Published to PyPI"
+
 .PHONY: docs
