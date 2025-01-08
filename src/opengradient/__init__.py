@@ -7,7 +7,7 @@ from .client import Client
 from .defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS
 from .types import LlmInferenceMode, LLM
 
-__version__ = "0.3.22"
+__version__ = "0.3.23"
 
 _client = None
 
@@ -27,7 +27,6 @@ def init(email: str,
     """
     global _client
     
-    # Just use abi directory relative to current file
     abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
     
     if not abi_path.exists():
