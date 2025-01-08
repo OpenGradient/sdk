@@ -11,8 +11,6 @@ from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 from . import llm
 from . import mltools
 
-__version__ = "0.3.20"
-
 _client = None
 
 def init(email: str,
