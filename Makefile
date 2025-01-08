@@ -7,7 +7,7 @@ LLAMA_70B_MODEL := meta-llama/Llama-3.1-70B-Instruct
 
 infer:
 	pip install -e .
-	python -m opengradient.cli infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNX"], "str_input2":" world"}'
+	python -m opengradient.cli infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNXY"], "str_input2":" world"}'
 
 completion:
 	pip install -e .
@@ -49,5 +49,21 @@ tee_chat:
 
 docs:
 	pdoc opengradient -o docs --force  --template-dir ./templates
+
+build:
+	python -m build
+
+
+publish:
+	@echo "📋 Current version:" $$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
+	@echo "🧹 Cleaning dist directory..."
+	rm -rf dist/*
+	@echo "🏗️  Building distributions..."
+	python -m build
+	@echo "📦 Generated files in dist/:"
+	ls -l dist/
+	@echo "🚀 Uploading to PyPI..."
+	twine upload dist/*
+	@echo "✨ Done! Published to PyPI"
 
 .PHONY: docs
