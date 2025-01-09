@@ -27,8 +27,6 @@ def init(email: str,
     """
     global _client
     
-    abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
-    
     _client = Client(
         private_key=private_key,
         rpc_url=rpc_url,
@@ -288,7 +286,7 @@ def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.read_workflow(contract_address)
+    return _client.read_workflow_result(contract_address)
 
 def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
     """

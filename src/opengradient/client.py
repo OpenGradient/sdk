@@ -797,7 +797,16 @@ class Client:
             raise OpenGradientError(f"Image generation failed: {str(e)}")
         finally:
             if channel:
-                channel.close()       
+                channel.close() 
+
+    def _get_model_executor_abi(self) -> List[Dict]:
+        """
+        Returns the ABI for the ModelExecutorHistorical contract.
+        """
+        abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
+        with open(abi_path, 'r') as f:
+            return json.load(f)
+
 
     def new_workflow(
         self,
@@ -849,7 +858,7 @@ class Client:
         
         return tx_receipt.contractAddress
 
-    def read_workflow(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
+    def read_workflow_result(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
         """
         Reads the latest inference result from any deployed IModelExecutor contract.
         
@@ -897,41 +906,6 @@ class Client:
                 "status": "error", 
                 "error": str(e)
             }
-
-    def _get_model_executor_abi(self) -> List[Dict]:
-        """
-        Returns the ABI for the ModelExecutorHistorical contract.
-        """
-        abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
-        with open(abi_path, 'r') as f:
-            return json.load(f)
-
-    def read_workflow_result(self, contract_address: str) -> Any:
-        """
-        Reads the latest inference result from a deployed workflow contract.
-        
-        Args:
-            contract_address (str): Address of the deployed workflow contract
-            
-        Returns:
-            Any: The inference result from the contract
-            
-        Raises:
-            ContractLogicError: If the transaction fails
-            Web3Error: If there are issues with the web3 connection or contract interaction
-        """
-        if not self._w3:
-            self._initialize_web3()
-        
-        # Get the contract interface
-        contract = self._w3.eth.contract(
-            address=Web3.to_checksum_address(contract_address),
-            abi=self._get_model_executor_abi()
-        )
-        
-        # Get the result
-        result = contract.functions.getInferenceResult().call()
-        return result
 
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
