@@ -14,7 +14,14 @@ from web3.logs import DISCARD
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+from opengradient.types import (
+    HistoricalInputQuery, 
+    InferenceMode, 
+    LlmInferenceMode, 
+    LLM, 
+    TEE_LLM,
+    ModelOutput
+)
 
 import grpc
 import time
@@ -26,8 +33,7 @@ from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 from functools import wraps
-from .workflow import WorkflowManager
-logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 def run_with_retry(txn_function, max_retries=5):
@@ -82,49 +88,20 @@ class Client:
         self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         
-        self.workflow_manager = WorkflowManager(self._w3, self.private_key)
-        
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
-        
-        logging.debug("Initialized client with parameters:\n"
-                      "private key: %s\n"
-                      "RPC URL: %s\n",
-                      private_key, rpc_url)
 
-        # Update path to look in src/opengradient/abi
         abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
-        abi_dir = abi_path.parent
-
-        logger.debug(f"ABI directory: {abi_dir}")
-        if abi_dir.exists():
-            logger.debug(f"ABI directory contents: {list(abi_dir.iterdir())}")
-            logger.debug(f"ABI directory is_dir: {abi_dir.is_dir()}")
-            logger.debug(f"ABI directory permissions: {oct(abi_dir.stat().st_mode)[-3:]}")
-        else:
-            logger.error(f"ABI directory does not exist: {abi_dir}")
-
-        logger.debug(f"Looking for ABI file: {abi_path}")
-        if abi_path.exists():
-            logger.debug(f"ABI file exists")
-            logger.debug(f"ABI file size: {abi_path.stat().st_size}")
-            logger.debug(f"ABI file permissions: {oct(abi_path.stat().st_mode)[-3:]}")
-        else:
-            logger.error(f"ABI file not found: {abi_path}")
 
         try:
             with open(abi_path, 'r') as abi_file:
                 inference_abi = json.load(abi_file)
-            logger.debug("Successfully loaded ABI file")
         except FileNotFoundError:
-            logger.error(f"ABI file not found at {abi_path}")
             raise
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON in ABI file at {abi_path}")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error loading ABI file: {str(e)}")
             raise
 
         self.abi = inference_abi
@@ -824,129 +801,10 @@ class Client:
             if channel:
                 channel.close()       
 
-    def _parameterized_historical_contract(
-        self,
-        model_cid: str,
-        input_query: Dict[str, Any],
-        historical_contract_address: str
-    ) -> str:
-        """Generate contract source from template with parameters"""
-        template_path = Path(__file__).parent / 'contracts' / 'templates' / 'ModelExecutorHistorical.sol'
-        
-        if not template_path.exists():
-            raise FileNotFoundError(f"Contract template not found at: {template_path}")
-        
-        with open(template_path) as f:
-            template = f.read()
-        
-        # Convert input query to Solidity struct initialization
-        candle_types = [f"CandleType.{t.upper()}" for t in input_query["candle_types"]]
-        order = input_query['order'].upper() if 'order' in input_query else "ASCENDING"
-        
-        # Create the constructor body with proper initialization
-        constructor_body = f"""{{
-            modelCID = "{model_cid}";
-            
-            // Create and initialize the candleTypes array
-            CandleType[] memory types = new CandleType[]({len(candle_types)});
-            {chr(10).join(f'types[{i}] = {ct};' for i, ct in enumerate(candle_types))}
-            
-            // Create and initialize the input query
-            inputQuery = HistoricalInputQuery({{
-                currency_pair: "{input_query.get('currency_pair', 'BTC/USD')}",
-                total_candles: {input_query.get('total_candles', 100)},
-                candle_duration_in_mins: {input_query.get('candle_duration_in_mins', 1)},
-                order: CandleOrder.{order},
-                candle_types: types
-            }});
-            
-            // Initialize the historical contract
-            historicalContract = OGHistorical({historical_contract_address});
-            numValues = 0;
-        }}"""
-        
-        # Replace just the constructor body in the template
-        return template.replace(
-            """{
-        modelCID = _modelCID;
-        inputQuery = _inputQuery;
-        historicalContract = OGHistorical(_historicalContractAddress);
-    }""",
-            constructor_body
-        )
-
-    async def _deploy_historical_contract(
-        self,
-        model_cid: str,
-        input_query: Dict[str, Any],
-        historical_contract_address: str
-    ) -> str:
-        """Deploy a historical data contract with the given parameters"""
-        
-        # Convert candle types to proper format
-        candle_types = []
-        for ct in input_query['candle_types']:
-            if ct.upper() == 'OPEN':
-                candle_types.append(2)
-            elif ct.upper() == 'HIGH':
-                candle_types.append(0)
-            elif ct.upper() == 'LOW':
-                candle_types.append(1)
-            elif ct.upper() == 'CLOSE':
-                candle_types.append(3)
-        
-        # Create historical input query matching the HistoricalInputQuery struct
-        historical_input = (
-            input_query['currency_pair'],
-            input_query['total_candles'],
-            input_query['candle_duration_in_mins'],
-            0 if input_query['order'].upper() == 'ASCENDING' else 1,
-            candle_types
-        )
-        
-        # Generate parameterized contract source
-        source_code = self._parameterized_historical_contract(
-            model_cid,
-            input_query,
-            historical_contract_address
-        )
-
-        logging.info(source_code)
-        
-        # Compile the contract
-        contract_interface = self._compile_contract(source_code)
-        
-        # Create contract instance
-        Contract = self._w3.eth.contract(
-            abi=contract_interface['abi'],
-            bytecode=contract_interface['bytecode']
-        )
-        
-        # Deploy the contract
-        nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
-        
-        transaction = Contract.constructor(
-            model_cid,
-            historical_input,
-            historical_contract_address
-        ).build_transaction({
-            'from': self.wallet_address,
-            'nonce': nonce,
-            'gas': 15000000,
-            'gasPrice': self._w3.eth.gas_price,
-            'chainId': self._w3.eth.chain_id
-        })
-        
-        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
-        
-        return tx_receipt.contractAddress
-
     def new_workflow(
         self,
         model_cid: str,
-        input_query: Dict[str, Any],
+        input_query: Union[Dict[str, Any], HistoricalInputQuery],
         input_tensor_name: str
     ) -> str:
         """
@@ -954,62 +812,20 @@ class Client:
         
         Args:
             model_cid: IPFS CID of the model
-            input_query: Dictionary containing query parameters
+            input_query: Either a HistoricalInputQuery object or dictionary containing query parameters
             input_tensor_name: Name of the input tensor
         
         Returns:
             str: Deployed contract address
         """
-        # Validate input query structure
-        required_fields = ['currency_pair', 'total_candles', 'candle_duration_in_mins', 'order', 'candle_types']
-        missing_fields = [field for field in required_fields if field not in input_query]
-        if missing_fields:
-            raise ValueError(f"Missing required fields in input_query: {missing_fields}")
+        if isinstance(input_query, dict):
+            input_query = HistoricalInputQuery.from_dict(input_query)
         
-        # Convert candle types to proper format
-        candle_type_mapping = {
-            'OPEN': 2,
-            'HIGH': 0,
-            'LOW': 1,
-            'CLOSE': 3
-        }
+        # Get contract ABI and bytecode
+        abi = self._get_model_executor_abi()
+        bin_path = Path(__file__).parent / 'contracts' / 'templates' / 'ModelExecutorHistorical.bin'
         
-        try:
-            candle_types = [candle_type_mapping[ct.upper()] for ct in input_query['candle_types']]
-        except KeyError as e:
-            raise ValueError(f"Invalid candle type: {e}. Must be one of {list(candle_type_mapping.keys())}")
-        
-        # Create historical input query matching the HistoricalInputQuery struct
-        historical_input = (
-            input_query['currency_pair'],
-            int(input_query['total_candles']),
-            int(input_query['candle_duration_in_mins']),
-            0 if input_query['order'].upper() == 'ASCENDING' else 1,
-            candle_types
-        )
-        
-        # Get contract ABI and bytecode from respective directories
-        abi_dir = Path(__file__).parent / 'abi'
-        templates_dir = Path(__file__).parent / 'contracts' / 'templates'
-
-        abi_path = abi_dir / 'ModelExecutorHistorical.abi'
-        bin_path = templates_dir / 'ModelExecutorHistorical.bin'
-
-        logger.debug(f"ABI directory: {abi_dir}")
-        logger.debug(f"Templates directory: {templates_dir}")
-        logger.debug(f"ABI path to check: {abi_path}")
-        logger.debug(f"BIN path to check: {bin_path}")
-        logger.debug(f"ABI exists: {abi_path.exists()}")
-        logger.debug(f"BIN exists: {bin_path.exists()}")
-
-        if not abi_path.exists():
-            raise FileNotFoundError(f"ABI file not found at {abi_path}")
-        if not bin_path.exists():
-            raise FileNotFoundError(f"BIN file not found at {bin_path}")
-
-        with open(abi_path) as f:
-            abi = json.load(f)
-        with open(bin_path) as f:
+        with open(bin_path, 'r') as f:
             bytecode = f.read().strip()
         
         # Create contract instance
@@ -1018,8 +834,8 @@ class Client:
         # Deploy contract with constructor arguments
         transaction = contract.constructor(
             model_cid,
-            historical_input,
-            "0x00000000000000000000000000000000000000F5",  # Historical contract address hardcoded
+            input_query.to_abi_format(),
+            "0x00000000000000000000000000000000000000F5",  # Historical contract address
             input_tensor_name
         ).build_transaction({
             'from': self.wallet_address,
@@ -1125,53 +941,48 @@ class Client:
                 "error": str(e)
             }
 
-    def run_workflow(self, contract_address: str) -> Dict[str, str]:
+    def run_workflow(self, contract_address: str) -> ModelOutput:
         """
-        Triggers the run() function on a deployed workflow contract.
+        Triggers the run() function on a deployed workflow contract and returns the result.
         
         Args:
             contract_address (str): Address of the deployed workflow contract
             
         Returns:
-            Dict[str, str]: Status and transaction hash of the run operation
+            ModelOutput: The inference result from the contract
+            
+        Raises:
+            ContractLogicError: If the transaction fails
+            Web3Error: If there are issues with the web3 connection or contract interaction
         """
         if not self._w3:
             self._initialize_web3()
         
-        try:
-            # Get the contract interface
-            contract = self._w3.eth.contract(
-                address=Web3.to_checksum_address(contract_address),
-                abi=self._get_model_executor_abi()
-            )
-            
-            # Call run() function
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
-            
-            run_function = contract.functions.run()
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': 30000000,
-                'gasPrice': self._w3.eth.gas_price,
-                'chainId': self._w3.eth.chain_id
-            })
-            
-            signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
-            
-            if tx_receipt.status == 0:
-                raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
-            
-            return {
-                "status": "success",
-                "tx_hash": tx_hash.hex()
-            }
-            
-        except Exception as e:
-            logging.error(f"Error running workflow: {e}")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+        # Get the contract interface
+        contract = self._w3.eth.contract(
+            address=Web3.to_checksum_address(contract_address),
+            abi=self._get_model_executor_abi()
+        )
+        
+        # Call run() function
+        nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+        
+        run_function = contract.functions.run()
+        transaction = run_function.build_transaction({
+            'from': self.wallet_address,
+            'nonce': nonce,
+            'gas': 30000000,
+            'gasPrice': self._w3.eth.gas_price,
+            'chainId': self._w3.eth.chain_id
+        })
+        
+        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        
+        if tx_receipt.status == 0:
+            raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
+
+        # Get the inference result from the contract
+        result = contract.functions.getInferenceResult().call()
+        return result

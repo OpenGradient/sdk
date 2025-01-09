@@ -5,9 +5,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import LlmInferenceMode, LLM
-
-__version__ = "0.3.22"
+from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 
 _client = None
 
@@ -28,9 +26,6 @@ def init(email: str,
     global _client
     
     abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
-    
-    if not abi_path.exists():
-        raise FileNotFoundError(f"Inference ABI not found at {abi_path}")
     
     _client = Client(
         private_key=private_key,

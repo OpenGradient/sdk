@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.3.22"
+version = "0.3.26"
 description = "Python SDK for OpenGradient decentralized model management & inference services"
 authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
 license = {file = "LICENSE"}
@@ -84,6 +84,7 @@ dependencies = [
     "platformdirs>=4.3.6",
     "proto-plus>=1.24.0",
     "protobuf>=5.28.2",
+    "protobuf>=4.24.0",
     "ptyprocess>=0.7.0",
     "pyarrow>=17.0.0",
     "pyasn1>=0.6.1",
@@ -93,7 +94,6 @@ dependencies = [
     "pydantic>=2.9.2",
     "pydantic_core>=2.23.4",
     "pyproject_hooks>=1.2.0",
-    "py-solc-x>=1.1.1",
     "python-dateutil>=2.9.0.post0",
     "python-jwt>=4.1.0",
     "pytz>=2024.2",
@@ -152,14 +152,3 @@ ignore = []
 
 [tool.ruff.mccabe]
 max-complexity = 10
-
-[tool.hatch.build]
-include = [
-    "src/opengradient/**/*.py",
-    "src/opengradient/abi/*.abi",
-    "src/opengradient/contracts/templates/*.bin",
-    "src/opengradient/contracts/templates/*.sol"
-]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/opengradient"]

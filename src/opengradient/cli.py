@@ -674,53 +674,6 @@ def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, 
     except Exception as e:
         click.echo(f"Error generating image: {str(e)}")
 
-
-@cli.command("new_workflow")
-@click.option("--model-cid", required=True, help="IPFS CID of the model")
-@click.option("--input-tensor-name", required=True, help="Name of the input tensor")
-@click.pass_obj
-def new_workflow_command(client: Client, model_cid: str, input_tensor_name: str):
-    """Deploy a new workflow contract."""
-    # Default input query
-    input_query = {
-        'currency_pair': "ETH/USD",
-        'total_candles': 10,
-        'candle_duration_in_mins': 30,
-        'order': "Ascending",
-        'candle_types': ['OPEN', 'HIGH', 'LOW', 'CLOSE']
-    }
-    
-    addr = client.new_workflow(model_cid, input_query, input_tensor_name)
-    click.secho("Contract Deployed Successfully!", fg="green", bold=True)
-    click.echo(f"New Workflow Contract Address: {addr}")
-
-@cli.command("read_workflow")
-@click.option("--contract-address", required=True, help="Address of the workflow contract to invoke.")
-@click.pass_obj
-def read_workflow_command(client: Client, contract_address):
-    """
-    Invoke the 'run()' function on a deployed user-defined contract.
-    """
-    tx_hash = client.read_workflow(contract_address)
-    click.secho(f"'run()' called successfully. TX hash: {tx_hash}", fg="green", bold=True)
-
-@cli.command("run_workflow")
-@click.option("--contract-address", required=True, help="Address of the workflow contract to run.")
-@click.pass_obj
-def run_workflow_command(client: Client, contract_address):
-    """
-    Execute the workflow by calling run() on the contract to pull latest data and perform inference.
-    """
-    result = client.run_workflow(contract_address)
-    
-    if result["status"] == "success":
-        click.secho("Workflow executed successfully!", fg="green", bold=True)
-        click.echo(f"Transaction hash: {result.get('tx_hash', 'N/A')}")
-    else:
-        click.secho("Workflow execution failed!", fg="red", bold=True)
-        click.echo(f"Error: {result.get('error', 'Unknown error')}")
-
-
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
     cli()
