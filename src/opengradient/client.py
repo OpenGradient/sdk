@@ -34,8 +34,6 @@ from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 from functools import wraps
 
-logger = logging.getLogger(__name__)
-
 def run_with_retry(txn_function, max_retries=5):
     """
     Execute a blockchain transaction with retry logic.
