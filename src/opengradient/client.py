@@ -797,7 +797,7 @@ class Client:
             raise OpenGradientError(f"Image generation failed: {str(e)}")
         finally:
             if channel:
-                channel.close() 
+                channel.close()       
 
     def _get_model_executor_abi(self) -> List[Dict]:
         """
@@ -858,54 +858,32 @@ class Client:
         
         return tx_receipt.contractAddress
 
-    def read_workflow_result(self, contract_address: str) -> Dict[str, Union[str, Dict]]:
+    def read_workflow_result(self, contract_address: str) -> Any:
         """
-        Reads the latest inference result from any deployed IModelExecutor contract.
+        Reads the latest inference result from a deployed workflow contract.
         
         Args:
             contract_address (str): Address of the deployed workflow contract
             
         Returns:
-            Dict[str, Union[str, Dict]]: Status and ModelOutput result from the contract
+            Any: The inference result from the contract
+            
+        Raises:
+            ContractLogicError: If the transaction fails
+            Web3Error: If there are issues with the web3 connection or contract interaction
         """
         if not self._w3:
             self._initialize_web3()
         
-        try:
-            # Get the contract interface
-            contract = self._w3.eth.contract(
-                address=Web3.to_checksum_address(contract_address),
-                abi=self._get_model_executor_abi()
-            )
-            
-            # Add retries and delay for getting result
-            max_retries = 5
-            for attempt in range(max_retries):
-                try:
-                    # Wait between attempts
-                    time.sleep(2)
-                    
-                    result = contract.functions.getInferenceResult().call()
-                    if result:  # Check if we got a valid result
-                        return {
-                            "status": "success",
-                            "result": result
-                        }
-                except Exception as e:
-                    if attempt == max_retries - 1:
-                        raise
-                    continue
-                    
-            return {
-                "status": "error",
-                "error": "Failed to get result after maximum retries"
-            }
-            
-        except Exception as e:
-            return {
-                "status": "error", 
-                "error": str(e)
-            }
+        # Get the contract interface
+        contract = self._w3.eth.contract(
+            address=Web3.to_checksum_address(contract_address),
+            abi=self._get_model_executor_abi()
+        )
+        
+        # Get the result
+        result = contract.functions.getInferenceResult().call()
+        return result
 
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
