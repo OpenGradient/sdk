@@ -6,6 +6,8 @@ from pathlib import Path
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+from . import llm
+from . import mltools
 
 _client = None
 
