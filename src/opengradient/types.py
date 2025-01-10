@@ -1,6 +1,48 @@
 from dataclasses import dataclass
 from typing import List, Tuple, Union
-from enum import Enum
+from enum import Enum, IntEnum
+
+class CandleOrder(IntEnum):
+    ASCENDING = 0
+    DESCENDING = 1
+
+class CandleType(IntEnum):
+    HIGH = 0
+    LOW = 1
+    OPEN = 2
+    CLOSE = 3
+
+@dataclass
+class HistoricalInputQuery:
+    currency_pair: str
+    total_candles: int
+    candle_duration_in_mins: int
+    order: CandleOrder
+    candle_types: List[CandleType]
+
+    def to_abi_format(self) -> tuple:
+        """Convert to format expected by contract ABI"""
+        return (
+            self.currency_pair,
+            self.total_candles,
+            self.candle_duration_in_mins,
+            int(self.order),
+            [int(ct) for ct in self.candle_types]
+        )
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'HistoricalInputQuery':
+        """Create HistoricalInputQuery from dictionary format"""
+        order = CandleOrder[data['order'].upper()]
+        candle_types = [CandleType[ct.upper()] for ct in data['candle_types']]
+        
+        return cls(
+            currency_pair=data['currency_pair'],
+            total_candles=int(data['total_candles']),
+            candle_duration_in_mins=int(data['candle_duration_in_mins']),
+            order=order,
+            candle_types=candle_types
+        )
 
 @dataclass
 class Number:

@@ -1,8 +1,9 @@
+import asyncio
 import json
 import logging
 import os
-import random
-from typing import Dict, List, Optional, Tuple, Union
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 import firebase
 import numpy as np
@@ -13,7 +14,14 @@ from web3.logs import DISCARD
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+from opengradient.types import (
+    HistoricalInputQuery, 
+    InferenceMode, 
+    LlmInferenceMode, 
+    LLM, 
+    TEE_LLM,
+    ModelOutput
+)
 
 import grpc
 import time
@@ -62,7 +70,6 @@ class Client:
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
-
         Args:
             private_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
@@ -78,19 +85,23 @@ class Client:
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
         self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
+        
         self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
         self.auth = self.firebase_app.auth()
         self.user = None
-        
-        logging.debug("Initialized client with parameters:\n"
-                      "private key: %s\n"
-                      "RPC URL: %s\n"
-                      "Contract Address: %s\n",
-                      private_key, rpc_url, contract_address)
 
-        abi_path = os.path.join(os.path.dirname(__file__), 'abi', 'inference.abi')
-        with open(abi_path, 'r') as abi_file:
-            inference_abi = json.load(abi_file)
+        abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
+
+        try:
+            with open(abi_path, 'r') as abi_file:
+                inference_abi = json.load(abi_file)
+        except FileNotFoundError:
+            raise
+        except json.JSONDecodeError:
+            raise
+        except Exception as e:
+            raise
+
         self.abi = inference_abi
 
         if email is not None:
@@ -787,3 +798,135 @@ class Client:
         finally:
             if channel:
                 channel.close()       
+
+    def _get_model_executor_abi(self) -> List[Dict]:
+        """
+        Returns the ABI for the ModelExecutorHistorical contract.
+        """
+        abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
+        with open(abi_path, 'r') as f:
+            return json.load(f)
+
+
+    def new_workflow(
+        self,
+        model_cid: str,
+        input_query: Union[Dict[str, Any], HistoricalInputQuery],
+        input_tensor_name: str
+    ) -> str:
+        """
+        Deploy a new workflow contract with the specified parameters.
+        
+        Args:
+            model_cid: IPFS CID of the model
+            input_query: Either a HistoricalInputQuery object or dictionary containing query parameters
+            input_tensor_name: Name of the input tensor
+        
+        Returns:
+            str: Deployed contract address
+        """
+        if isinstance(input_query, dict):
+            input_query = HistoricalInputQuery.from_dict(input_query)
+        
+        # Get contract ABI and bytecode
+        abi = self._get_model_executor_abi()
+        bin_path = Path(__file__).parent / 'contracts' / 'templates' / 'ModelExecutorHistorical.bin'
+        
+        with open(bin_path, 'r') as f:
+            bytecode = f.read().strip()
+        
+        # Create contract instance
+        contract = self._w3.eth.contract(abi=abi, bytecode=bytecode)
+        
+        # Deploy contract with constructor arguments
+        transaction = contract.constructor(
+            model_cid,
+            input_query.to_abi_format(),
+            "0x00000000000000000000000000000000000000F5",  # Historical contract address
+            input_tensor_name
+        ).build_transaction({
+            'from': self.wallet_address,
+            'nonce': self._w3.eth.get_transaction_count(self.wallet_address, 'pending'),
+            'gas': 15000000,
+            'gasPrice': self._w3.eth.gas_price,
+            'chainId': self._w3.eth.chain_id
+        })
+        
+        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        
+        return tx_receipt.contractAddress
+
+    def read_workflow_result(self, contract_address: str) -> Any:
+        """
+        Reads the latest inference result from a deployed workflow contract.
+        
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+            
+        Returns:
+            Any: The inference result from the contract
+            
+        Raises:
+            ContractLogicError: If the transaction fails
+            Web3Error: If there are issues with the web3 connection or contract interaction
+        """
+        if not self._w3:
+            self._initialize_web3()
+        
+        # Get the contract interface
+        contract = self._w3.eth.contract(
+            address=Web3.to_checksum_address(contract_address),
+            abi=self._get_model_executor_abi()
+        )
+        
+        # Get the result
+        result = contract.functions.getInferenceResult().call()
+        return result
+
+    def run_workflow(self, contract_address: str) -> ModelOutput:
+        """
+        Triggers the run() function on a deployed workflow contract and returns the result.
+        
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+            
+        Returns:
+            ModelOutput: The inference result from the contract
+            
+        Raises:
+            ContractLogicError: If the transaction fails
+            Web3Error: If there are issues with the web3 connection or contract interaction
+        """
+        if not self._w3:
+            self._initialize_web3()
+        
+        # Get the contract interface
+        contract = self._w3.eth.contract(
+            address=Web3.to_checksum_address(contract_address),
+            abi=self._get_model_executor_abi()
+        )
+        
+        # Call run() function
+        nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+        
+        run_function = contract.functions.run()
+        transaction = run_function.build_transaction({
+            'from': self.wallet_address,
+            'nonce': nonce,
+            'gas': 30000000,
+            'gasPrice': self._w3.eth.gas_price,
+            'chainId': self._w3.eth.chain_id
+        })
+        
+        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        
+        if tx_receipt.status == 0:
+            raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
+
+        # Get the inference result from the contract
+        result = contract.functions.getInferenceResult().call()
+        return result

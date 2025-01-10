@@ -1,0 +1,3 @@
+include src/opengradient/abi/*.abi
+include src/opengradient/contracts/templates/*.bin
+include src/opengradient/contracts/templates/*.sol

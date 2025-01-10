@@ -674,7 +674,6 @@ def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, 
     except Exception as e:
         click.echo(f"Error generating image: {str(e)}")
 
-
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.WARN)
     cli()

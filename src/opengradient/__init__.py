@@ -1,13 +1,11 @@
 """
 OpenGradient Python SDK for interacting with AI models and infrastructure.
 """
-
-from typing import Dict, List, Optional, Tuple
-
+from typing import Dict, List, Optional, Tuple, Any, Union
+from pathlib import Path
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
-
 from . import llm
 from . import mltools
 
@@ -28,7 +26,15 @@ def init(email: str,
         contract_address: Optional inference contract address
     """
     global _client
-    _client = Client(private_key=private_key, rpc_url=rpc_url, contract_address=contract_address, email=email, password=password)
+    
+    _client = Client(
+        private_key=private_key,
+        rpc_url=rpc_url,
+        email=email,
+        password=password,
+        contract_address=contract_address
+    )
+    return _client
 
 def upload(model_path, model_name, version):
     """Upload a model file to OpenGradient.
@@ -239,6 +245,63 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.generate_image(model, prompt, height=height, width=width)
 
+def new_workflow(
+    model_cid: str,
+    input_query: Dict[str, Any],
+    input_tensor_name: str
+) -> str:
+    """
+    Deploy a new workflow contract with the specified parameters.
+    
+    Args:
+        model_cid: IPFS CID of the model
+        input_query: Dictionary containing query parameters
+        input_tensor_name: Name of the input tensor
+    
+    Returns:
+        str: Deployed contract address
+    """
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
+    return _client.new_workflow(model_cid, input_query, input_tensor_name)
+
+def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
+    """
+    Reads the latest inference result from a deployed workflow contract.
+    
+    This function retrieves the most recent output from a deployed model executor contract.
+    It includes built-in retry logic to handle blockchain state delays.
+    
+    Args:
+        contract_address (str): Address of the deployed workflow contract
+            
+    Returns:
+        Dict[str, Union[str, Dict]]: A dictionary containing:
+            - status: "success" or "error"
+            - result: The model output data if successful
+            - error: Error message if status is "error"
+            
+    Raises:
+        RuntimeError: If OpenGradient client is not initialized
+    """
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.read_workflow_result(contract_address)
+
+def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
+    """
+    Executes the workflow by calling run() on the contract to pull latest data and perform inference.
+    
+    Args:
+        contract_address (str): Address of the deployed workflow contract
+        
+    Returns:
+        Dict[str, Union[str, Dict]]: Status of the run operation
+    """
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.run_workflow(contract_address)
+
 __all__ = [
     'generate_image',
     'list_files',
@@ -252,6 +315,9 @@ __all__ = [
     'init',
     'LLM',
     'TEE_LLM'
+    'new_workflow',
+    'read_workflow_result',
+    'run_workflow'
 ]
 
 __pdoc__ = {
