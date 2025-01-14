@@ -344,7 +344,7 @@ __all__ = [
 __pdoc__ = {
     'account': False,
     'cli': False,
-    'client': True,
+    'client': False,
     'defaults': False,
     'exceptions': False,
     'llm': True,
