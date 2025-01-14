@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+from .types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, SchedulerParams
 from . import llm
 from . import mltools
 
@@ -247,23 +247,44 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
 
 def new_workflow(
     model_cid: str,
-    input_query: Dict[str, Any],
-    input_tensor_name: str
+    input_query: Union[Dict[str, Any], HistoricalInputQuery],
+    input_tensor_name: str,
+    scheduler_params: Optional[Union[Dict[str, int], SchedulerParams]] = None
 ) -> str:
     """
     Deploy a new workflow contract with the specified parameters.
     
+    This function deploys a new workflow contract and optionally registers it with 
+    the scheduler for automated execution. If scheduler_params is not provided, 
+    the workflow will be deployed without automated execution scheduling.
+    
     Args:
         model_cid: IPFS CID of the model
-        input_query: Dictionary containing query parameters
+        input_query: Dictionary or HistoricalInputQuery containing query parameters
         input_tensor_name: Name of the input tensor
+        scheduler_params: Optional scheduler configuration:
+            - Can be a dictionary with:
+                - frequency: Execution frequency in seconds (default: 600)
+                - duration_hours: How long to run in hours (default: 2)
+            - Or a SchedulerParams instance
+            If not provided, the workflow will be deployed without scheduling.
     
     Returns:
-        str: Deployed contract address
+        str: Deployed contract address. If scheduler_params was provided, the workflow
+             will be automatically executed according to the specified schedule.
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
-    return _client.new_workflow(model_cid, input_query, input_tensor_name)
+    
+    # Convert scheduler_params if it's a dict, otherwise use as is
+    scheduler = SchedulerParams.from_dict(scheduler_params) if isinstance(scheduler_params, dict) else scheduler_params
+    
+    return _client.new_workflow(
+        model_cid=model_cid,
+        input_query=input_query,
+        input_tensor_name=input_tensor_name,
+        scheduler_params=scheduler
+    )
 
 def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
     """
@@ -314,7 +335,7 @@ __all__ = [
     'upload',
     'init',
     'LLM',
-    'TEE_LLM'
+    'TEE_LLM',
     'new_workflow',
     'read_workflow_result',
     'run_workflow'

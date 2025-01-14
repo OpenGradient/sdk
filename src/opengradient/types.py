@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Dict, Optional
 from enum import Enum, IntEnum
+import time
 
 class CandleOrder(IntEnum):
     ASCENDING = 0
@@ -133,3 +134,21 @@ class TEE_LLM(str, Enum):
     """Enum for LLM models available for TEE execution"""
 
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
+
+@dataclass
+class SchedulerParams:
+    frequency: int
+    duration_hours: int
+
+    @property
+    def end_time(self) -> int:
+        return int(time.time()) + (self.duration_hours * 60 * 60)
+
+    @staticmethod
+    def from_dict(data: Optional[Dict[str, int]]) -> Optional['SchedulerParams']:
+        if data is None:
+            return None
+        return SchedulerParams(
+            frequency=data.get('frequency', 600),
+            duration_hours=data.get('duration_hours', 2)
+        )

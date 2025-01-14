@@ -20,7 +20,8 @@ from opengradient.types import (
     LlmInferenceMode, 
     LLM, 
     TEE_LLM,
-    ModelOutput
+    ModelOutput,
+    SchedulerParams
 )
 
 import grpc
@@ -812,18 +813,11 @@ class Client:
         self,
         model_cid: str,
         input_query: Union[Dict[str, Any], HistoricalInputQuery],
-        input_tensor_name: str
+        input_tensor_name: str,
+        scheduler_params: Optional[SchedulerParams] = None
     ) -> str:
         """
         Deploy a new workflow contract with the specified parameters.
-        
-        Args:
-            model_cid: IPFS CID of the model
-            input_query: Either a HistoricalInputQuery object or dictionary containing query parameters
-            input_tensor_name: Name of the input tensor
-        
-        Returns:
-            str: Deployed contract address
         """
         if isinstance(input_query, dict):
             input_query = HistoricalInputQuery.from_dict(input_query)
@@ -834,6 +828,8 @@ class Client:
         
         with open(bin_path, 'r') as f:
             bytecode = f.read().strip()
+        
+        print("📦 Deploying workflow contract...")
         
         # Create contract instance
         contract = self._w3.eth.contract(abi=abi, bytecode=bytecode)
@@ -851,12 +847,66 @@ class Client:
             'gasPrice': self._w3.eth.gas_price,
             'chainId': self._w3.eth.chain_id
         })
-        
+
         signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
         tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        contract_address = tx_receipt.contractAddress
         
-        return tx_receipt.contractAddress
+        print(f"✅ Workflow contract deployed at: {contract_address}")
+
+        # Register with scheduler if params provided
+        if scheduler_params:
+            print("\n⏰ Setting up automated execution schedule...")
+            print(f"   • Frequency: Every {scheduler_params.frequency} seconds")
+            print(f"   • Duration: {scheduler_params.duration_hours} hours")
+            print(f"   • End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(scheduler_params.end_time))}")
+            
+            scheduler_abi = [{
+                "inputs": [
+                    {"internalType": "address", "name": "contractAddress", "type": "address"},
+                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+                    {"internalType": "uint256", "name": "frequency", "type": "uint256"}
+                ],
+                "name": "registerTask",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }]
+
+            scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
+            scheduler_contract = self._w3.eth.contract(
+                address=scheduler_address,
+                abi=scheduler_abi
+            )
+
+            try:
+                # Register the workflow with the scheduler
+                scheduler_tx = scheduler_contract.functions.registerTask(
+                    contract_address,
+                    scheduler_params.end_time,
+                    scheduler_params.frequency
+                ).build_transaction({
+                    'from': self.wallet_address,
+                    'gas': 300000,
+                    'gasPrice': self._w3.eth.gas_price,
+                    'nonce': self._w3.eth.get_transaction_count(self.wallet_address, 'pending'),
+                    'chainId': self._w3.eth.chain_id
+                })
+
+                signed_scheduler_tx = self._w3.eth.account.sign_transaction(scheduler_tx, self.private_key)
+                scheduler_tx_hash = self._w3.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
+                self._w3.eth.wait_for_transaction_receipt(scheduler_tx_hash)
+                
+                print("✅ Automated execution schedule set successfully!")
+                print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
+                
+            except Exception as e:
+                print("❌ Failed to set up automated execution schedule")
+                print(f"   Error: {str(e)}")
+                print("   The workflow contract is still deployed and can be executed manually.")
+
+        return contract_address
 
     def read_workflow_result(self, contract_address: str) -> Any:
         """
