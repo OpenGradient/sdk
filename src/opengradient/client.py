@@ -20,7 +20,8 @@ from opengradient.types import (
     LlmInferenceMode, 
     LLM, 
     TEE_LLM,
-    ModelOutput
+    ModelOutput,
+    SchedulerParams
 )
 
 import grpc
@@ -812,18 +813,28 @@ class Client:
         self,
         model_cid: str,
         input_query: Union[Dict[str, Any], HistoricalInputQuery],
-        input_tensor_name: str
+        input_tensor_name: str,
+        scheduler_params: Optional[SchedulerParams] = None
     ) -> str:
         """
         Deploy a new workflow contract with the specified parameters.
+        
+        This method deploys a new workflow contract and optionally registers it with
+        the scheduler service. When scheduler_params is provided, the workflow will be
+        automatically executed according to the specified schedule. Without scheduler_params,
+        only the contract is deployed.
         
         Args:
             model_cid: IPFS CID of the model
             input_query: Either a HistoricalInputQuery object or dictionary containing query parameters
             input_tensor_name: Name of the input tensor
+            scheduler_params: Optional parameters for scheduling automated execution.
+                If provided, the workflow will be registered with the scheduler service
+                for automated execution. If None, only the contract is deployed.
         
         Returns:
-            str: Deployed contract address
+            str: Deployed contract address. The contract will be automatically executed
+                 if scheduler_params was provided.
         """
         if isinstance(input_query, dict):
             input_query = HistoricalInputQuery.from_dict(input_query)
@@ -855,8 +866,46 @@ class Client:
         signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
         tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
-        
-        return tx_receipt.contractAddress
+        contract_address = tx_receipt.contractAddress
+
+        # Register with scheduler if params provided
+        if scheduler_params:
+            scheduler_abi = [{
+                "inputs": [
+                    {"internalType": "address", "name": "contractAddress", "type": "address"},
+                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+                    {"internalType": "uint256", "name": "frequency", "type": "uint256"}
+                ],
+                "name": "registerTask",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }]
+
+            scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
+            scheduler_contract = self._w3.eth.contract(
+                address=scheduler_address,
+                abi=scheduler_abi
+            )
+
+            # Register the workflow with the scheduler
+            scheduler_tx = scheduler_contract.functions.registerTask(
+                contract_address,
+                scheduler_params.end_time,
+                scheduler_params.frequency
+            ).build_transaction({
+                'from': self.wallet_address,
+                'gas': 300000,
+                'gasPrice': self._w3.eth.gas_price,
+                'nonce': self._w3.eth.get_transaction_count(self.wallet_address, 'pending'),
+                'chainId': 2970285607590380
+            })
+
+            signed_scheduler_tx = self._w3.eth.account.sign_transaction(scheduler_tx, self.private_key)
+            scheduler_tx_hash = self._w3.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
+            self._w3.eth.wait_for_transaction_receipt(scheduler_tx_hash)
+
+        return contract_address
 
     def read_workflow_result(self, contract_address: str) -> Any:
         """
