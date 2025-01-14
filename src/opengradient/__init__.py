@@ -344,12 +344,12 @@ __all__ = [
 __pdoc__ = {
     'account': False,
     'cli': False,
-    'client': False,
+    'client': True,
     'defaults': False,
     'exceptions': False,
     'llm': True,
     'mltools': True,
     'proto': False,
-    'types': True,
+    'types': False,
     'utils': False
 }
