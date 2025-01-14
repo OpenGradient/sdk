@@ -270,27 +270,17 @@ def new_workflow(
     Returns:
         str: Deployed contract address. If scheduler_params was provided, the workflow
              will be automatically executed according to the specified schedule.
-    
-    Example:
-        # Deploy without scheduling
-        address = new_workflow(model_cid, input_query, "input_1")
-        
-        # Deploy with automated execution every 10 minutes for 2 hours
-        address = new_workflow(
-            model_cid, 
-            input_query, 
-            "input_1",
-            scheduler_params={
-                "frequency": 600,
-                "duration_hours": 2
-            }
-        )
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
     
-    scheduler = SchedulerParams.from_dict(scheduler_params) if scheduler_params else None
-    return _client.new_workflow(model_cid, input_query, input_tensor_name, scheduler)
+    scheduler = SchedulerParams.from_dict(scheduler_params)
+    return _client.new_workflow(
+        model_cid=model_cid,
+        input_query=input_query,
+        input_tensor_name=input_tensor_name,
+        scheduler_params=scheduler
+    )
 
 def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
     """

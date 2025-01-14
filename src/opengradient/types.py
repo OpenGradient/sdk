@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple, Union, Dict
+from typing import List, Tuple, Union, Dict, Optional
 from enum import Enum, IntEnum
 import time
 
@@ -135,17 +135,19 @@ class TEE_LLM(str, Enum):
 
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
 
+@dataclass
 class SchedulerParams:
-    def __init__(
-        self,
-        frequency: int = 600,  # Default 10 minutes
-        duration_hours: int = 2  # Default 2 hours
-    ):
-        self.frequency = frequency
-        self.end_time = int(time.time()) + (duration_hours * 60 * 60)
+    frequency: int
+    duration_hours: int
+
+    @property
+    def end_time(self) -> int:
+        return int(time.time()) + (self.duration_hours * 60 * 60)
 
     @staticmethod
-    def from_dict(data: Dict[str, int]) -> 'SchedulerParams':
+    def from_dict(data: Optional[Dict[str, int]]) -> Optional['SchedulerParams']:
+        if data is None:
+            return None
         return SchedulerParams(
             frequency=data.get('frequency', 600),
             duration_hours=data.get('duration_hours', 2)
