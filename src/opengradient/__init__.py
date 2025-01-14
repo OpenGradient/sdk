@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM, SchedulerParams
+from .types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, SchedulerParams
 from . import llm
 from . import mltools
 
@@ -247,9 +247,9 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
 
 def new_workflow(
     model_cid: str,
-    input_query: Dict[str, Any],
+    input_query: Union[Dict[str, Any], HistoricalInputQuery],
     input_tensor_name: str,
-    scheduler_params: Optional[Dict[str, int]] = None
+    scheduler_params: Optional[Union[Dict[str, int], SchedulerParams]] = None
 ) -> str:
     """
     Deploy a new workflow contract with the specified parameters.
@@ -260,11 +260,13 @@ def new_workflow(
     
     Args:
         model_cid: IPFS CID of the model
-        input_query: Dictionary containing query parameters
+        input_query: Dictionary or HistoricalInputQuery containing query parameters
         input_tensor_name: Name of the input tensor
-        scheduler_params: Optional dictionary with scheduler parameters:
-            - frequency: Execution frequency in seconds (default: 600)
-            - duration_hours: How long to run in hours (default: 2)
+        scheduler_params: Optional scheduler configuration:
+            - Can be a dictionary with:
+                - frequency: Execution frequency in seconds (default: 600)
+                - duration_hours: How long to run in hours (default: 2)
+            - Or a SchedulerParams instance
             If not provided, the workflow will be deployed without scheduling.
     
     Returns:
@@ -274,7 +276,9 @@ def new_workflow(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
     
-    scheduler = SchedulerParams.from_dict(scheduler_params)
+    # Convert scheduler_params if it's a dict, otherwise use as is
+    scheduler = SchedulerParams.from_dict(scheduler_params) if isinstance(scheduler_params, dict) else scheduler_params
+    
     return _client.new_workflow(
         model_cid=model_cid,
         input_query=input_query,
@@ -331,7 +335,7 @@ __all__ = [
     'upload',
     'init',
     'LLM',
-    'TEE_LLM'
+    'TEE_LLM',
     'new_workflow',
     'read_workflow_result',
     'run_workflow'
@@ -346,6 +350,6 @@ __pdoc__ = {
     'llm': True,
     'mltools': True,
     'proto': False,
-    'types': False,
+    'types': True,
     'utils': False
 }
