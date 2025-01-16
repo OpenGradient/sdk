@@ -4,10 +4,11 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from . import llm, mltools
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams
+
+from . import llm, mltools
 
 _client = None
 
