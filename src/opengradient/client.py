@@ -22,22 +22,24 @@ from opengradient.proto import infer_pb2
 from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
+_FIREBASE_CONFIG = {
+    "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
+    "authDomain": "vanna-portal-418018.firebaseapp.com",
+    "projectId": "vanna-portal-418018",
+    "storageBucket": "vanna-portal-418018.appspot.com",
+    "appId": "1:487761246229:web:259af6423a504d2316361c",
+    "databaseURL": "",
+}
+
 
 class Client:
-    FIREBASE_CONFIG = {
-        "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
-        "authDomain": "vanna-portal-418018.firebaseapp.com",
-        "projectId": "vanna-portal-418018",
-        "storageBucket": "vanna-portal-418018.appspot.com",
-        "appId": "1:487761246229:web:259af6423a504d2316361c",
-        "databaseURL": "",
-    }
-
     private_key: str
     rpc_url: str
     contract_address: str
+
     wallet_account: LocalAccount
     wallet_address: str
+
     _blockchain: Web3
     _hub_user: Dict
     _inference_abi: Dict
@@ -72,7 +74,7 @@ class Client:
 
     def _login_to_hub(self, email, password):
         try:
-            firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
+            firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
             return firebase_app.auth().sign_in_with_email_and_password(email, password)
         except Exception as e:
             logging.error(f"Authentication failed: {str(e)}")
