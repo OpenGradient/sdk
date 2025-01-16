@@ -13,6 +13,7 @@ import requests
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
+from eth_account.account import LocalAccount
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
@@ -45,10 +46,10 @@ class Client:
     rpc_url: str
     contract_address: str
     _w3: Web3
-    wallet_account: object
+    wallet_account: LocalAccount
     wallet_address: str
-    abi: object
-    user: object
+    abi: Dict
+    user: Dict
     
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
