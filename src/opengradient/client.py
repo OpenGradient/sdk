@@ -33,7 +33,6 @@ _FIREBASE_CONFIG = {
 
 
 class Client:
-    private_key: str
     rpc_url: str
     contract_address: str
 
@@ -54,12 +53,10 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
-        self._blockchain = Web3(Web3.HTTPProvider(self.rpc_url))
-
         self.wallet_account = self._blockchain.eth.account.from_key(private_key)
+        self._blockchain = Web3(Web3.HTTPProvider(self.rpc_url))
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
@@ -322,7 +319,7 @@ class Client:
                 }
             )
 
-            signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+            signed_tx = self.wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -402,7 +399,7 @@ class Client:
                 }
             )
 
-            signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+            signed_tx = self.wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -549,7 +546,7 @@ class Client:
                 }
             )
 
-            signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+            signed_tx = self.wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -780,7 +777,7 @@ class Client:
             }
         )
 
-        signed_txn = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+        signed_txn = self.wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
         contract_address = tx_receipt.contractAddress
@@ -825,7 +822,7 @@ class Client:
                     }
                 )
 
-                signed_scheduler_tx = self._blockchain.eth.account.sign_transaction(scheduler_tx, self.private_key)
+                signed_scheduler_tx = self.wallet_account(scheduler_tx)
                 scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
                 self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
 
@@ -891,7 +888,7 @@ class Client:
             }
         )
 
-        signed_txn = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+        signed_txn = self.wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
