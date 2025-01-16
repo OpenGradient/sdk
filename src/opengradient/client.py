@@ -776,9 +776,9 @@ class Client:
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
-        _inference_hub_contract_address = tx_receipt.contractAddress
+        contract_address = tx_receipt.contractAddress
 
-        print(f"✅ Workflow contract deployed at: {_inference_hub_contract_address}")
+        print(f"✅ Workflow contract deployed at: {contract_address}")
 
         # Register with scheduler if params provided
         if scheduler_params:
@@ -807,7 +807,7 @@ class Client:
             try:
                 # Register the workflow with the scheduler
                 scheduler_tx = scheduler_contract.functions.registerTask(
-                    _inference_hub_contract_address, scheduler_params.end_time, scheduler_params.frequency
+                    contract_address, scheduler_params.end_time, scheduler_params.frequency
                 ).build_transaction(
                     {
                         "from": self._wallet_account.address,
@@ -830,14 +830,14 @@ class Client:
                 print(f"   Error: {str(e)}")
                 print("   The workflow contract is still deployed and can be executed manually.")
 
-        return _inference_hub_contract_address
+        return contract_address
 
-    def read_workflow_result(self, _inference_hub_contract_address: str) -> Any:
+    def read_workflow_result(self, contract_address: str) -> Any:
         """
         Reads the latest inference result from a deployed workflow contract.
 
         Args:
-            _inference_hub_contract_address (str): Address of the deployed workflow contract
+            contract_address (str): Address of the deployed workflow contract
 
         Returns:
             Any: The inference result from the contract
@@ -847,20 +847,18 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi()
-        )
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
         return result
 
-    def run_workflow(self, _inference_hub_contract_address: str) -> ModelOutput:
+    def run_workflow(self, contract_address: str) -> ModelOutput:
         """
         Triggers the run() function on a deployed workflow contract and returns the result.
 
         Args:
-            _inference_hub_contract_address (str): Address of the deployed workflow contract
+            contract_address (str): Address of the deployed workflow contract
 
         Returns:
             ModelOutput: The inference result from the contract
@@ -870,9 +868,7 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi()
-        )
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
 
         # Call run() function
         nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
