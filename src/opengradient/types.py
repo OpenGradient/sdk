@@ -1,7 +1,7 @@
-from dataclasses import dataclass
-from typing import List, Tuple, Union, Dict, Optional
-from enum import Enum, IntEnum
 import time
+from dataclasses import dataclass
+from enum import Enum, IntEnum
+from typing import Dict, List, Optional, Tuple, Union
 
 
 class CandleOrder(IntEnum):

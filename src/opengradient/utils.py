@@ -1,7 +1,7 @@
+import json
 import logging
 from decimal import Decimal
 from typing import Dict, List, Tuple
-import json
 
 import numpy as np
 from web3.datastructures import AttributeDict

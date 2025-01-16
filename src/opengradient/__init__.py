@@ -2,13 +2,13 @@
 OpenGradient Python SDK for interacting with AI models and infrastructure.
 """
 
-from typing import Dict, List, Optional, Tuple, Any, Union
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+from . import llm, mltools
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, SchedulerParams
-from . import llm
-from . import mltools
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams
 
 _client = None
 

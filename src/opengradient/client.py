@@ -1,25 +1,25 @@
 import json
 import logging
 import os
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, Any
-import grpc
 import time
 import uuid
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import firebase
+import grpc
 import numpy as np
 import requests
+from eth_account.account import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
-from eth_account.account import LocalAccount
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, ModelOutput, SchedulerParams
-from opengradient.proto import infer_pb2
-from opengradient.proto import infer_pb2_grpc
+from opengradient.proto import infer_pb2, infer_pb2_grpc
+from opengradient.types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, SchedulerParams
+
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {
@@ -47,6 +47,7 @@ class Client:
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
+
         Args:
             private_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
@@ -64,8 +65,7 @@ class Client:
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
-            inference_abi = json.load(abi_file)
-        self._inference_abi = inference_abi
+            self._inference_abi = json.load(abi_file)
 
         if email is not None:
             self._hub_user = self._login_to_hub(email, password)

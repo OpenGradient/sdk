@@ -3,14 +3,13 @@ import json
 import logging
 import webbrowser
 from pathlib import Path
-from typing import List, Dict, Optional
-from enum import Enum
-from . import types
+from typing import Dict, List, Optional
 
 import click
 
 import opengradient
 
+from . import types
 from .account import EthAccount, generate_eth_account
 from .client import Client
 from .defaults import (

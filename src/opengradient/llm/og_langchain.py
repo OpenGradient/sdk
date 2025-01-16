@@ -1,22 +1,22 @@
-from typing import List, Dict, Optional, Any, Sequence, Union
 import json
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import (
     AIMessage,
+    BaseMessage,
+    ChatGeneration,
+    ChatResult,
     HumanMessage,
     SystemMessage,
-    BaseMessage,
-    ChatResult,
-    ChatGeneration,
 )
-from langchain_core.messages.tool import ToolMessage
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
-from langchain_core.tools import BaseTool
 from langchain_core.messages import ToolCall
+from langchain_core.messages.tool import ToolMessage
+from langchain_core.tools import BaseTool
 
 from opengradient import Client, LlmInferenceMode
-from opengradient.defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS
+from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 
 
 class OpenGradientChatModel(BaseChatModel):

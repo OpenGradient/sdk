@@ -1,8 +1,9 @@
 from enum import Enum
-from typing import Callable, Dict, Any, Type
+from typing import Any, Callable, Dict, Type
 
-from pydantic import BaseModel
 from langchain_core.tools import BaseTool, StructuredTool
+from pydantic import BaseModel
+
 import opengradient as og
 
 

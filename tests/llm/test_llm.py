@@ -1,9 +1,10 @@
-import unittest
 import os
+import unittest
+
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
 
 from opengradient.llm import OpenGradientChatModel
-from langgraph.prebuilt import create_react_agent
-from langchain_core.tools import tool
 
 
 class TestLLM(unittest.TestCase):

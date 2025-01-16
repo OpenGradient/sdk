@@ -1,10 +1,11 @@
-from openai.types.chat import ChatCompletion
-import opengradient as og
-from opengradient.defaults import DEFAULT_RPC_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS
-
-from typing import List
 import time
 import uuid
+from typing import List
+
+from openai.types.chat import ChatCompletion
+
+import opengradient as og
+from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 
 
 class OGCompletions(object):
