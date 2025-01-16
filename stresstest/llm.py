@@ -10,7 +10,7 @@ NUM_REQUESTS = 100
 MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 def run_prompt(prompt: str):
-    og.infer_llm(
+    og.llm_completion(
         MODEL,
         prompt,
         max_tokens=50

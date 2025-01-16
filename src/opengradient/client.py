@@ -35,29 +35,6 @@ from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 from functools import wraps
 
-def run_with_retry(txn_function, max_retries=5):
-    """
-    Execute a blockchain transaction with retry logic.
-    
-    Args:
-        txn_function: Function that executes the transaction
-        max_retries (int): Maximum number of retry attempts
-    """
-    last_error = None
-    for attempt in range(max_retries):
-        try:
-            return txn_function()
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                if "nonce too low" in str(e) or "nonce too high" in str(e):
-                    time.sleep(1)  # Wait before retry
-                    continue
-                # If it's not a nonce error, raise immediately
-                raise
-    # If we've exhausted all retries, raise the last error
-    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
-
 class Client:
     FIREBASE_CONFIG = {
         "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -980,3 +957,28 @@ class Client:
         # Get the inference result from the contract
         result = contract.functions.getInferenceResult().call()
         return result
+
+
+def run_with_retry(txn_function, max_retries=5):
+    """
+    Execute a blockchain transaction with retry logic.
+    
+    Args:
+        txn_function: Function that executes the transaction
+        max_retries (int): Maximum number of retry attempts
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return txn_function()
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                if "nonce too low" in str(e) or "nonce too high" in str(e):
+                    time.sleep(1)  # Wait before retry
+                    continue
+                # If it's not a nonce error, raise immediately
+                raise
+    # If we've exhausted all retries, raise the last error
+    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
+
