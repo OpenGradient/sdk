@@ -55,8 +55,7 @@ docs:
 	pdoc opengradient -o docs --force  --template-dir ./templates
 
 build:
-	python -m build
-
+	python -m build 
 
 publish:
 	@echo "📋 Current version:" $$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
