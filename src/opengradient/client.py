@@ -40,6 +40,15 @@ class Client:
         "appId": "1:487761246229:web:259af6423a504d2316361c",
         "databaseURL": ""
     }
+
+    private_key: str
+    rpc_url: str
+    contract_address: str
+    _w3: Web3
+    wallet_account: object
+    wallet_address: str
+    abi: object
+    user: object
     
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
@@ -51,42 +60,31 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.email = email
-        self.password = password
         self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
-
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+
         self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
         
-        self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
-        self.auth = self.firebase_app.auth()
-        self.user = None
-
         abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
         with open(abi_path, 'r') as abi_file:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
         if email is not None:
-            self._login(email, password)
+            self.user = self._login_to_hub(email, password)
+        else:
+            self.user = None
 
-    def _login(self, email, password):
+    def _login_to_hub(self, email, password):
         try:
-            self.user = self.auth.sign_in_with_email_and_password(email, password)
-            return self.user
+            firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
+            return firebase_app.auth().sign_in_with_email_and_password(email, password)
         except Exception as e:
             logging.error(f"Authentication failed: {str(e)}")
             raise
-
-    def _initialize_web3(self):
-        """
-        Initialize the Web3 instance if it is not already initialized.
-        """
-        if self._w3 is None:
-            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
@@ -324,7 +322,6 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         def execute_transaction():
-            self._initialize_web3()
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
             
             inference_mode_uint8 = int(inference_mode)
@@ -396,7 +393,6 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            self._initialize_web3()
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
 
             # Prepare LLM input
@@ -513,7 +509,6 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
             
-            self._initialize_web3()
             contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
@@ -878,9 +873,6 @@ class Client:
             ContractLogicError: If the transaction fails
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
-        if not self._w3:
-            self._initialize_web3()
-        
         # Get the contract interface
         contract = self._w3.eth.contract(
             address=Web3.to_checksum_address(contract_address),
@@ -905,9 +897,6 @@ class Client:
             ContractLogicError: If the transaction fails
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
-        if not self._w3:
-            self._initialize_web3()
-        
         # Get the contract interface
         contract = self._w3.eth.contract(
             address=Web3.to_checksum_address(contract_address),
