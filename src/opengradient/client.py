@@ -40,7 +40,7 @@ class Client:
     wallet_address: str
     _blockchain: Web3
     _hub_user: Dict
-    abi: Dict
+    _inference_abi: Dict
 
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
@@ -63,7 +63,7 @@ class Client:
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
             inference_abi = json.load(abi_file)
-        self.abi = inference_abi
+        self._inference_abi = inference_abi
 
         if email is not None:
             self._hub_user = self._login_to_hub(email, password)
@@ -302,7 +302,7 @@ class Client:
         """
 
         def execute_transaction():
-            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self._inference_abi)
 
             inference_mode_uint8 = int(inference_mode)
             converted_model_input = utils.convert_to_model_input(model_input)
@@ -374,7 +374,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self._inference_abi)
 
             # Prepare LLM input
             llm_request = {
@@ -495,7 +495,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self._inference_abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
