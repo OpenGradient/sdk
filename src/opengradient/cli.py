@@ -22,18 +22,20 @@ from .defaults import (
 )
 from .types import InferenceMode, LlmInferenceMode
 
-OG_CONFIG_FILE = Path.home() / '.opengradient_config.json'
+OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 
 
 def load_og_config():
     if OG_CONFIG_FILE.exists():
-        with OG_CONFIG_FILE.open('r') as f:
+        with OG_CONFIG_FILE.open("r") as f:
             return json.load(f)
     return {}
 
+
 def save_og_config(ctx):
-    with OG_CONFIG_FILE.open('w') as f:
+    with OG_CONFIG_FILE.open("w") as f:
         json.dump(ctx.obj, f)
+
 
 # Convert string to dictionary click parameter typing
 class DictParamType(click.ParamType):
@@ -55,6 +57,7 @@ class DictParamType(click.ParamType):
                 return result
             except (ValueError, SyntaxError):
                 self.fail(f"'{value}' is not a valid dictionary", param, ctx)
+
 
 Dict = DictParamType()
 
@@ -78,6 +81,7 @@ LlmModels = {
     "meta-llama/Llama-3.1-70B-Instruct",
 }
 
+
 def initialize_config(ctx):
     """Interactively initialize OpenGradient config"""
     if ctx.obj:  # Check if config data already exists
@@ -85,7 +89,7 @@ def initialize_config(ctx):
         click.echo("You can view your current config with 'opengradient config show'.")
 
     click.echo("Initializing OpenGradient config...")
-    click.secho(f"Config will be stored in: {OG_CONFIG_FILE}", fg='cyan')
+    click.secho(f"Config will be stored in: {OG_CONFIG_FILE}", fg="cyan")
 
     # Check if user has an existing account
     has_account = click.confirm("Do you already have an OpenGradient account?", default=True)
@@ -95,52 +99,56 @@ def initialize_config(ctx):
         if eth_account is None:
             click.echo("Account creation cancelled. Config initialization aborted.")
             return
-        ctx.obj['private_key'] = eth_account.private_key
+        ctx.obj["private_key"] = eth_account.private_key
     else:
-        ctx.obj['private_key'] = click.prompt("Enter your OpenGradient private key", type=str)
+        ctx.obj["private_key"] = click.prompt("Enter your OpenGradient private key", type=str)
 
     # Make email and password optional
-    email = click.prompt("Enter your OpenGradient Hub email address (optional, press Enter to skip)", 
-                         type=str, default='', show_default=False)
-    ctx.obj['email'] = email if email else None
-    password = click.prompt("Enter your OpenGradient Hub password (optional, press Enter to skip)", 
-                            type=str, hide_input=True, default='', show_default=False)
-    ctx.obj['password'] = password if password else None
+    email = click.prompt(
+        "Enter your OpenGradient Hub email address (optional, press Enter to skip)", type=str, default="", show_default=False
+    )
+    ctx.obj["email"] = email if email else None
+    password = click.prompt(
+        "Enter your OpenGradient Hub password (optional, press Enter to skip)", type=str, hide_input=True, default="", show_default=False
+    )
+    ctx.obj["password"] = password if password else None
 
-    ctx.obj['rpc_url'] = DEFAULT_RPC_URL
-    ctx.obj['contract_address'] = DEFAULT_INFERENCE_CONTRACT_ADDRESS
-    
+    ctx.obj["rpc_url"] = DEFAULT_RPC_URL
+    ctx.obj["contract_address"] = DEFAULT_INFERENCE_CONTRACT_ADDRESS
+
     save_og_config(ctx)
     click.echo("Config has been saved.")
-    click.secho("You can run 'opengradient config show' to see configs.", fg='green')
+    click.secho("You can run 'opengradient config show' to see configs.", fg="green")
 
 
 @click.group()
 @click.pass_context
 def cli(ctx):
     """
-    CLI for OpenGradient SDK. 
+    CLI for OpenGradient SDK.
 
     Run 'opengradient config show' to make sure you have configs set up.
-    
+
     Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation.
     """
-    # Load existing config 
+    # Load existing config
     ctx.obj = load_og_config()
 
-    no_client_commands = ['config', 'create-account', 'version']
+    no_client_commands = ["config", "create-account", "version"]
 
     # Only create client if this is not a config management command
     if ctx.invoked_subcommand in no_client_commands:
         return
 
-    if all(key in ctx.obj for key in ['private_key', 'rpc_url', 'contract_address']):
+    if all(key in ctx.obj for key in ["private_key", "rpc_url", "contract_address"]):
         try:
-            ctx.obj['client'] = Client(private_key=ctx.obj['private_key'], 
-                                        rpc_url=ctx.obj['rpc_url'],
-                                        contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
-                                        email=ctx.obj.get('email'),
-                                        password=ctx.obj.get('password'))
+            ctx.obj["client"] = Client(
+                private_key=ctx.obj["private_key"],
+                rpc_url=ctx.obj["rpc_url"],
+                contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
+                email=ctx.obj.get("email"),
+                password=ctx.obj.get("password"),
+            )
         except Exception as e:
             click.echo(f"Failed to create OpenGradient client: {str(e)}")
             ctx.exit(1)
@@ -167,7 +175,7 @@ def init(ctx):
 @click.pass_context
 def show(ctx):
     """Display current config information"""
-    click.secho(f"Config file location: {OG_CONFIG_FILE}", fg='cyan')
+    click.secho(f"Config file location: {OG_CONFIG_FILE}", fg="cyan")
 
     if not ctx.obj:
         click.echo("Config is empty. Run 'opengradient config init' to initialize it.")
@@ -175,13 +183,13 @@ def show(ctx):
 
     click.echo("Current config:")
     for key, value in ctx.obj.items():
-        if key != 'client':  # Don't display the client object
-            if (key == 'password' or key == 'private_key') and value is not None:
+        if key != "client":  # Don't display the client object
+            if (key == "password" or key == "private_key") and value is not None:
                 click.echo(f"{key}: {'*' * len(value)}")  # Mask the password
             elif value is None:
                 click.echo(f"{key}: Not set")
             else:
-                click.echo(f"{key}: {value}") 
+                click.echo(f"{key}: {value}")
 
 
 @config.command()
@@ -201,8 +209,8 @@ def clear(ctx):
 
 
 @cli.command()
-@click.option('--repo', '-r', '--name', 'repo_name', required=True, help='Name of the new model repository')
-@click.option('--description', '-d', required=True, help='Description of the model')
+@click.option("--repo", "-r", "--name", "repo_name", required=True, help="Name of the new model repository")
+@click.option("--description", "-d", required=True, help="Description of the model")
 @click.pass_obj
 def create_model_repo(obj, repo_name: str, description: str):
     """
@@ -217,7 +225,7 @@ def create_model_repo(obj, repo_name: str, description: str):
     opengradient create-model-repo --name "my_new_model" --description "A new model for XYZ task"
     opengradient create-model-repo -n "my_new_model" -d "A new model for XYZ task"
     """
-    client: Client = obj['client']
+    client: Client = obj["client"]
 
     try:
         result = client.create_model(repo_name, description)
@@ -227,14 +235,14 @@ def create_model_repo(obj, repo_name: str, description: str):
 
 
 @cli.command()
-@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the existing model repository')
-@click.option('--notes', '-n', help='Version notes (optional)')
-@click.option('--major', '-m', is_flag=True, default=False, help='Flag to indicate a major version update')
+@click.option("--repo", "-r", "repo_name", required=True, help="Name of the existing model repository")
+@click.option("--notes", "-n", help="Version notes (optional)")
+@click.option("--major", "-m", is_flag=True, default=False, help="Flag to indicate a major version update")
 @click.pass_obj
 def create_version(obj, repo_name: str, notes: str, major: bool):
     """Create a new version in an existing model repository.
 
-    This command creates a new version for the specified model repository. 
+    This command creates a new version for the specified model repository.
     You can optionally provide version notes and indicate if it's a major version update.
 
     Example usage:
@@ -243,7 +251,7 @@ def create_version(obj, repo_name: str, notes: str, major: bool):
     opengradient create-version --repo my_model_repo --notes "Added new feature X" --major
     opengradient create-version -r my_model_repo -n "Bug fixes"
     """
-    client: Client = obj['client']
+    client: Client = obj["client"]
 
     try:
         result = client.create_version(repo_name, notes, major)
@@ -253,10 +261,11 @@ def create_version(obj, repo_name: str, notes: str, major: bool):
 
 
 @cli.command()
-@click.argument('file_path', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
-                metavar='FILE_PATH')
-@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
-@click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
+@click.argument(
+    "file_path", type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path), metavar="FILE_PATH"
+)
+@click.option("--repo", "-r", "repo_name", required=True, help="Name of the model repository")
+@click.option("--version", "-v", required=True, help='Version of the model (e.g., "0.01")')
 @click.pass_obj
 def upload_file(obj, file_path: Path, repo_name: str, version: str):
     """
@@ -270,7 +279,7 @@ def upload_file(obj, file_path: Path, repo_name: str, version: str):
     opengradient upload-file path/to/model.onnx --repo my_model_repo --version 0.01
     opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01
     """
-    client: Client = obj['client']
+    client: Client = obj["client"]
 
     try:
         result = client.upload(file_path, repo_name, version)
@@ -280,13 +289,17 @@ def upload_file(obj, file_path: Path, repo_name: str, version: str):
 
 
 @cli.command()
-@click.option('--model', '-m', 'model_cid', required=True, help='CID of the model to run inference on')
-@click.option('--mode', 'inference_mode', type=click.Choice(InferenceModes.keys()), default="VANILLA", 
-              help='Inference mode (default: VANILLA)')
-@click.option('--input', '-d', 'input_data', type=Dict, help='Input data for inference as a JSON string')
-@click.option('--input-file', '-f', 
-              type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
-              help="JSON file containing input data for inference")
+@click.option("--model", "-m", "model_cid", required=True, help="CID of the model to run inference on")
+@click.option(
+    "--mode", "inference_mode", type=click.Choice(InferenceModes.keys()), default="VANILLA", help="Inference mode (default: VANILLA)"
+)
+@click.option("--input", "-d", "input_data", type=Dict, help="Input data for inference as a JSON string")
+@click.option(
+    "--input-file",
+    "-f",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
+    help="JSON file containing input data for inference",
+)
 @click.pass_context
 def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path):
     """
@@ -301,27 +314,27 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     opengradient infer --model Qm... --mode VANILLA --input '{"key": "value"}'
     opengradient infer -m Qm... -i ZKML -f input_data.json
     """
-    client: Client = ctx.obj['client']
+    client: Client = ctx.obj["client"]
 
     try:
         if not input_data and not input_file:
             click.echo("Must specify either input_data or input_file")
             ctx.exit(1)
             return
-        
+
         if input_data and input_file:
             click.echo("Cannot have both input_data and input_file")
             ctx.exit(1)
             return
-        
+
         if input_data:
             model_input = input_data
 
         if input_file:
-            with input_file.open('r') as file:
+            with input_file.open("r") as file:
                 model_input = json.load(file)
-            
-        click.echo(f"Running {inference_mode} inference for model \"{model_cid}\"")
+
+        click.echo(f'Running {inference_mode} inference for model "{model_cid}"')
         tx_hash, model_output = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
 
         click.echo()  # Add a newline for better spacing
@@ -336,7 +349,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
         click.echo()
 
         click.secho("Inference result:", fg="green")
-        formatted_output = json.dumps(model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, 'tolist') else str(x))
+        formatted_output = json.dumps(model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else str(x))
         click.echo(formatted_output)
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
@@ -344,16 +357,25 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     except Exception as e:
         click.echo(f"Error running inference: {str(e)}")
 
+
 @cli.command()
-@click.option('--model', '-m', 'model_cid', type=click.Choice([e.value for e in types.LLM]), required=True, help='CID of the LLM model to run inference on')
-@click.option('--mode', 'inference_mode', type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", 
-              help='Inference mode (default: VANILLA)')
-@click.option('--prompt', '-p', required=True, help='Input prompt for the LLM completion')
-@click.option('--max-tokens', type=int, default=100, help='Maximum number of tokens for LLM completion output')
-@click.option('--stop-sequence', multiple=True, help='Stop sequences for LLM')
-@click.option('--temperature', type=float, default=0.0, help='Temperature for LLM inference (0.0 to 1.0)')
+@click.option(
+    "--model",
+    "-m",
+    "model_cid",
+    type=click.Choice([e.value for e in types.LLM]),
+    required=True,
+    help="CID of the LLM model to run inference on",
+)
+@click.option(
+    "--mode", "inference_mode", type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", help="Inference mode (default: VANILLA)"
+)
+@click.option("--prompt", "-p", required=True, help="Input prompt for the LLM completion")
+@click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM completion output")
+@click.option("--stop-sequence", multiple=True, help="Stop sequences for LLM")
+@click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
 @click.pass_context
-def completion(ctx, model_cid: str, inference_mode: str,  prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
+def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
     """
     Run completion inference on an LLM model.
 
@@ -365,21 +387,22 @@ def completion(ctx, model_cid: str, inference_mode: str,  prompt: str, max_token
     opengradient completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
     opengradient completion -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\\n"
     """
-    client: Client = ctx.obj['client']
+    client: Client = ctx.obj["client"]
     try:
-        click.echo(f"Running LLM completion inference for model \"{model_cid}\"\n")
+        click.echo(f'Running LLM completion inference for model "{model_cid}"\n')
         tx_hash, llm_output = client.llm_completion(
             model_cid=model_cid,
             inference_mode=LlmInferenceModes[inference_mode],
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
-            temperature=temperature
+            temperature=temperature,
         )
 
         print_llm_completion_result(model_cid, tx_hash, llm_output)
     except Exception as e:
         click.echo(f"Error running LLM completion: {str(e)}")
+
 
 def print_llm_completion_result(model_cid, tx_hash, llm_output):
     click.secho("✅ LLM completion Successful", fg="green", bold=True)
@@ -399,46 +422,32 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
 
 
 @cli.command()
-@click.option('--model', '-m', 'model_cid', 
-              type=click.Choice([e.value for e in types.LLM]), 
-              required=True, 
-              help='CID of the LLM model to run inference on')
-@click.option('--mode', 'inference_mode', type=click.Choice(LlmInferenceModes.keys()), 
-              default="VANILLA", 
-              help='Inference mode (default: VANILLA)')
-@click.option('--messages', 
-              type=str,
-              required=False, 
-              help='Input messages for the chat inference in JSON format')
-@click.option('--messages-file', 
-              type=click.Path(exists=True, path_type=Path),
-              required=False, 
-              help='Path to JSON file containing input messages for the chat inference')
-@click.option('--max-tokens', 
-              type=int,
-              default=100, 
-              help='Maximum number of tokens for LLM output')
-@click.option('--stop-sequence',
-              type=str,
-              default=None,
-              multiple=True,
-              help='Stop sequences for LLM')
-@click.option('--temperature', 
-              type=float,
-              default=0.0,
-              help='Temperature for LLM inference (0.0 to 1.0)')
-@click.option('--tools',
-              type=str,
-              default=None,
-              help='Tool configurations in JSON format')
-@click.option('--tools-file',
-              type=click.Path(exists=True, path_type=Path),
-              required=False,
-              help='Path to JSON file containing tool configurations')
-@click.option('--tool-choice',
-              type=str,
-              default='',
-              help='Specific tool choice for the LLM')
+@click.option(
+    "--model",
+    "-m",
+    "model_cid",
+    type=click.Choice([e.value for e in types.LLM]),
+    required=True,
+    help="CID of the LLM model to run inference on",
+)
+@click.option(
+    "--mode", "inference_mode", type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", help="Inference mode (default: VANILLA)"
+)
+@click.option("--messages", type=str, required=False, help="Input messages for the chat inference in JSON format")
+@click.option(
+    "--messages-file",
+    type=click.Path(exists=True, path_type=Path),
+    required=False,
+    help="Path to JSON file containing input messages for the chat inference",
+)
+@click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM output")
+@click.option("--stop-sequence", type=str, default=None, multiple=True, help="Stop sequences for LLM")
+@click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
+@click.option("--tools", type=str, default=None, help="Tool configurations in JSON format")
+@click.option(
+    "--tools-file", type=click.Path(exists=True, path_type=Path), required=False, help="Path to JSON file containing tool configurations"
+)
+@click.option("--tool-choice", type=str, default="", help="Specific tool choice for the LLM")
 @click.pass_context
 def chat(
     ctx,
@@ -451,7 +460,8 @@ def chat(
     temperature: float,
     tools: Optional[str],
     tools_file: Optional[Path],
-    tool_choice: Optional[str]): 
+    tool_choice: Optional[str],
+):
     """
     Run chat inference on an LLM model.
 
@@ -465,9 +475,9 @@ def chat(
     opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
     opengradient chat --model mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --tools-file tools.json --max-tokens 200 --stop-sequence "." --stop-sequence "\\n"
     """
-    client: Client = ctx.obj['client']
+    client: Client = ctx.obj["client"]
     try:
-        click.echo(f"Running LLM chat inference for model \"{model_cid}\"\n")
+        click.echo(f'Running LLM chat inference for model "{model_cid}"\n')
         if not messages and not messages_file:
             click.echo("Must specify either messages or messages-file")
             ctx.exit(1)
@@ -484,16 +494,16 @@ def chat(
                 click.echo(f"Failed to parse messages: {e}")
                 ctx.exit(1)
         else:
-            with messages_file.open('r') as file:
+            with messages_file.open("r") as file:
                 messages = json.load(file)
 
         # Parse tools if provided
-        if (tools and tools != '[]') and tools_file:
+        if (tools and tools != "[]") and tools_file:
             click.echo("Cannot have both tools and tools-file")
             click.exit(1)
             return
-        
-        parsed_tools=[]
+
+        parsed_tools = []
         if tools:
             try:
                 parsed_tools = json.loads(tools)
@@ -508,7 +518,7 @@ def chat(
 
         if tools_file:
             try:
-                with tools_file.open('r') as file:
+                with tools_file.open("r") as file:
                     parsed_tools = json.load(file)
                 if not isinstance(parsed_tools, list):
                     click.echo("Tools must be a JSON array")
@@ -518,7 +528,7 @@ def chat(
                 click.echo("Failed to load JSON from tools_file: %s" % e)
                 ctx.exit(1)
                 return
-            
+
         if not tools and not tools_file:
             parsed_tools = None
 
@@ -536,6 +546,7 @@ def chat(
         print_llm_chat_result(model_cid, tx_hash, finish_reason, llm_chat_output)
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
+
 
 def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
     click.secho("✅ LLM Chat Successful", fg="green", bold=True)
@@ -556,9 +567,10 @@ def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
     click.echo()
     for key, value in chat_output.items():
         # If the value doesn't give any information, don't print it
-        if value != None and value != "" and value != '[]' and value != []:
+        if value != None and value != "" and value != "[]" and value != []:
             click.echo(f"{key}: {value}")
     click.echo()
+
 
 @cli.command()
 def create_account():
@@ -596,9 +608,9 @@ def create_account_impl() -> EthAccount:
     click.echo("Account Creation Complete!".center(50))
     click.echo("=" * 50)
     click.echo("\nYour OpenGradient account has been successfully created and funded.")
-    click.secho(f"Address: {eth_account.address}", fg='green')
-    click.secho(f"Private Key: {eth_account.private_key}", fg='green')
-    click.secho("\nPlease save this information for your records.\n", fg='cyan')
+    click.secho(f"Address: {eth_account.address}", fg="green")
+    click.secho(f"Private Key: {eth_account.private_key}", fg="green")
+    click.secho("\nPlease save this information for your records.\n", fg="cyan")
 
     return eth_account
 
@@ -610,8 +622,8 @@ def version():
 
 
 @cli.command()
-@click.option('--repo', '-r', 'repo_name', required=True, help='Name of the model repository')
-@click.option('--version', '-v', required=True, help='Version of the model (e.g., "0.01")')
+@click.option("--repo", "-r", "repo_name", required=True, help="Name of the model repository")
+@click.option("--version", "-v", required=True, help='Version of the model (e.g., "0.01")')
 @click.pass_obj
 def list_files(client: Client, repo_name: str, version: str):
     """
@@ -638,33 +650,27 @@ def list_files(client: Client, repo_name: str, version: str):
 
 
 @cli.command()
-@click.option('--model', '-m', required=True, help='Model identifier for image generation')
-@click.option('--prompt', '-p', required=True, help='Text prompt for generating the image')
-@click.option('--output-path', '-o', required=True, type=click.Path(path_type=Path), 
-              help='Output file path for the generated image')
-@click.option('--width', type=int, default=1024, help='Output image width')
-@click.option('--height', type=int, default=1024, help='Output image height')
+@click.option("--model", "-m", required=True, help="Model identifier for image generation")
+@click.option("--prompt", "-p", required=True, help="Text prompt for generating the image")
+@click.option("--output-path", "-o", required=True, type=click.Path(path_type=Path), help="Output file path for the generated image")
+@click.option("--width", type=int, default=1024, help="Output image width")
+@click.option("--height", type=int, default=1024, help="Output image height")
 @click.pass_context
 def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, height: int):
     """
     Generate an image using a diffusion model.
 
     Example usage:
-    opengradient generate-image --model stabilityai/stable-diffusion-xl-base-1.0 
+    opengradient generate-image --model stabilityai/stable-diffusion-xl-base-1.0
         --prompt "A beautiful sunset over mountains" --output-path sunset.png
     """
-    client: Client = ctx.obj['client']
+    client: Client = ctx.obj["client"]
     try:
-        click.echo(f"Generating image with model \"{model}\"")
-        image_data = client.generate_image(
-            model_cid=model,
-            prompt=prompt,
-            width=width,
-            height=height
-        )
+        click.echo(f'Generating image with model "{model}"')
+        image_data = client.generate_image(model_cid=model, prompt=prompt, width=width, height=height)
 
         # Save the image
-        with open(output_path, 'wb') as f:
+        with open(output_path, "wb") as f:
             f.write(image_data)
 
         click.echo()  # Add a newline for better spacing
@@ -674,6 +680,7 @@ def generate_image(ctx, model: str, prompt: str, output_path: Path, width: int, 
     except Exception as e:
         click.echo(f"Error generating image: {str(e)}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     logging.getLogger().setLevel(logging.WARN)
     cli()

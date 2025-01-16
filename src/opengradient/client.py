@@ -17,29 +17,20 @@ from eth_account.account import LocalAccount
 
 from opengradient import utils
 from opengradient.exceptions import OpenGradientError
-from opengradient.types import (
-    HistoricalInputQuery, 
-    InferenceMode, 
-    LlmInferenceMode, 
-    LLM, 
-    TEE_LLM,
-    ModelOutput,
-    SchedulerParams
-)
+from opengradient.types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, ModelOutput, SchedulerParams
 from opengradient.proto import infer_pb2
 from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 
 class Client:
-
     FIREBASE_CONFIG = {
         "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
         "authDomain": "vanna-portal-418018.firebaseapp.com",
         "projectId": "vanna-portal-418018",
         "storageBucket": "vanna-portal-418018.appspot.com",
         "appId": "1:487761246229:web:259af6423a504d2316361c",
-        "databaseURL": ""
+        "databaseURL": "",
     }
 
     private_key: str
@@ -50,7 +41,7 @@ class Client:
     _blockchain: Web3
     abi: Dict
     user: Dict
-    
+
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
@@ -68,9 +59,9 @@ class Client:
 
         self.wallet_account = self._blockchain.eth.account.from_key(private_key)
         self.wallet_address = self._blockchain.to_checksum_address(self.wallet_account.address)
-        
-        abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
-        with open(abi_path, 'r') as abi_file:
+
+        abi_path = Path(__file__).parent / "abi" / "inference.abi"
+        with open(abi_path, "r") as abi_file:
             inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
@@ -106,14 +97,8 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = "https://api.opengradient.ai/api/v0/models/"
-        headers = {
-            'Authorization': f'Bearer {self.user["idToken"]}',
-            'Content-Type': 'application/json'
-        }
-        payload = {
-            'name': model_name,
-            'description': model_desc
-        }
+        headers = {"Authorization": f'Bearer {self.user["idToken"]}', "Content-Type": "application/json"}
+        payload = {"name": model_name, "description": model_desc}
 
         try:
             logging.debug(f"Create Model URL: {url}")
@@ -124,7 +109,7 @@ class Client:
             response.raise_for_status()
 
             json_response = response.json()
-            model_name = json_response.get('name')
+            model_name = json_response.get("name")
             if not model_name:
                 raise Exception(f"Model creation response missing 'name'. Full response: {json_response}")
             logging.info(f"Model creation successful. Model name: {model_name}")
@@ -141,7 +126,7 @@ class Client:
 
         except requests.RequestException as e:
             logging.error(f"Model creation failed: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response headers: {e.response.headers}")
                 logging.error(f"Response content: {e.response.text}")
@@ -169,14 +154,8 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions"
-        headers = {
-            'Authorization': f'Bearer {self.user["idToken"]}',
-            'Content-Type': 'application/json'
-        }
-        payload = {
-            "notes": notes,
-            "is_major": is_major
-        }
+        headers = {"Authorization": f'Bearer {self.user["idToken"]}', "Content-Type": "application/json"}
+        payload = {"notes": notes, "is_major": is_major}
 
         try:
             logging.debug(f"Create Version URL: {url}")
@@ -194,7 +173,7 @@ class Client:
                 logging.info("Server returned an empty list. Assuming version was created successfully.")
                 return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
-                version_string = json_response.get('versionString')
+                version_string = json_response.get("versionString")
                 if not version_string:
                     logging.warning(f"'versionString' not found in response. Response: {json_response}")
                     return {"versionString": "Unknown", "note": "Version ID not provided in response"}
@@ -206,7 +185,7 @@ class Client:
 
         except requests.RequestException as e:
             logging.error(f"Version creation failed: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response headers: {e.response.headers}")
                 logging.error(f"Response content: {e.response.text}")
@@ -239,9 +218,7 @@ class Client:
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {
-            'Authorization': f'Bearer {self.user["idToken"]}'
-        }
+        headers = {"Authorization": f'Bearer {self.user["idToken"]}'}
 
         logging.info(f"Starting upload for file: {model_path}")
         logging.info(f"File size: {os.path.getsize(model_path)} bytes")
@@ -250,27 +227,27 @@ class Client:
 
         def create_callback(encoder):
             encoder_len = encoder.len
+
             def callback(monitor):
                 progress = (monitor.bytes_read / encoder_len) * 100
                 logging.info(f"Upload progress: {progress:.2f}%")
+
             return callback
 
         try:
-            with open(model_path, 'rb') as file:
-                encoder = MultipartEncoder(
-                    fields={'file': (os.path.basename(model_path), file, 'application/octet-stream')}
-                )
+            with open(model_path, "rb") as file:
+                encoder = MultipartEncoder(fields={"file": (os.path.basename(model_path), file, "application/octet-stream")})
                 monitor = MultipartEncoderMonitor(encoder, create_callback(encoder))
-                headers['Content-Type'] = monitor.content_type
+                headers["Content-Type"] = monitor.content_type
 
                 logging.info("Sending POST request...")
                 response = requests.post(url, data=monitor, headers=headers, timeout=3600)  # 1 hour timeout
-                
+
                 logging.info(f"Response received. Status code: {response.status_code}")
                 logging.info(f"Full response content: {response.text}")  # Log the full response content
 
                 if response.status_code == 201:
-                    if response.content and response.content != b'null':
+                    if response.content and response.content != b"null":
                         json_response = response.json()
                         logging.info(f"JSON response: {json_response}")  # Log the parsed JSON response
                         logging.info(f"Upload successful. CID: {json_response.get('ipfsCid', 'N/A')}")
@@ -283,7 +260,7 @@ class Client:
                     logging.error(error_message)
                     raise OpenGradientError(error_message, status_code=500)
                 else:
-                    error_message = response.json().get('detail', 'Unknown error occurred')
+                    error_message = response.json().get("detail", "Unknown error occurred")
                     logging.error(f"Upload failed with status code {response.status_code}: {error_message}")
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
@@ -291,22 +268,23 @@ class Client:
 
         except requests.RequestException as e:
             logging.error(f"Request exception during upload: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}", 
-                                    status_code=e.response.status_code if hasattr(e, 'response') else None)
+            raise OpenGradientError(
+                f"Upload failed due to request exception: {str(e)}", status_code=e.response.status_code if hasattr(e, "response") else None
+            )
         except Exception as e:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
-    
+
     def infer(
-            self, 
-            model_cid: str, 
-            inference_mode: InferenceMode, 
-            model_input: Dict[str, Union[str, int, float, List, np.ndarray]],
-            max_retries: Optional[int] = None
-            ) -> Tuple[str, Dict[str, np.ndarray]]:
+        self,
+        model_cid: str,
+        inference_mode: InferenceMode,
+        model_input: Dict[str, Union[str, int, float, List, np.ndarray]],
+        max_retries: Optional[int] = None,
+    ) -> Tuple[str, Dict[str, np.ndarray]]:
         """
         Perform inference on a model.
 
@@ -322,53 +300,54 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
+
         def execute_transaction():
             contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
-            
+
             inference_mode_uint8 = int(inference_mode)
             converted_model_input = utils.convert_to_model_input(model_input)
-            
-            run_function = contract.functions.run(
-                model_cid,
-                inference_mode_uint8,
-                converted_model_input
-            )
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
+
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
             gas_limit = int(estimated_gas * 3)
 
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._blockchain.eth.gas_price,
-            })
+            transaction = run_function.build_transaction(
+                {
+                    "from": self.wallet_address,
+                    "nonce": nonce,
+                    "gas": gas_limit,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                }
+            )
 
             signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
-            if tx_receipt['status'] == 0:
+            if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             parsed_logs = contract.events.InferenceResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
 
-            model_output = utils.convert_to_model_output(parsed_logs[0]['args'])
+            model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
             return tx_hash.hex(), model_output
 
         return run_with_retry(execute_transaction, max_retries or 5)
 
-    def llm_completion(self, 
-                       model_cid: LLM, 
-                       inference_mode: InferenceMode,
-                       prompt: str, 
-                       max_tokens: int = 100, 
-                       stop_sequence: Optional[List[str]] = None, 
-                       temperature: float = 0.0,
-                       max_retries: Optional[int] = None) -> Tuple[str, str]:
+    def llm_completion(
+        self,
+        model_cid: LLM,
+        inference_mode: InferenceMode,
+        prompt: str,
+        max_tokens: int = 100,
+        stop_sequence: Optional[List[str]] = None,
+        temperature: float = 0.0,
+        max_retries: Optional[int] = None,
+    ) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using completions.
 
@@ -386,11 +365,12 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
+
         def execute_transaction():
             # Check inference mode and supported model
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-            
+
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
@@ -403,56 +383,60 @@ class Client:
                 "prompt": prompt,
                 "max_tokens": max_tokens,
                 "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100)  # Scale to 0-100 range
+                "temperature": int(temperature * 100),  # Scale to 0-100 range
             }
             logging.debug(f"Prepared LLM request: {llm_request}")
 
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._blockchain.eth.gas_price,
-            })
+            transaction = run_function.build_transaction(
+                {
+                    "from": self.wallet_address,
+                    "nonce": nonce,
+                    "gas": gas_limit,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                }
+            )
 
             signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
-            if tx_receipt['status'] == 0:
+            if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM completion result event not found in transaction logs")
 
-            llm_answer = parsed_logs[0]['args']['response']['answer']
+            llm_answer = parsed_logs[0]["args"]["response"]["answer"]
             return tx_hash.hex(), llm_answer
 
         return run_with_retry(execute_transaction, max_retries or 5)
 
-    def llm_chat(self,
-                 model_cid: str,
-                 inference_mode: InferenceMode,
-                 messages: List[Dict],
-                 max_tokens: int = 100,
-                 stop_sequence: Optional[List[str]] = None,
-                 temperature: float = 0.0,
-                 tools: Optional[List[Dict]] = [],
-                 tool_choice: Optional[str] = None,
-                 max_retries: Optional[int] = None) -> Tuple[str, str]:
+    def llm_chat(
+        self,
+        model_cid: str,
+        inference_mode: InferenceMode,
+        messages: List[Dict],
+        max_tokens: int = 100,
+        stop_sequence: Optional[List[str]] = None,
+        temperature: float = 0.0,
+        tools: Optional[List[Dict]] = [],
+        tool_choice: Optional[str] = None,
+        max_retries: Optional[int] = None,
+    ) -> Tuple[str, str]:
         """
         Perform inference on an LLM model using chat.
 
         Args:
             model_cid (LLM): The unique content identifier for the model.
             inference_mode (InferenceMode): The inference mode.
-            messages (dict): The messages that will be passed into the chat. 
+            messages (dict): The messages that will be passed into the chat.
                 This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
                 Example:
                 [
@@ -494,7 +478,7 @@ class Client:
                         }
                     }
                 ]
-            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto". 
+            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto".
 
         Returns:
             Tuple[str, str, dict]: The transaction hash, finish reason, and a dictionary struct of LLM chat messages.
@@ -502,36 +486,37 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
+
         def execute_transaction():
             # Check inference mode and supported model
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-            
+
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
-            
+
             contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
-                if 'tool_calls' not in message:
-                    message['tool_calls'] = []
-                if 'tool_call_id' not in message:
-                    message['tool_call_id'] = ""
-                if 'name' not in message:
-                    message['name'] = ""
+                if "tool_calls" not in message:
+                    message["tool_calls"] = []
+                if "tool_call_id" not in message:
+                    message["tool_call_id"] = ""
+                if "name" not in message:
+                    message["name"] = ""
 
             # Create simplified tool structure for smart contract
             converted_tools = []
             if tools is not None:
                 for tool in tools:
-                    function = tool['function']
+                    function = tool["function"]
                     converted_tool = {}
-                    converted_tool['name'] = function['name']
-                    converted_tool['description'] = function['description']
-                    if (parameters := function.get('parameters')) is not None:
+                    converted_tool["name"] = function["name"]
+                    converted_tool["description"] = function["description"]
+                    if (parameters := function.get("parameters")) is not None:
                         try:
-                            converted_tool['parameters'] = json.dumps(parameters)
+                            converted_tool["parameters"] = json.dumps(parameters)
                         except Exception as e:
                             raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
                     converted_tools.append(converted_tool)
@@ -545,40 +530,42 @@ class Client:
                 "stop_sequence": stop_sequence or [],
                 "temperature": int(temperature * 100),  # Scale to 0-100 range
                 "tools": converted_tools or [],
-                "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto")
+                "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto"),
             }
             logging.debug(f"Prepared LLM request: {llm_request}")
 
             run_function = contract.functions.runLLMChat(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
-            estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
-            transaction = run_function.build_transaction({
-                'from': self.wallet_address,
-                'nonce': nonce,
-                'gas': gas_limit,
-                'gasPrice': self._blockchain.eth.gas_price,
-            })
+            transaction = run_function.build_transaction(
+                {
+                    "from": self.wallet_address,
+                    "nonce": nonce,
+                    "gas": gas_limit,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                }
+            )
 
             signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
-            if tx_receipt['status'] == 0:
+            if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
 
             parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
 
-            llm_result = parsed_logs[0]['args']['response']
-            message = dict(llm_result['message'])
-            if (tool_calls := message.get('tool_calls')) is not None:
-                message['tool_calls'] = [dict(tool_call) for tool_call in tool_calls]
+            llm_result = parsed_logs[0]["args"]["response"]
+            message = dict(llm_result["message"])
+            if (tool_calls := message.get("tool_calls")) is not None:
+                message["tool_calls"] = [dict(tool_call) for tool_call in tool_calls]
 
-            return tx_hash.hex(), llm_result['finish_reason'], message
+            return tx_hash.hex(), llm_result["finish_reason"], message
 
         return run_with_retry(execute_transaction, max_retries or 5)
 
@@ -600,9 +587,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {
-            'Authorization': f'Bearer {self.user["idToken"]}'
-        }
+        headers = {"Authorization": f'Bearer {self.user["idToken"]}'}
 
         logging.debug(f"List Files URL: {url}")
         logging.debug(f"Headers: {headers}")
@@ -613,31 +598,32 @@ class Client:
 
             json_response = response.json()
             logging.info(f"File listing successful. Number of files: {len(json_response)}")
-            
+
             return json_response
 
         except requests.RequestException as e:
             logging.error(f"File listing failed: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(f"File listing failed: {str(e)}", 
-                                    status_code=e.response.status_code if hasattr(e, 'response') else None)
+            raise OpenGradientError(
+                f"File listing failed: {str(e)}", status_code=e.response.status_code if hasattr(e, "response") else None
+            )
         except Exception as e:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
     def generate_image(
-            self,
-            model_cid: str,
-            prompt: str,
-            host: str = DEFAULT_IMAGE_GEN_HOST,
-            port: int = DEFAULT_IMAGE_GEN_PORT,
-            width: int = 1024,
-            height: int = 1024,
-            timeout: int = 300,  # 5 minute timeout
-            max_retries: int = 3
-        ) -> bytes:
+        self,
+        model_cid: str,
+        prompt: str,
+        host: str = DEFAULT_IMAGE_GEN_HOST,
+        port: int = DEFAULT_IMAGE_GEN_PORT,
+        width: int = 1024,
+        height: int = 1024,
+        timeout: int = 300,  # 5 minute timeout
+        max_retries: int = 3,
+    ) -> bytes:
         """
         Generate an image using a diffusion model through gRPC.
 
@@ -658,9 +644,10 @@ class Client:
             OpenGradientError: If the image generation fails
             TimeoutError: If the generation exceeds the timeout period
         """
+
         def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
             """Calculate and sleep for exponential backoff duration"""
-            delay = min(0.1 * (2 ** attempt), max_delay)
+            delay = min(0.1 * (2**attempt), max_delay)
             time.sleep(delay)
 
         channel = None
@@ -671,28 +658,20 @@ class Client:
             while retry_count < max_retries:
                 try:
                     # Initialize gRPC channel and stub
-                    channel = grpc.insecure_channel(f'{host}:{port}')
+                    channel = grpc.insecure_channel(f"{host}:{port}")
                     stub = infer_pb2_grpc.InferenceServiceStub(channel)
 
                     # Create image generation request
-                    image_request = infer_pb2.ImageGenerationRequest(
-                        model=model_cid,
-                        prompt=prompt,
-                        height=height,
-                        width=width
-                    )
+                    image_request = infer_pb2.ImageGenerationRequest(model=model_cid, prompt=prompt, height=height, width=width)
 
                     # Create inference request with random transaction ID
                     tx_id = str(uuid.uuid4())
-                    request = infer_pb2.InferenceRequest(
-                        tx=tx_id,
-                        image_generation=image_request
-                    )
+                    request = infer_pb2.InferenceRequest(tx=tx_id, image_generation=image_request)
 
                     # Send request with timeout
                     response_id = stub.RunInferenceAsync(
                         request,
-                        timeout=min(30, timeout)  # Initial request timeout
+                        timeout=min(30, timeout),  # Initial request timeout
                     )
 
                     # Poll for completion
@@ -706,7 +685,7 @@ class Client:
                         try:
                             status = stub.GetInferenceStatus(
                                 status_request,
-                                timeout=min(5, timeout)  # Status check timeout
+                                timeout=min(5, timeout),  # Status check timeout
                             ).status
                         except grpc.RpcError as e:
                             logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
@@ -727,7 +706,7 @@ class Client:
                     # Get result
                     result = stub.GetInferenceResult(
                         response_id,
-                        timeout=min(30, timeout)  # Result fetch timeout
+                        timeout=min(30, timeout),  # Result fetch timeout
                     )
                     return result.image_generation_result.image_data
 
@@ -735,7 +714,7 @@ class Client:
                     retry_count += 1
                     if retry_count >= max_retries:
                         raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
-                    
+
                     logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
                     exponential_backoff(retry_count)
 
@@ -750,61 +729,62 @@ class Client:
             raise OpenGradientError(f"Image generation failed: {str(e)}")
         finally:
             if channel:
-                channel.close()       
+                channel.close()
 
     def _get_model_executor_abi(self) -> List[Dict]:
         """
         Returns the ABI for the ModelExecutorHistorical contract.
         """
-        abi_path = Path(__file__).parent / 'abi' / 'ModelExecutorHistorical.abi'
-        with open(abi_path, 'r') as f:
+        abi_path = Path(__file__).parent / "abi" / "ModelExecutorHistorical.abi"
+        with open(abi_path, "r") as f:
             return json.load(f)
-
 
     def new_workflow(
         self,
         model_cid: str,
         input_query: Union[Dict[str, Any], HistoricalInputQuery],
         input_tensor_name: str,
-        scheduler_params: Optional[SchedulerParams] = None
+        scheduler_params: Optional[SchedulerParams] = None,
     ) -> str:
         """
         Deploy a new workflow contract with the specified parameters.
         """
         if isinstance(input_query, dict):
             input_query = HistoricalInputQuery.from_dict(input_query)
-        
+
         # Get contract ABI and bytecode
         abi = self._get_model_executor_abi()
-        bin_path = Path(__file__).parent / 'contracts' / 'templates' / 'ModelExecutorHistorical.bin'
-        
-        with open(bin_path, 'r') as f:
+        bin_path = Path(__file__).parent / "contracts" / "templates" / "ModelExecutorHistorical.bin"
+
+        with open(bin_path, "r") as f:
             bytecode = f.read().strip()
-        
+
         print("📦 Deploying workflow contract...")
-        
+
         # Create contract instance
         contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
-        
+
         # Deploy contract with constructor arguments
         transaction = contract.constructor(
             model_cid,
             input_query.to_abi_format(),
             "0x00000000000000000000000000000000000000F5",  # Historical contract address
-            input_tensor_name
-        ).build_transaction({
-            'from': self.wallet_address,
-            'nonce': self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending'),
-            'gas': 15000000,
-            'gasPrice': self._blockchain.eth.gas_price,
-            'chainId': self._blockchain.eth.chain_id
-        })
+            input_tensor_name,
+        ).build_transaction(
+            {
+                "from": self.wallet_address,
+                "nonce": self._blockchain.eth.get_transaction_count(self.wallet_address, "pending"),
+                "gas": 15000000,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
+            }
+        )
 
         signed_txn = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
         contract_address = tx_receipt.contractAddress
-        
+
         print(f"✅ Workflow contract deployed at: {contract_address}")
 
         # Register with scheduler if params provided
@@ -813,46 +793,45 @@ class Client:
             print(f"   • Frequency: Every {scheduler_params.frequency} seconds")
             print(f"   • Duration: {scheduler_params.duration_hours} hours")
             print(f"   • End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(scheduler_params.end_time))}")
-            
-            scheduler_abi = [{
-                "inputs": [
-                    {"internalType": "address", "name": "contractAddress", "type": "address"},
-                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
-                    {"internalType": "uint256", "name": "frequency", "type": "uint256"}
-                ],
-                "name": "registerTask",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }]
+
+            scheduler_abi = [
+                {
+                    "inputs": [
+                        {"internalType": "address", "name": "contractAddress", "type": "address"},
+                        {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+                        {"internalType": "uint256", "name": "frequency", "type": "uint256"},
+                    ],
+                    "name": "registerTask",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                }
+            ]
 
             scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
-            scheduler_contract = self._blockchain.eth.contract(
-                address=scheduler_address,
-                abi=scheduler_abi
-            )
+            scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
 
             try:
                 # Register the workflow with the scheduler
                 scheduler_tx = scheduler_contract.functions.registerTask(
-                    contract_address,
-                    scheduler_params.end_time,
-                    scheduler_params.frequency
-                ).build_transaction({
-                    'from': self.wallet_address,
-                    'gas': 300000,
-                    'gasPrice': self._blockchain.eth.gas_price,
-                    'nonce': self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending'),
-                    'chainId': self._blockchain.eth.chain_id
-                })
+                    contract_address, scheduler_params.end_time, scheduler_params.frequency
+                ).build_transaction(
+                    {
+                        "from": self.wallet_address,
+                        "gas": 300000,
+                        "gasPrice": self._blockchain.eth.gas_price,
+                        "nonce": self._blockchain.eth.get_transaction_count(self.wallet_address, "pending"),
+                        "chainId": self._blockchain.eth.chain_id,
+                    }
+                )
 
                 signed_scheduler_tx = self._blockchain.eth.account.sign_transaction(scheduler_tx, self.private_key)
                 scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
                 self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
-                
+
                 print("✅ Automated execution schedule set successfully!")
                 print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
-                
+
             except Exception as e:
                 print("❌ Failed to set up automated execution schedule")
                 print(f"   Error: {str(e)}")
@@ -863,23 +842,20 @@ class Client:
     def read_workflow_result(self, contract_address: str) -> Any:
         """
         Reads the latest inference result from a deployed workflow contract.
-        
+
         Args:
             contract_address (str): Address of the deployed workflow contract
-            
+
         Returns:
             Any: The inference result from the contract
-            
+
         Raises:
             ContractLogicError: If the transaction fails
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address),
-            abi=self._get_model_executor_abi()
-        )
-        
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+
         # Get the result
         result = contract.functions.getInferenceResult().call()
         return result
@@ -887,39 +863,38 @@ class Client:
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
         Triggers the run() function on a deployed workflow contract and returns the result.
-        
+
         Args:
             contract_address (str): Address of the deployed workflow contract
-            
+
         Returns:
             ModelOutput: The inference result from the contract
-            
+
         Raises:
             ContractLogicError: If the transaction fails
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address),
-            abi=self._get_model_executor_abi()
-        )
-        
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+
         # Call run() function
-        nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
-        
+        nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
+
         run_function = contract.functions.run()
-        transaction = run_function.build_transaction({
-            'from': self.wallet_address,
-            'nonce': nonce,
-            'gas': 30000000,
-            'gasPrice': self._blockchain.eth.gas_price,
-            'chainId': self._blockchain.eth.chain_id
-        })
-        
+        transaction = run_function.build_transaction(
+            {
+                "from": self.wallet_address,
+                "nonce": nonce,
+                "gas": 30000000,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
+            }
+        )
+
         signed_txn = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
-        
+
         if tx_receipt.status == 0:
             raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
 
@@ -931,7 +906,7 @@ class Client:
 def run_with_retry(txn_function, max_retries=5):
     """
     Execute a blockchain transaction with retry logic.
-    
+
     Args:
         txn_function: Function that executes the transaction
         max_retries (int): Maximum number of retry attempts
@@ -950,4 +925,3 @@ def run_with_retry(txn_function, max_retries=5):
                 raise
     # If we've exhausted all retries, raise the last error
     raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
-
