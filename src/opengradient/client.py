@@ -45,9 +45,9 @@ class Client:
     private_key: str
     rpc_url: str
     contract_address: str
-    _w3: Web3
     wallet_account: LocalAccount
     wallet_address: str
+    _blockchain: Web3
     abi: Dict
     user: Dict
     
@@ -64,10 +64,10 @@ class Client:
         self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
-        self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+        self._blockchain = Web3(Web3.HTTPProvider(self.rpc_url))
 
-        self.wallet_account = self._w3.eth.account.from_key(private_key)
-        self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
+        self.wallet_account = self._blockchain.eth.account.from_key(private_key)
+        self.wallet_address = self._blockchain.to_checksum_address(self.wallet_account.address)
         
         abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
         with open(abi_path, 'r') as abi_file:
@@ -323,7 +323,7 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         def execute_transaction():
-            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
             
             inference_mode_uint8 = int(inference_mode)
             converted_model_input = utils.convert_to_model_input(model_input)
@@ -334,7 +334,7 @@ class Client:
                 converted_model_input
             )
 
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 3)
 
@@ -342,12 +342,12 @@ class Client:
                 'from': self.wallet_address,
                 'nonce': nonce,
                 'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
+                'gasPrice': self._blockchain.eth.gas_price,
             })
 
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -394,7 +394,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
 
             # Prepare LLM input
             llm_request = {
@@ -409,7 +409,7 @@ class Client:
 
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
@@ -417,12 +417,12 @@ class Client:
                 'from': self.wallet_address,
                 'nonce': nonce,
                 'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
+                'gasPrice': self._blockchain.eth.gas_price,
             })
 
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -510,7 +510,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
             
-            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self.abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
@@ -551,7 +551,7 @@ class Client:
 
             run_function = contract.functions.runLLMChat(llm_request)
 
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
             estimated_gas = run_function.estimate_gas({'from': self.wallet_address})
             gas_limit = int(estimated_gas * 1.2)
 
@@ -559,12 +559,12 @@ class Client:
                 'from': self.wallet_address,
                 'nonce': nonce,
                 'gas': gas_limit,
-                'gasPrice': self._w3.eth.gas_price,
+                'gasPrice': self._blockchain.eth.gas_price,
             })
 
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            signed_tx = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt['status'] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -784,7 +784,7 @@ class Client:
         print("📦 Deploying workflow contract...")
         
         # Create contract instance
-        contract = self._w3.eth.contract(abi=abi, bytecode=bytecode)
+        contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
         
         # Deploy contract with constructor arguments
         transaction = contract.constructor(
@@ -794,15 +794,15 @@ class Client:
             input_tensor_name
         ).build_transaction({
             'from': self.wallet_address,
-            'nonce': self._w3.eth.get_transaction_count(self.wallet_address, 'pending'),
+            'nonce': self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending'),
             'gas': 15000000,
-            'gasPrice': self._w3.eth.gas_price,
-            'chainId': self._w3.eth.chain_id
+            'gasPrice': self._blockchain.eth.gas_price,
+            'chainId': self._blockchain.eth.chain_id
         })
 
-        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        signed_txn = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
         contract_address = tx_receipt.contractAddress
         
         print(f"✅ Workflow contract deployed at: {contract_address}")
@@ -827,7 +827,7 @@ class Client:
             }]
 
             scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
-            scheduler_contract = self._w3.eth.contract(
+            scheduler_contract = self._blockchain.eth.contract(
                 address=scheduler_address,
                 abi=scheduler_abi
             )
@@ -841,14 +841,14 @@ class Client:
                 ).build_transaction({
                     'from': self.wallet_address,
                     'gas': 300000,
-                    'gasPrice': self._w3.eth.gas_price,
-                    'nonce': self._w3.eth.get_transaction_count(self.wallet_address, 'pending'),
-                    'chainId': self._w3.eth.chain_id
+                    'gasPrice': self._blockchain.eth.gas_price,
+                    'nonce': self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending'),
+                    'chainId': self._blockchain.eth.chain_id
                 })
 
-                signed_scheduler_tx = self._w3.eth.account.sign_transaction(scheduler_tx, self.private_key)
-                scheduler_tx_hash = self._w3.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-                self._w3.eth.wait_for_transaction_receipt(scheduler_tx_hash)
+                signed_scheduler_tx = self._blockchain.eth.account.sign_transaction(scheduler_tx, self.private_key)
+                scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
+                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
                 
                 print("✅ Automated execution schedule set successfully!")
                 print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
@@ -875,7 +875,7 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._w3.eth.contract(
+        contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address),
             abi=self._get_model_executor_abi()
         )
@@ -899,26 +899,26 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._w3.eth.contract(
+        contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address),
             abi=self._get_model_executor_abi()
         )
         
         # Call run() function
-        nonce = self._w3.eth.get_transaction_count(self.wallet_address, 'pending')
+        nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, 'pending')
         
         run_function = contract.functions.run()
         transaction = run_function.build_transaction({
             'from': self.wallet_address,
             'nonce': nonce,
             'gas': 30000000,
-            'gasPrice': self._w3.eth.gas_price,
-            'chainId': self._w3.eth.chain_id
+            'gasPrice': self._blockchain.eth.gas_price,
+            'chainId': self._blockchain.eth.chain_id
         })
         
-        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        signed_txn = self._blockchain.eth.account.sign_transaction(transaction, self.private_key)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
         
         if tx_receipt.status == 0:
             raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
