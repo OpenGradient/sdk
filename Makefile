@@ -11,11 +11,15 @@ infer:
 
 completion:
 	pip install -e .
-	python -m opengradient.cli completion --model $(LLAMA_70B_MODEL) --prompt "hello doctor?!??!!" --max-tokens 50
+	python -m opengradient.cli completion --model $(LLAMA_70B_MODEL) \
+		--prompt "hello doctor?!??!! $(shell echo $$RANDOM)" \
+		--max-tokens 50
 
 chat:
 	pip install -e .
-	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) \
+		--messages '[{"role":"user","content":"hellooooo $(shell echo $$RANDOM)"}]' \
+		--max-tokens 50
 
 tool:
 	pip install -e .
