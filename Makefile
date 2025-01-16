@@ -69,4 +69,4 @@ publish:
 ruff:
 	ruff format .
 
-.PHONY: docs
+.PHONY: docs ruff

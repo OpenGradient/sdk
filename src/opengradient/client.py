@@ -39,8 +39,8 @@ class Client:
     wallet_account: LocalAccount
     wallet_address: str
     _blockchain: Web3
+    _hub_user: Dict
     abi: Dict
-    user: Dict
 
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
@@ -66,9 +66,9 @@ class Client:
         self.abi = inference_abi
 
         if email is not None:
-            self.user = self._login_to_hub(email, password)
+            self._hub_user = self._login_to_hub(email, password)
         else:
-            self.user = None
+            self._hub_user = None
 
     def _login_to_hub(self, email, password):
         try:
@@ -93,11 +93,11 @@ class Client:
         Raises:
             CreateModelError: If the model creation fails.
         """
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         url = "https://api.opengradient.ai/api/v0/models/"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
         payload = {"name": model_name, "description": model_desc}
 
         try:
@@ -150,11 +150,11 @@ class Client:
         Raises:
             Exception: If the version creation fails.
         """
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
         payload = {"notes": notes, "is_major": is_major}
 
         try:
@@ -211,14 +211,14 @@ class Client:
         """
         from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}'}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
 
         logging.info(f"Starting upload for file: {model_path}")
         logging.info(f"File size: {os.path.getsize(model_path)} bytes")
@@ -583,11 +583,11 @@ class Client:
         Raises:
             OpenGradientError: If the file listing fails.
         """
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}'}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
 
         logging.debug(f"List Files URL: {url}")
         logging.debug(f"Headers: {headers}")
