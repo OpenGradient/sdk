@@ -22,7 +22,6 @@ from opengradient.proto import infer_pb2
 from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
-
 class Client:
     FIREBASE_CONFIG = {
         "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
