@@ -1,9 +1,11 @@
-import asyncio
 import json
 import logging
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union, Any
+import grpc
+import time
+import uuid
 
 import firebase
 import numpy as np
@@ -23,19 +25,13 @@ from opengradient.types import (
     ModelOutput,
     SchedulerParams
 )
-
-import grpc
-import time
-import uuid
-from google.protobuf import timestamp_pb2
-
 from opengradient.proto import infer_pb2
 from opengradient.proto import infer_pb2_grpc
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
-from functools import wraps
 
 class Client:
+
     FIREBASE_CONFIG = {
         "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
         "authDomain": "vanna-portal-418018.firebaseapp.com",
@@ -60,6 +56,7 @@ class Client:
         self.private_key = private_key
         self.rpc_url = rpc_url
         self.contract_address = contract_address
+
         self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
         self.wallet_account = self._w3.eth.account.from_key(private_key)
         self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
@@ -69,23 +66,14 @@ class Client:
         self.user = None
 
         abi_path = Path(__file__).parent / 'abi' / 'inference.abi'
-
-        try:
-            with open(abi_path, 'r') as abi_file:
-                inference_abi = json.load(abi_file)
-        except FileNotFoundError:
-            raise
-        except json.JSONDecodeError:
-            raise
-        except Exception as e:
-            raise
-
+        with open(abi_path, 'r') as abi_file:
+            inference_abi = json.load(abi_file)
         self.abi = inference_abi
 
         if email is not None:
-            self.login(email, password)
+            self._login(email, password)
 
-    def login(self, email, password):
+    def _login(self, email, password):
         try:
             self.user = self.auth.sign_in_with_email_and_password(email, password)
             return self.user
@@ -99,15 +87,6 @@ class Client:
         """
         if self._w3 is None:
             self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-
-    def refresh_token(self) -> None:
-        """
-        Refresh the authentication token for the current user.
-        """
-        if self.user:
-            self.user = self.auth.refresh(self.user['refreshToken'])
-        else:
-            logging.error("No user is currently signed in")
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
