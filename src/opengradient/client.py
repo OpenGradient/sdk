@@ -414,7 +414,7 @@ class Client:
 
     def llm_chat(
         self,
-        model_cid: str,
+        model_cid: LLM,
         inference_mode: InferenceMode,
         messages: List[Dict],
         max_tokens: int = 100,
@@ -819,7 +819,7 @@ class Client:
                     }
                 )
 
-                signed_scheduler_tx = self._wallet_account(scheduler_tx)
+                signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
                 scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
                 self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
 
