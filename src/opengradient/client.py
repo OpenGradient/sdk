@@ -33,10 +33,10 @@ _FIREBASE_CONFIG = {
 
 
 class Client:
-    contract_address: str
-
-    _wallet_account: LocalAccount
+    _inference_hub_contract_address: str
     _blockchain: Web3
+    _wallet_account: LocalAccount
+
     _hub_user: Dict
     _inference_abi: Dict
 
@@ -51,9 +51,9 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.contract_address = contract_address
+        self._inference_hub_contract_address = contract_address
+        self._blockchain = Web3(Web3.HTTPProvider(rpc_url))
         self._wallet_account = self._blockchain.eth.account.from_key(private_key)
-        self._blockchain = Web3(Web3.HTTPProvider(self.rpc_url))
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
@@ -296,7 +296,7 @@ class Client:
         """
 
         def execute_transaction():
-            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self._inference_abi)
+            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             inference_mode_uint8 = int(inference_mode)
             converted_model_input = utils.convert_to_model_input(model_input)
@@ -368,7 +368,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self._inference_abi)
+            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             # Prepare LLM input
             llm_request = {
@@ -489,7 +489,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            contract = self._blockchain.eth.contract(address=self.contract_address, abi=self._inference_abi)
+            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
@@ -777,9 +777,9 @@ class Client:
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
-        contract_address = tx_receipt.contractAddress
+        _inference_hub_contract_address = tx_receipt.contractAddress
 
-        print(f"✅ Workflow contract deployed at: {contract_address}")
+        print(f"✅ Workflow contract deployed at: {_inference_hub_contract_address}")
 
         # Register with scheduler if params provided
         if scheduler_params:
@@ -808,7 +808,7 @@ class Client:
             try:
                 # Register the workflow with the scheduler
                 scheduler_tx = scheduler_contract.functions.registerTask(
-                    contract_address, scheduler_params.end_time, scheduler_params.frequency
+                    _inference_hub_contract_address, scheduler_params.end_time, scheduler_params.frequency
                 ).build_transaction(
                     {
                         "from": self._wallet_account.address,
@@ -831,14 +831,14 @@ class Client:
                 print(f"   Error: {str(e)}")
                 print("   The workflow contract is still deployed and can be executed manually.")
 
-        return contract_address
+        return _inference_hub_contract_address
 
-    def read_workflow_result(self, contract_address: str) -> Any:
+    def read_workflow_result(self, _inference_hub_contract_address: str) -> Any:
         """
         Reads the latest inference result from a deployed workflow contract.
 
         Args:
-            contract_address (str): Address of the deployed workflow contract
+            _inference_hub_contract_address (str): Address of the deployed workflow contract
 
         Returns:
             Any: The inference result from the contract
@@ -848,18 +848,18 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi())
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
         return result
 
-    def run_workflow(self, contract_address: str) -> ModelOutput:
+    def run_workflow(self, _inference_hub_contract_address: str) -> ModelOutput:
         """
         Triggers the run() function on a deployed workflow contract and returns the result.
 
         Args:
-            contract_address (str): Address of the deployed workflow contract
+            _inference_hub_contract_address (str): Address of the deployed workflow contract
 
         Returns:
             ModelOutput: The inference result from the contract
@@ -869,7 +869,7 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi())
 
         # Call run() function
         nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
