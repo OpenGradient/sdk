@@ -848,7 +848,9 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi()
+        )
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
@@ -869,7 +871,9 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(_inference_hub_contract_address), abi=self._get_model_executor_abi()
+        )
 
         # Call run() function
         nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
