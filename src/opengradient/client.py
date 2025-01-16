@@ -38,7 +38,6 @@ class Client:
     contract_address: str
 
     wallet_account: LocalAccount
-    wallet_address: str
 
     _blockchain: Web3
     _hub_user: Dict
@@ -61,7 +60,6 @@ class Client:
         self._blockchain = Web3(Web3.HTTPProvider(self.rpc_url))
 
         self.wallet_account = self._blockchain.eth.account.from_key(private_key)
-        self.wallet_address = self._blockchain.to_checksum_address(self.wallet_account.address)
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
@@ -311,13 +309,13 @@ class Client:
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self.wallet_account.address})
             gas_limit = int(estimated_gas * 3)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_address,
+                    "from": self.wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
@@ -391,13 +389,13 @@ class Client:
 
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self.wallet_account.address})
             gas_limit = int(estimated_gas * 1.2)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_address,
+                    "from": self.wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
@@ -538,13 +536,13 @@ class Client:
 
             run_function = contract.functions.runLLMChat(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self.wallet_account.address})
             gas_limit = int(estimated_gas * 1.2)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_address,
+                    "from": self.wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
@@ -774,8 +772,8 @@ class Client:
             input_tensor_name,
         ).build_transaction(
             {
-                "from": self.wallet_address,
-                "nonce": self._blockchain.eth.get_transaction_count(self.wallet_address, "pending"),
+                "from": self.wallet_account.address,
+                "nonce": self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending"),
                 "gas": 15000000,
                 "gasPrice": self._blockchain.eth.gas_price,
                 "chainId": self._blockchain.eth.chain_id,
@@ -819,10 +817,10 @@ class Client:
                     contract_address, scheduler_params.end_time, scheduler_params.frequency
                 ).build_transaction(
                     {
-                        "from": self.wallet_address,
+                        "from": self.wallet_account.address,
                         "gas": 300000,
                         "gasPrice": self._blockchain.eth.gas_price,
-                        "nonce": self._blockchain.eth.get_transaction_count(self.wallet_address, "pending"),
+                        "nonce": self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending"),
                         "chainId": self._blockchain.eth.chain_id,
                     }
                 )
@@ -880,12 +878,12 @@ class Client:
         contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
 
         # Call run() function
-        nonce = self._blockchain.eth.get_transaction_count(self.wallet_address, "pending")
+        nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
 
         run_function = contract.functions.run()
         transaction = run_function.build_transaction(
             {
-                "from": self.wallet_address,
+                "from": self.wallet_account.address,
                 "nonce": nonce,
                 "gas": 30000000,
                 "gasPrice": self._blockchain.eth.gas_price,
