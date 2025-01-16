@@ -66,4 +66,7 @@ publish:
 	twine upload dist/*
 	@echo "✨ Done! Published to PyPI"
 
+ruff:
+	ruff format .
+
 .PHONY: docs
