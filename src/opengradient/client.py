@@ -33,11 +33,9 @@ _FIREBASE_CONFIG = {
 
 
 class Client:
-    rpc_url: str
     contract_address: str
 
-    wallet_account: LocalAccount
-
+    _wallet_account: LocalAccount
     _blockchain: Web3
     _hub_user: Dict
     _inference_abi: Dict
@@ -53,9 +51,8 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.rpc_url = rpc_url
         self.contract_address = contract_address
-        self.wallet_account = self._blockchain.eth.account.from_key(private_key)
+        self._wallet_account = self._blockchain.eth.account.from_key(private_key)
         self._blockchain = Web3(Web3.HTTPProvider(self.rpc_url))
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
@@ -306,20 +303,20 @@ class Client:
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_account.address})
+            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
             gas_limit = int(estimated_gas * 3)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_account.address,
+                    "from": self._wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
                 }
             )
 
-            signed_tx = self.wallet_account.sign_transaction(transaction)
+            signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -386,20 +383,20 @@ class Client:
 
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_account.address})
+            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
             gas_limit = int(estimated_gas * 1.2)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_account.address,
+                    "from": self._wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
                 }
             )
 
-            signed_tx = self.wallet_account.sign_transaction(transaction)
+            signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -533,20 +530,20 @@ class Client:
 
             run_function = contract.functions.runLLMChat(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_account.address})
+            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
             gas_limit = int(estimated_gas * 1.2)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_account.address,
+                    "from": self._wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
                 }
             )
 
-            signed_tx = self.wallet_account.sign_transaction(transaction)
+            signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
@@ -769,15 +766,15 @@ class Client:
             input_tensor_name,
         ).build_transaction(
             {
-                "from": self.wallet_account.address,
-                "nonce": self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending"),
+                "from": self._wallet_account.address,
+                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
                 "gas": 15000000,
                 "gasPrice": self._blockchain.eth.gas_price,
                 "chainId": self._blockchain.eth.chain_id,
             }
         )
 
-        signed_txn = self.wallet_account.sign_transaction(transaction)
+        signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
         contract_address = tx_receipt.contractAddress
@@ -814,15 +811,15 @@ class Client:
                     contract_address, scheduler_params.end_time, scheduler_params.frequency
                 ).build_transaction(
                     {
-                        "from": self.wallet_account.address,
+                        "from": self._wallet_account.address,
                         "gas": 300000,
                         "gasPrice": self._blockchain.eth.gas_price,
-                        "nonce": self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending"),
+                        "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
                         "chainId": self._blockchain.eth.chain_id,
                     }
                 )
 
-                signed_scheduler_tx = self.wallet_account(scheduler_tx)
+                signed_scheduler_tx = self._wallet_account(scheduler_tx)
                 scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
                 self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
 
@@ -875,12 +872,12 @@ class Client:
         contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
 
         # Call run() function
-        nonce = self._blockchain.eth.get_transaction_count(self.wallet_account.address, "pending")
+        nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
 
         run_function = contract.functions.run()
         transaction = run_function.build_transaction(
             {
-                "from": self.wallet_account.address,
+                "from": self._wallet_account.address,
                 "nonce": nonce,
                 "gas": 30000000,
                 "gasPrice": self._blockchain.eth.gas_price,
@@ -888,7 +885,7 @@ class Client:
             }
         )
 
-        signed_txn = self.wallet_account.sign_transaction(transaction)
+        signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
         tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
