@@ -15,11 +15,10 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
-from opengradient import utils
-from opengradient.exceptions import OpenGradientError
-from opengradient.proto import infer_pb2, infer_pb2_grpc
-from opengradient.types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, SchedulerParams
-
+from . import utils
+from .exceptions import OpenGradientError
+from .proto import infer_pb2, infer_pb2_grpc
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, SchedulerParams
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {

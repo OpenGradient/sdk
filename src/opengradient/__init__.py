@@ -2,7 +2,6 @@
 OpenGradient Python SDK for interacting with AI models and infrastructure.
 """
 
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from . import llm, mltools

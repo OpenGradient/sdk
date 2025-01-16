@@ -7,9 +7,6 @@ from typing import Dict, List, Optional
 
 import click
 
-import opengradient
-
-from . import types
 from .account import EthAccount, generate_eth_account
 from .client import Client
 from .defaults import (
@@ -19,7 +16,7 @@ from .defaults import (
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
 )
-from .types import InferenceMode, LlmInferenceMode
+from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 
 OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 
@@ -362,7 +359,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     "--model",
     "-m",
     "model_cid",
-    type=click.Choice([e.value for e in types.LLM]),
+    type=click.Choice([e.value for e in LLM]),
     required=True,
     help="CID of the LLM model to run inference on",
 )
@@ -425,7 +422,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
     "--model",
     "-m",
     "model_cid",
-    type=click.Choice([e.value for e in types.LLM]),
+    type=click.Choice([e.value for e in LLM]),
     required=True,
     help="CID of the LLM model to run inference on",
 )
@@ -612,12 +609,6 @@ def create_account_impl() -> EthAccount:
     click.secho("\nPlease save this information for your records.\n", fg="cyan")
 
     return eth_account
-
-
-@cli.command()
-def version():
-    """Return version of OpenGradient CLI"""
-    click.echo(f"OpenGradient CLI version: {opengradient.__version__}")
 
 
 @cli.command()
