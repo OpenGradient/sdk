@@ -1,70 +1,48 @@
-import asyncio
 import json
 import logging
 import os
+import time
+import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import firebase
+import grpc
 import numpy as np
 import requests
+from eth_account.account import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
-from opengradient import utils
-from opengradient.exceptions import OpenGradientError
-from opengradient.types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, ModelOutput, SchedulerParams
-
-import grpc
-import time
-import uuid
-from google.protobuf import timestamp_pb2
-
-from opengradient.proto import infer_pb2
-from opengradient.proto import infer_pb2_grpc
+from . import utils
+from .exceptions import OpenGradientError
+from .proto import infer_pb2, infer_pb2_grpc
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, SchedulerParams
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
-from functools import wraps
-
-
-def run_with_retry(txn_function, max_retries=5):
-    """
-    Execute a blockchain transaction with retry logic.
-
-    Args:
-        txn_function: Function that executes the transaction
-        max_retries (int): Maximum number of retry attempts
-    """
-    last_error = None
-    for attempt in range(max_retries):
-        try:
-            return txn_function()
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                if "nonce too low" in str(e) or "nonce too high" in str(e):
-                    time.sleep(1)  # Wait before retry
-                    continue
-                # If it's not a nonce error, raise immediately
-                raise
-    # If we've exhausted all retries, raise the last error
-    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
+_FIREBASE_CONFIG = {
+    "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
+    "authDomain": "vanna-portal-418018.firebaseapp.com",
+    "projectId": "vanna-portal-418018",
+    "storageBucket": "vanna-portal-418018.appspot.com",
+    "appId": "1:487761246229:web:259af6423a504d2316361c",
+    "databaseURL": "",
+}
 
 
 class Client:
-    FIREBASE_CONFIG = {
-        "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
-        "authDomain": "vanna-portal-418018.firebaseapp.com",
-        "projectId": "vanna-portal-418018",
-        "storageBucket": "vanna-portal-418018.appspot.com",
-        "appId": "1:487761246229:web:259af6423a504d2316361c",
-        "databaseURL": "",
-    }
+    _inference_hub_contract_address: str
+    _blockchain: Web3
+    _wallet_account: LocalAccount
+
+    _hub_user: Dict
+    _inference_abi: Dict
 
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
         """
         Initialize the Client with private key, RPC URL, and contract address.
+
         Args:
             private_key (str): The private key for the wallet.
             rpc_url (str): The RPC URL for the Ethereum node.
@@ -72,59 +50,26 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
-        self.email = email
-        self.password = password
-        self.private_key = private_key
-        self.rpc_url = rpc_url
-        self.contract_address = contract_address
-        self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.wallet_account = self._w3.eth.account.from_key(private_key)
-        self.wallet_address = self._w3.to_checksum_address(self.wallet_account.address)
-
-        self.firebase_app = firebase.initialize_app(self.FIREBASE_CONFIG)
-        self.auth = self.firebase_app.auth()
-        self.user = None
+        self._inference_hub_contract_address = contract_address
+        self._blockchain = Web3(Web3.HTTPProvider(rpc_url))
+        self._wallet_account = self._blockchain.eth.account.from_key(private_key)
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
-
-        try:
-            with open(abi_path, "r") as abi_file:
-                inference_abi = json.load(abi_file)
-        except FileNotFoundError:
-            raise
-        except json.JSONDecodeError:
-            raise
-        except Exception as e:
-            raise
-
-        self.abi = inference_abi
+        with open(abi_path, "r") as abi_file:
+            self._inference_abi = json.load(abi_file)
 
         if email is not None:
-            self.login(email, password)
+            self._hub_user = self._login_to_hub(email, password)
+        else:
+            self._hub_user = None
 
-    def login(self, email, password):
+    def _login_to_hub(self, email, password):
         try:
-            self.user = self.auth.sign_in_with_email_and_password(email, password)
-            return self.user
+            firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
+            return firebase_app.auth().sign_in_with_email_and_password(email, password)
         except Exception as e:
             logging.error(f"Authentication failed: {str(e)}")
             raise
-
-    def _initialize_web3(self):
-        """
-        Initialize the Web3 instance if it is not already initialized.
-        """
-        if self._w3 is None:
-            self._w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-
-    def refresh_token(self) -> None:
-        """
-        Refresh the authentication token for the current user.
-        """
-        if self.user:
-            self.user = self.auth.refresh(self.user["refreshToken"])
-        else:
-            logging.error("No user is currently signed in")
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
         """
@@ -141,11 +86,11 @@ class Client:
         Raises:
             CreateModelError: If the model creation fails.
         """
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         url = "https://api.opengradient.ai/api/v0/models/"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
         payload = {"name": model_name, "description": model_desc}
 
         try:
@@ -198,11 +143,11 @@ class Client:
         Raises:
             Exception: If the version creation fails.
         """
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
         payload = {"notes": notes, "is_major": is_major}
 
         try:
@@ -259,14 +204,14 @@ class Client:
         """
         from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}'}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
 
         logging.info(f"Starting upload for file: {model_path}")
         logging.info(f"File size: {os.path.getsize(model_path)} bytes")
@@ -350,30 +295,29 @@ class Client:
         """
 
         def execute_transaction():
-            self._initialize_web3()
-            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             inference_mode_uint8 = int(inference_mode)
             converted_model_input = utils.convert_to_model_input(model_input)
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
 
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
             gas_limit = int(estimated_gas * 3)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_address,
+                    "from": self._wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
-                    "gasPrice": self._w3.eth.gas_price,
+                    "gasPrice": self._blockchain.eth.gas_price,
                 }
             )
 
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            signed_tx = self._wallet_account.sign_transaction(transaction)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -423,8 +367,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            self._initialize_web3()
-            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             # Prepare LLM input
             llm_request = {
@@ -439,22 +382,22 @@ class Client:
 
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
             gas_limit = int(estimated_gas * 1.2)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_address,
+                    "from": self._wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
-                    "gasPrice": self._w3.eth.gas_price,
+                    "gasPrice": self._blockchain.eth.gas_price,
                 }
             )
 
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            signed_tx = self._wallet_account.sign_transaction(transaction)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -470,7 +413,7 @@ class Client:
 
     def llm_chat(
         self,
-        model_cid: str,
+        model_cid: LLM,
         inference_mode: InferenceMode,
         messages: List[Dict],
         max_tokens: int = 100,
@@ -545,8 +488,7 @@ class Client:
             if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
-            self._initialize_web3()
-            contract = self._w3.eth.contract(address=self.contract_address, abi=self.abi)
+            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
@@ -587,22 +529,22 @@ class Client:
 
             run_function = contract.functions.runLLMChat(llm_request)
 
-            nonce = self._w3.eth.get_transaction_count(self.wallet_address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self.wallet_address})
+            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
             gas_limit = int(estimated_gas * 1.2)
 
             transaction = run_function.build_transaction(
                 {
-                    "from": self.wallet_address,
+                    "from": self._wallet_account.address,
                     "nonce": nonce,
                     "gas": gas_limit,
-                    "gasPrice": self._w3.eth.gas_price,
+                    "gasPrice": self._blockchain.eth.gas_price,
                 }
             )
 
-            signed_tx = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-            tx_hash = self._w3.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+            signed_tx = self._wallet_account.sign_transaction(transaction)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -634,11 +576,11 @@ class Client:
         Raises:
             OpenGradientError: If the file listing fails.
         """
-        if not self.user:
+        if not self._hub_user:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self.user["idToken"]}'}
+        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
 
         logging.debug(f"List Files URL: {url}")
         logging.debug(f"Headers: {headers}")
@@ -813,7 +755,7 @@ class Client:
         print("📦 Deploying workflow contract...")
 
         # Create contract instance
-        contract = self._w3.eth.contract(abi=abi, bytecode=bytecode)
+        contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
 
         # Deploy contract with constructor arguments
         transaction = contract.constructor(
@@ -823,17 +765,17 @@ class Client:
             input_tensor_name,
         ).build_transaction(
             {
-                "from": self.wallet_address,
-                "nonce": self._w3.eth.get_transaction_count(self.wallet_address, "pending"),
+                "from": self._wallet_account.address,
+                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
                 "gas": 15000000,
-                "gasPrice": self._w3.eth.gas_price,
-                "chainId": self._w3.eth.chain_id,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
             }
         )
 
-        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        signed_txn = self._wallet_account.sign_transaction(transaction)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
         contract_address = tx_receipt.contractAddress
 
         print(f"✅ Workflow contract deployed at: {contract_address}")
@@ -860,7 +802,7 @@ class Client:
             ]
 
             scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
-            scheduler_contract = self._w3.eth.contract(address=scheduler_address, abi=scheduler_abi)
+            scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
 
             try:
                 # Register the workflow with the scheduler
@@ -868,17 +810,17 @@ class Client:
                     contract_address, scheduler_params.end_time, scheduler_params.frequency
                 ).build_transaction(
                     {
-                        "from": self.wallet_address,
+                        "from": self._wallet_account.address,
                         "gas": 300000,
-                        "gasPrice": self._w3.eth.gas_price,
-                        "nonce": self._w3.eth.get_transaction_count(self.wallet_address, "pending"),
-                        "chainId": self._w3.eth.chain_id,
+                        "gasPrice": self._blockchain.eth.gas_price,
+                        "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                        "chainId": self._blockchain.eth.chain_id,
                     }
                 )
 
-                signed_scheduler_tx = self._w3.eth.account.sign_transaction(scheduler_tx, self.private_key)
-                scheduler_tx_hash = self._w3.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-                self._w3.eth.wait_for_transaction_receipt(scheduler_tx_hash)
+                signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
+                scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
+                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
 
                 print("✅ Automated execution schedule set successfully!")
                 print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
@@ -904,11 +846,8 @@ class Client:
             ContractLogicError: If the transaction fails
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
-        if not self._w3:
-            self._initialize_web3()
-
         # Get the contract interface
-        contract = self._w3.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
@@ -928,29 +867,26 @@ class Client:
             ContractLogicError: If the transaction fails
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
-        if not self._w3:
-            self._initialize_web3()
-
         # Get the contract interface
-        contract = self._w3.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
 
         # Call run() function
-        nonce = self._w3.eth.get_transaction_count(self.wallet_address, "pending")
+        nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
 
         run_function = contract.functions.run()
         transaction = run_function.build_transaction(
             {
-                "from": self.wallet_address,
+                "from": self._wallet_account.address,
                 "nonce": nonce,
                 "gas": 30000000,
-                "gasPrice": self._w3.eth.gas_price,
-                "chainId": self._w3.eth.chain_id,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
             }
         )
 
-        signed_txn = self._w3.eth.account.sign_transaction(transaction, self.private_key)
-        tx_hash = self._w3.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._w3.eth.wait_for_transaction_receipt(tx_hash)
+        signed_txn = self._wallet_account.sign_transaction(transaction)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
 
         if tx_receipt.status == 0:
             raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
@@ -958,3 +894,27 @@ class Client:
         # Get the inference result from the contract
         result = contract.functions.getInferenceResult().call()
         return result
+
+
+def run_with_retry(txn_function, max_retries=5):
+    """
+    Execute a blockchain transaction with retry logic.
+
+    Args:
+        txn_function: Function that executes the transaction
+        max_retries (int): Maximum number of retry attempts
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            return txn_function()
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                if "nonce too low" in str(e) or "nonce too high" in str(e):
+                    time.sleep(1)  # Wait before retry
+                    continue
+                # If it's not a nonce error, raise immediately
+                raise
+    # If we've exhausted all retries, raise the last error
+    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")

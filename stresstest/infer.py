@@ -6,7 +6,7 @@ from utils import stress_test_wrapper
 import opengradient as og
 
 # Number of requests to run serially
-NUM_REQUESTS = 100
+NUM_REQUESTS = 10_000
 MODEL = "QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ"
 
 

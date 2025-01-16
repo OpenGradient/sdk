@@ -2,15 +2,32 @@
 OpenGradient Python SDK for interacting with AI models and infrastructure.
 """
 
-from typing import Dict, List, Optional, Tuple, Any, Union
-from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import HistoricalInputQuery, InferenceMode, LlmInferenceMode, LLM, TEE_LLM, SchedulerParams
-from . import llm
-from . import mltools
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams
+
+from . import llm, mltools
 
 _client = None
+
+
+def new_client(
+    email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS
+) -> Client:
+    """
+    Creates a unique OpenGradient client instance with the given authentication and network settings.
+
+    Args:
+        email: User's email address for authentication
+        password: User's password for authentication
+        private_key: Ethereum private key for blockchain transactions
+        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
+        contract_address: Optional inference contract address
+    """
+
+    return Client(email=email, password=password, private_key=private_key, rpc_url=rpc_url, contract_address=contract_address)
 
 
 def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):

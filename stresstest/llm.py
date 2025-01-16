@@ -11,7 +11,7 @@ MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 
 def run_prompt(prompt: str):
-    og.infer_llm(MODEL, prompt, max_tokens=50)
+    og.llm_completion(MODEL, prompt, max_tokens=50)
 
 
 def main(private_key: str):
