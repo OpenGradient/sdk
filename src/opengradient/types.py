@@ -128,17 +128,16 @@ class Abi:
 
 class LLM(str, Enum):
     """Enum for available LLM models"""
-
     META_LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
     LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
     MISTRAL_7B_INSTRUCT_V3 = "mistralai/Mistral-7B-Instruct-v0.3"
-    HERMES_3_LLAMA_3_1_70B = "NousResearch/Hermes-3-Llama-3.1-70B"
+    QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
 
 
 class TEE_LLM(str, Enum):
     """Enum for LLM models available for TEE execution"""
-
+    QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
 
 

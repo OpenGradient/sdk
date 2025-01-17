@@ -4,6 +4,7 @@ TOOLS_FILE := tools.json
 LLAMA_3B_MODEL := meta-llama/Meta-Llama-3-8B-Instruct
 MISTRAL_MODEL := mistralai/Mistral-7B-Instruct-v0.3
 LLAMA_70B_MODEL := meta-llama/Llama-3.1-70B-Instruct
+QWEN_2_5_72B_INSTRUCT := Qwen/Qwen2.5-72B-Instruct
 
 infer:
 	pip install -e .
@@ -38,7 +39,7 @@ generate: messages tools
 chat_files: generate
 	pip install -e .
 	python -m opengradient.cli chat \
-		--model $(MISTRAL_MODEL) \
+		--model $(QWEN_2_5_72B_INSTRUCT) \
 		--messages-file $(MESSAGES_FILE) \
 		--tools-file $(TOOLS_FILE) \
 		--max-tokens 200

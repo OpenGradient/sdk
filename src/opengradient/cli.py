@@ -69,14 +69,6 @@ LlmInferenceModes = {
     "TEE": LlmInferenceMode.TEE,
 }
 
-# Supported LLMs
-LlmModels = {
-    "meta-llama/Meta-Llama-3-8B-Instruct",
-    "meta-llama/Llama-3.2-3B-Instruct",
-    "mistralai/Mistral-7B-Instruct-v0.3",
-    "meta-llama/Llama-3.1-70B-Instruct",
-}
-
 
 def initialize_config(ctx):
     """Interactively initialize OpenGradient config"""
