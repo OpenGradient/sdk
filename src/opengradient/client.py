@@ -30,6 +30,15 @@ _FIREBASE_CONFIG = {
     "databaseURL": "",
 }
 
+# How much time we wait for txn to be included in chain
+LLM_TX_TIMEOUT = 60
+INFERENCE_TX_TIMEOUT = 60
+REGULAR_TX_TIMEOUT = 30
+
+# How many times we retry a transaction because of nonce conflict
+DEFAULT_MAX_RETRY = 5
+DEFAULT_RETRY_DELAY_SEC = 1
+
 
 class Client:
     _inference_hub_contract_address: str
@@ -317,7 +326,7 @@ class Client:
 
             signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -329,7 +338,7 @@ class Client:
             model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
             return tx_hash.hex(), model_output
 
-        return run_with_retry(execute_transaction, max_retries or 5)
+        return run_with_retry(execute_transaction, max_retries)
 
     def llm_completion(
         self,
@@ -384,7 +393,8 @@ class Client:
 
             nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
             estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            gas_limit = int(estimated_gas * 1.2)
+            # Artificially increase required gas for safety
+            gas_limit = int(estimated_gas * 1.5)
 
             transaction = run_function.build_transaction(
                 {
@@ -397,7 +407,7 @@ class Client:
 
             signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -409,7 +419,7 @@ class Client:
             llm_answer = parsed_logs[0]["args"]["response"]["answer"]
             return tx_hash.hex(), llm_answer
 
-        return run_with_retry(execute_transaction, max_retries or 5)
+        return run_with_retry(execute_transaction, max_retries)
 
     def llm_chat(
         self,
@@ -531,7 +541,8 @@ class Client:
 
             nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
             estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            gas_limit = int(estimated_gas * 1.2)
+            # Artificially increase required gas for safety
+            gas_limit = int(estimated_gas * 1.5)
 
             transaction = run_function.build_transaction(
                 {
@@ -544,7 +555,7 @@ class Client:
 
             signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -560,7 +571,7 @@ class Client:
 
             return tx_hash.hex(), llm_result["finish_reason"], message
 
-        return run_with_retry(execute_transaction, max_retries or 5)
+        return run_with_retry(execute_transaction, max_retries)
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
@@ -775,7 +786,7 @@ class Client:
 
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=REGULAR_TX_TIMEOUT)
         contract_address = tx_receipt.contractAddress
 
         print(f"✅ Workflow contract deployed at: {contract_address}")
@@ -820,7 +831,7 @@ class Client:
 
                 signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
                 scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
+                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
 
                 print("✅ Automated execution schedule set successfully!")
                 print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
@@ -886,7 +897,7 @@ class Client:
 
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
 
         if tx_receipt.status == 0:
             raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
@@ -896,25 +907,28 @@ class Client:
         return result
 
 
-def run_with_retry(txn_function, max_retries=5):
+def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """
     Execute a blockchain transaction with retry logic.
 
     Args:
         txn_function: Function that executes the transaction
         max_retries (int): Maximum number of retry attempts
+        retry_delay (float): Delay in seconds between retries for nonce issues
     """
-    last_error = None
+    NONCE_TOO_LOW = 'nonce too low'
+    NONCE_TOO_HIGH = 'nonce too high'
+    
     for attempt in range(max_retries):
         try:
             return txn_function()
         except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                if "nonce too low" in str(e) or "nonce too high" in str(e):
-                    time.sleep(1)  # Wait before retry
-                    continue
-                # If it's not a nonce error, raise immediately
-                raise
-    # If we've exhausted all retries, raise the last error
-    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
+            error_msg = str(e).lower()
+            
+            if NONCE_TOO_LOW in error_msg or NONCE_TOO_HIGH in error_msg:
+                if attempt == max_retries - 1:
+                    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {e}")
+                time.sleep(retry_delay)
+                continue
+            
+            raise
