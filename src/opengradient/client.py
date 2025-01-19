@@ -35,6 +35,9 @@ LLM_TX_TIMEOUT = 60
 INFERENCE_TX_TIMEOUT = 60
 REGULAR_TX_TIMEOUT = 30
 
+# How many times we retry a transaction because of nonce conflict
+DEFAULT_MAX_RETRY = 5
+
 
 class Client:
     _inference_hub_contract_address: str
@@ -334,7 +337,7 @@ class Client:
             model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
             return tx_hash.hex(), model_output
 
-        return run_with_retry(execute_transaction, max_retries or 5)
+        return run_with_retry(execute_transaction, max_retries)
 
     def llm_completion(
         self,
@@ -414,7 +417,7 @@ class Client:
             llm_answer = parsed_logs[0]["args"]["response"]["answer"]
             return tx_hash.hex(), llm_answer
 
-        return run_with_retry(execute_transaction, max_retries or 5)
+        return run_with_retry(execute_transaction, max_retries)
 
     def llm_chat(
         self,
@@ -566,7 +569,7 @@ class Client:
 
             return tx_hash.hex(), llm_result["finish_reason"], message
 
-        return run_with_retry(execute_transaction, max_retries or 5)
+        return run_with_retry(execute_transaction, max_retries)
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
@@ -902,7 +905,7 @@ class Client:
         return result
 
 
-def run_with_retry(txn_function, max_retries=5):
+def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY):
     """
     Execute a blockchain transaction with retry logic.
 
