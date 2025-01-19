@@ -37,6 +37,7 @@ REGULAR_TX_TIMEOUT = 30
 
 # How many times we retry a transaction because of nonce conflict
 DEFAULT_MAX_RETRY = 5
+DEFAULT_RETRY_DELAY_SEC = 1
 
 
 class Client:
@@ -905,25 +906,28 @@ class Client:
         return result
 
 
-def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY):
+def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """
     Execute a blockchain transaction with retry logic.
 
     Args:
         txn_function: Function that executes the transaction
         max_retries (int): Maximum number of retry attempts
+        retry_delay (float): Delay in seconds between retries for nonce issues
     """
-    last_error = None
+    NONCE_TOO_LOW = 'nonce too low'
+    NONCE_TOO_HIGH = 'nonce too high'
+    
     for attempt in range(max_retries):
         try:
             return txn_function()
         except Exception as e:
-            last_error = e
-            if attempt < max_retries - 1:
-                if "nonce too low" in str(e) or "nonce too high" in str(e):
-                    time.sleep(1)  # Wait before retry
-                    continue
-                # If it's not a nonce error, raise immediately
-                raise
-    # If we've exhausted all retries, raise the last error
-    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {str(last_error)}")
+            error_msg = str(e).lower()
+            
+            if NONCE_TOO_LOW in error_msg or NONCE_TOO_HIGH in error_msg:
+                if attempt == max_retries - 1:
+                    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {e}")
+                time.sleep(retry_delay)
+                continue
+            
+            raise
