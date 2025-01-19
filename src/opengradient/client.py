@@ -393,7 +393,8 @@ class Client:
 
             nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
             estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            gas_limit = int(estimated_gas * 1.2)
+            # Artificially increase required gas for safety
+            gas_limit = int(estimated_gas * 1.5)
 
             transaction = run_function.build_transaction(
                 {
