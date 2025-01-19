@@ -12,13 +12,13 @@ infer:
 
 completion:
 	pip install -e .
-	python -m opengradient.cli completion --model $(LLAMA_70B_MODEL) \
+	python -m opengradient.cli completion --model $(QWEN_2_5_72B_INSTRUCT) \
 		--prompt "hello doctor?!??!! $(shell echo $$RANDOM)" \
 		--max-tokens 50
 
 chat:
 	pip install -e .
-	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) \
+	python -m opengradient.cli chat --model $(QWEN_2_5_72B_INSTRUCT) \
 		--messages '[{"role":"user","content":"hellooooo $(shell echo $$RANDOM)"}]' \
 		--max-tokens 50
 
