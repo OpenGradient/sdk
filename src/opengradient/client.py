@@ -30,6 +30,11 @@ _FIREBASE_CONFIG = {
     "databaseURL": "",
 }
 
+# How much time we wait for txn to be included in chain
+LLM_TX_TIMEOUT = 60
+INFERENCE_TX_TIMEOUT = 60
+REGULAR_TX_TIMEOUT = 30
+
 
 class Client:
     _inference_hub_contract_address: str
@@ -317,7 +322,7 @@ class Client:
 
             signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -397,7 +402,7 @@ class Client:
 
             signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -531,7 +536,8 @@ class Client:
 
             nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
             estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            gas_limit = int(estimated_gas * 1.2)
+            # Artificially increase required gas for safety
+            gas_limit = int(estimated_gas * 1.5)
 
             transaction = run_function.build_transaction(
                 {
@@ -544,7 +550,7 @@ class Client:
 
             signed_tx = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
                 raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
@@ -775,7 +781,7 @@ class Client:
 
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=REGULAR_TX_TIMEOUT)
         contract_address = tx_receipt.contractAddress
 
         print(f"✅ Workflow contract deployed at: {contract_address}")
@@ -820,7 +826,7 @@ class Client:
 
                 signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
                 scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash)
+                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
 
                 print("✅ Automated execution schedule set successfully!")
                 print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
@@ -886,7 +892,7 @@ class Client:
 
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
 
         if tx_receipt.status == 0:
             raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
