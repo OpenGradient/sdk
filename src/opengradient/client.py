@@ -929,7 +929,7 @@ def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFA
             
             if NONCE_TOO_LOW in error_msg or NONCE_TOO_HIGH in error_msg:
                 if attempt == max_retries - 1:
-                    raise OpenGradientError(f"Transaction failed after {max_retries} attempts: {e}")
+                    raise OpenGradientError(f"Transaction failed after {effective_retries} attempts: {e}")
                 time.sleep(retry_delay)
                 continue
             
