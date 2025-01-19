@@ -918,8 +918,10 @@ def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFA
     """
     NONCE_TOO_LOW = 'nonce too low'
     NONCE_TOO_HIGH = 'nonce too high'
+
+    effective_retries = max_retries if max_retries is not None else DEFAULT_MAX_RETRY
     
-    for attempt in range(max_retries):
+    for attempt in range(effective_retries):
         try:
             return txn_function()
         except Exception as e:
