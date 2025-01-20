@@ -4,18 +4,23 @@ TOOLS_FILE := tools.json
 LLAMA_3B_MODEL := meta-llama/Meta-Llama-3-8B-Instruct
 MISTRAL_MODEL := mistralai/Mistral-7B-Instruct-v0.3
 LLAMA_70B_MODEL := meta-llama/Llama-3.1-70B-Instruct
+QWEN_2_5_72B_INSTRUCT := Qwen/Qwen2.5-72B-Instruct
 
 infer:
 	pip install -e .
-	python -m opengradient.cli infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNX"], "str_input2":" world"}'
+	python -m opengradient.cli infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNXY"], "str_input2":" world"}'
 
 completion:
 	pip install -e .
-	python -m opengradient.cli completion --model $(LLAMA_70B_MODEL) --prompt "hello doctor?!??!!" --max-tokens 50
+	python -m opengradient.cli completion --model $(QWEN_2_5_72B_INSTRUCT) \
+		--prompt "hello doctor?!??!! $(shell echo $$RANDOM)" \
+		--max-tokens 50
 
 chat:
 	pip install -e .
-	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+	python -m opengradient.cli chat --model $(QWEN_2_5_72B_INSTRUCT) \
+		--messages '[{"role":"user","content":"hellooooo $(shell echo $$RANDOM)"}]' \
+		--max-tokens 50
 
 tool:
 	pip install -e .
@@ -34,7 +39,7 @@ generate: messages tools
 chat_files: generate
 	pip install -e .
 	python -m opengradient.cli chat \
-		--model $(MISTRAL_MODEL) \
+		--model $(QWEN_2_5_72B_INSTRUCT) \
 		--messages-file $(MESSAGES_FILE) \
 		--tools-file $(TOOLS_FILE) \
 		--max-tokens 200
@@ -50,4 +55,22 @@ tee_chat:
 docs:
 	pdoc opengradient -o docs --force  --template-dir ./templates
 
-.PHONY: docs
+build:
+	python -m build 
+
+publish:
+	@echo "📋 Current version:" $$(grep 'version = ' pyproject.toml | cut -d'"' -f2)
+	@echo "🧹 Cleaning dist directory..."
+	rm -rf dist/*
+	@echo "🏗️  Building distributions..."
+	python -m build
+	@echo "📦 Generated files in dist/:"
+	ls -l dist/
+	@echo "🚀 Uploading to PyPI..."
+	twine upload dist/*
+	@echo "✨ Done! Published to PyPI"
+
+ruff:
+	ruff format .
+
+.PHONY: docs ruff

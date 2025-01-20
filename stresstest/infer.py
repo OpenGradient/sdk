@@ -6,26 +6,24 @@ from utils import stress_test_wrapper
 import opengradient as og
 
 # Number of requests to run serially
-NUM_REQUESTS = 100
+NUM_REQUESTS = 10_000
 MODEL = "QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ"
 
+
 def run_inference(input_data: dict):
-    og.infer(
-        MODEL,
-        og.InferenceMode.VANILLA,
-        input_data
-    )
+    og.infer(MODEL, og.InferenceMode.VANILLA, input_data)
+
 
 def main(private_key: str):
     # init with private key only
     og.init(private_key=private_key, email=None, password=None)
 
     latencies, failures = stress_test_wrapper(run_inference, num_requests=NUM_REQUESTS)
-    
+
     # Calculate and print statistics
     total_requests = NUM_REQUESTS
     success_rate = (len(latencies) / total_requests) * 100 if total_requests > 0 else 0
-    
+
     if latencies:
         avg_latency = statistics.mean(latencies)
         median_latency = statistics.median(latencies)
@@ -34,7 +32,7 @@ def main(private_key: str):
         p95_latency = statistics.quantiles(latencies, n=20)[18]  # 95th percentile
     else:
         avg_latency = median_latency = min_latency = max_latency = p95_latency = 0
-    
+
     print("\nOpenGradient Inference Stress Test Results:")
     print(f"Using model '{MODEL}'")
     print("=" * 20 + "\n")
@@ -53,9 +51,10 @@ def main(private_key: str):
     else:
         print("\n✅ NO FAILURES")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run inference stress test")
     parser.add_argument("private_key", help="Private key for inference")
     args = parser.parse_args()
-    
+
     main(args.private_key)
