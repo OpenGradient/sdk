@@ -101,9 +101,6 @@ def initialize_config(ctx):
     )
     ctx.obj["password"] = password if password else None
 
-    ctx.obj["rpc_url"] = DEFAULT_RPC_URL
-    ctx.obj["contract_address"] = DEFAULT_INFERENCE_CONTRACT_ADDRESS
-
     save_og_config(ctx)
     click.echo("Config has been saved.")
     click.secho("You can run 'opengradient config show' to see configs.", fg="green")
@@ -128,11 +125,11 @@ def cli(ctx):
     if ctx.invoked_subcommand in no_client_commands:
         return
 
-    if all(key in ctx.obj for key in ["private_key", "rpc_url", "contract_address"]):
+    if all(key in ctx.obj for key in ["private_key"]):
         try:
             ctx.obj["client"] = Client(
                 private_key=ctx.obj["private_key"],
-                rpc_url=ctx.obj["rpc_url"],
+                rpc_url=DEFAULT_RPC_URL,
                 contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
                 email=ctx.obj.get("email"),
                 password=ctx.obj.get("password"),
