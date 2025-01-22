@@ -13,7 +13,6 @@ MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
 def run_prompt(prompt: str):
     og.llm_completion(MODEL, prompt, max_tokens=50)
 
-
 def main(private_key: str):
     # init with private key only
     og.init(private_key=private_key, email=None, password=None)
