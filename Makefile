@@ -5,6 +5,8 @@ LLAMA_3B_MODEL := meta-llama/Meta-Llama-3-8B-Instruct
 MISTRAL_MODEL := mistralai/Mistral-7B-Instruct-v0.3
 LLAMA_70B_MODEL := meta-llama/Llama-3.1-70B-Instruct
 QWEN_2_5_72B_INSTRUCT := Qwen/Qwen2.5-72B-Instruct
+DOBBY_UNHINGED_3_1_8B := SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B
+DOBBY_LEASHED_3_1_8B := SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B
 
 infer:
 	pip install -e .
@@ -12,13 +14,13 @@ infer:
 
 completion:
 	pip install -e .
-	python -m opengradient.cli completion --model $(QWEN_2_5_72B_INSTRUCT) \
+	python -m opengradient.cli completion --model $(DOBBY_UNHINGED_3_1_8B) \
 		--prompt "hello doctor?!??!! $(shell echo $$RANDOM)" \
 		--max-tokens 50
 
 chat:
 	pip install -e .
-	python -m opengradient.cli chat --model $(QWEN_2_5_72B_INSTRUCT) \
+	python -m opengradient.cli chat --model $(DOBBY_LEASHED_3_1_8B) \
 		--messages '[{"role":"user","content":"hellooooo $(shell echo $$RANDOM)"}]' \
 		--max-tokens 50
 

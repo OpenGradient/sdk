@@ -133,11 +133,12 @@ class LLM(str, Enum):
     MISTRAL_7B_INSTRUCT_V3 = "mistralai/Mistral-7B-Instruct-v0.3"
     QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
+    DOBBY_UNHINGED_3_1_8B = "SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B"
+    DOBBY_LEASHED_3_1_8B = "SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B"
 
 
 class TEE_LLM(str, Enum):
     """Enum for LLM models available for TEE execution"""
-    QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
 
 
