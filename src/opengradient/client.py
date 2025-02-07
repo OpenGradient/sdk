@@ -739,7 +739,7 @@ class Client:
         """
         Returns the ABI for the ModelExecutorHistorical contract.
         """
-        abi_path = Path(__file__).parent / "abi" / "ModelExecutorHistorical.abi"
+        abi_path = Path(__file__).parent / "executor_build" / "ModelExecutorHistorical.abi"
         with open(abi_path, "r") as f:
             return json.load(f)
 
@@ -758,31 +758,25 @@ class Client:
 
         # Get contract ABI and bytecode
         abi = self._get_model_executor_abi()
-        bin_path = Path(__file__).parent / "contracts" / "templates" / "ModelExecutorHistorical.bin"
+        bin_path = Path(__file__).parent / "executor_build" / "ModelExecutorHistorical.bin"
 
         with open(bin_path, "r") as f:
             bytecode = f.read().strip()
 
         print("📦 Deploying workflow contract...")
 
+
         # Create contract instance
         contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
 
         # Deploy contract with constructor arguments
-        transaction = contract.constructor(
-            model_cid,
-            input_query.to_abi_format(),
-            "0x00000000000000000000000000000000000000F5",  # Historical contract address
-            input_tensor_name,
-        ).build_transaction(
-            {
-                "from": self._wallet_account.address,
-                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
-                "gas": 15000000,
-                "gasPrice": self._blockchain.eth.gas_price,
-                "chainId": self._blockchain.eth.chain_id,
-            }
-        )
+        transaction = contract.constructor().build_transaction({
+            "from": self._wallet_account.address,
+            "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+            "gas": 15000000,
+            "gasPrice": self._blockchain.eth.gas_price,
+            "chainId": self._blockchain.eth.chain_id,
+        })
 
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)

@@ -18,7 +18,8 @@ class CandleType(IntEnum):
 
 @dataclass
 class HistoricalInputQuery:
-    currency_pair: str
+    base: str
+    quote: str
     total_candles: int
     candle_duration_in_mins: int
     order: CandleOrder
@@ -27,7 +28,8 @@ class HistoricalInputQuery:
     def to_abi_format(self) -> tuple:
         """Convert to format expected by contract ABI"""
         return (
-            self.currency_pair,
+            self.base,
+            self.quote,
             self.total_candles,
             self.candle_duration_in_mins,
             int(self.order),
@@ -39,9 +41,9 @@ class HistoricalInputQuery:
         """Create HistoricalInputQuery from dictionary format"""
         order = CandleOrder[data["order"].upper()]
         candle_types = [CandleType[ct.upper()] for ct in data["candle_types"]]
-
         return cls(
-            currency_pair=data["currency_pair"],
+            base=data["base"],
+            quote=data["quote"],
             total_candles=int(data["total_candles"]),
             candle_duration_in_mins=int(data["candle_duration_in_mins"]),
             order=order,
