@@ -806,7 +806,7 @@ class Client:
                 }
             ]
 
-            scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
+            scheduler_address = "0x6F937b9f4Fa7723932827cd73063B70Be2b56748"
             scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
 
             try:
