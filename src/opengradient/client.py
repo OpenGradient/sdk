@@ -739,7 +739,7 @@ class Client:
         """
         Returns the ABI for the ModelExecutorHistorical contract.
         """
-        abi_path = Path(__file__).parent / "executor_build" / "ModelExecutorHistorical.abi"
+        abi_path = Path(__file__).parent / "abi" / "ModelExecutorHistorical.abi"
         with open(abi_path, "r") as f:
             return json.load(f)
 
@@ -758,7 +758,7 @@ class Client:
 
         # Get contract ABI and bytecode
         abi = self._get_model_executor_abi()
-        bin_path = Path(__file__).parent / "executor_build" / "ModelExecutorHistorical.bin"
+        bin_path = Path(__file__).parent / "bin" / "ModelExecutorHistorical.bin"
 
         with open(bin_path, "r") as f:
             bytecode = f.read().strip()
