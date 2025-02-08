@@ -367,7 +367,7 @@ __all__ = [
     "read_workflow_result",
     "run_workflow",
     "llm",
-    "alphasense"
+    "alphasense",
 ]
 
 __pdoc__ = {
