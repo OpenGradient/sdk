@@ -55,7 +55,7 @@ tee_chat:
 	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --mode TEE --messages '[{"role":"user","content":"hello"}]' --max-tokens 150
 
 docs:
-	pdoc opengradient -o docs --force  --template-dir ./templates
+	pdoc opengradient -o docs --template-dir ./templates
 
 build:
 	python -m build 
