@@ -75,4 +75,7 @@ publish:
 format:
 	ruff format .
 
-.PHONY: docs ruff
+integrationtest:
+	python integrationtest/agent/test_agent.py
+
+.PHONY: docs ruff integrationtest
