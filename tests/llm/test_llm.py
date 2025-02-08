@@ -5,6 +5,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 
 from opengradient.llm import OpenGradientChatModel
+from opengradient import LLM
 
 
 class TestLLM(unittest.TestCase):
@@ -14,7 +15,9 @@ class TestLLM(unittest.TestCase):
         if not private_key:
             raise ValueError("PRIVATE_KEY environment variable is not set")
 
-        self.llm = OpenGradientChatModel(private_key=private_key, model_cid="meta-llama/Llama-3.1-70B-Instruct")
+        self.llm = OpenGradientChatModel(
+            private_key=private_key, 
+            model_cid=LLM.QWEN_2_5_72B_INSTRUCT)
 
     def test_simple_completion(self):
         message = self.llm.invoke("say 'hello'. literally")
