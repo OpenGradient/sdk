@@ -8,7 +8,7 @@ import opengradient as og
 from .types import ToolType
 
 
-def create_og_model_tool(
+def create_read_workflow_tool(
     tool_type: ToolType,
     model_cid: str,
     tool_name: str,
