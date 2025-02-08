@@ -60,7 +60,7 @@ def create_read_workflow_tool(
 
     # define runnable
     def read_workflow():
-        output = og.read_workflow_result(workflow_contract_address=workflow_contract_address)
+        output = og.read_workflow_result(contract_address=workflow_contract_address)
         return output_formatter(output)
 
     if tool_type == ToolType.LANGCHAIN:
