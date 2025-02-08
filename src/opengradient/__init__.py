@@ -8,7 +8,7 @@ from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams
 
-from . import llm, mltools
+from . import llm, alphasense
 
 _client = None
 
@@ -367,7 +367,7 @@ __all__ = [
     "read_workflow_result",
     "run_workflow",
     "llm",
-    "mltools"
+    "alphasense"
 ]
 
 __pdoc__ = {
@@ -377,7 +377,7 @@ __pdoc__ = {
     "defaults": False,
     "exceptions": False,
     "llm": True,
-    "mltools": True,
+    "alphasense": True,
     "proto": False,
     "types": False,
     "utils": False,
