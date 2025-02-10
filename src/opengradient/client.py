@@ -99,7 +99,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = "https://api.opengradient.ai/api/v0/models/"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}", "Content-Type": "application/json"}
         payload = {"name": model_name, "description": model_desc}
 
         try:
@@ -156,7 +156,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}", "Content-Type": "application/json"}
         payload = {"notes": notes, "is_major": is_major}
 
         try:
@@ -220,7 +220,7 @@ class Client:
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
         logging.info(f"Starting upload for file: {model_path}")
         logging.info(f"File size: {os.path.getsize(model_path)} bytes")
@@ -591,7 +591,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
         logging.debug(f"List Files URL: {url}")
         logging.debug(f"Headers: {headers}")
@@ -765,18 +765,19 @@ class Client:
 
         print("📦 Deploying workflow contract...")
 
-
         # Create contract instance
         contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
 
         # Deploy contract with constructor arguments
-        transaction = contract.constructor().build_transaction({
-            "from": self._wallet_account.address,
-            "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
-            "gas": 15000000,
-            "gasPrice": self._blockchain.eth.gas_price,
-            "chainId": self._blockchain.eth.chain_id,
-        })
+        transaction = contract.constructor().build_transaction(
+            {
+                "from": self._wallet_account.address,
+                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                "gas": 15000000,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
+            }
+        )
 
         signed_txn = self._wallet_account.sign_transaction(transaction)
         tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
@@ -910,21 +911,21 @@ def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFA
         max_retries (int): Maximum number of retry attempts
         retry_delay (float): Delay in seconds between retries for nonce issues
     """
-    NONCE_TOO_LOW = 'nonce too low'
-    NONCE_TOO_HIGH = 'nonce too high'
+    NONCE_TOO_LOW = "nonce too low"
+    NONCE_TOO_HIGH = "nonce too high"
 
     effective_retries = max_retries if max_retries is not None else DEFAULT_MAX_RETRY
-    
+
     for attempt in range(effective_retries):
         try:
             return txn_function()
         except Exception as e:
             error_msg = str(e).lower()
-            
+
             if NONCE_TOO_LOW in error_msg or NONCE_TOO_HIGH in error_msg:
                 if attempt == max_retries - 1:
                     raise OpenGradientError(f"Transaction failed after {effective_retries} attempts: {e}")
                 time.sleep(retry_delay)
                 continue
-            
+
             raise
