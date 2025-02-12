@@ -366,6 +366,8 @@ __all__ = [
     "new_workflow",
     "read_workflow_result",
     "run_workflow",
+    "llm",
+    "mltools",
 ]
 
 __pdoc__ = {

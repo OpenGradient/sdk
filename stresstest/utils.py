@@ -54,9 +54,9 @@ def stress_test_wrapper(infer_function: Callable, num_requests: int, is_llm: boo
             end_time = time.time()
             latency = end_time - start_time
             latencies.append(latency)
-            print(f"Request {i+1}/{num_requests} completed. Latency: {latency:.4f} seconds")
+            print(f"Request {i + 1}/{num_requests} completed. Latency: {latency:.4f} seconds")
         except Exception as e:
             failures += 1
-            print(f"Request {i+1}/{num_requests} failed. Error: {str(e)}")
+            print(f"Request {i + 1}/{num_requests} failed. Error: {str(e)}")
 
     return latencies, failures

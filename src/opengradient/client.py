@@ -99,7 +99,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = "https://api.opengradient.ai/api/v0/models/"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}", "Content-Type": "application/json"}
         payload = {"name": model_name, "description": model_desc}
 
         try:
@@ -156,7 +156,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}', "Content-Type": "application/json"}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}", "Content-Type": "application/json"}
         payload = {"notes": notes, "is_major": is_major}
 
         try:
@@ -220,7 +220,7 @@ class Client:
             raise FileNotFoundError(f"Model file not found: {model_path}")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
         logging.info(f"Starting upload for file: {model_path}")
         logging.info(f"File size: {os.path.getsize(model_path)} bytes")
@@ -591,7 +591,7 @@ class Client:
             raise ValueError("User not authenticated")
 
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
-        headers = {"Authorization": f'Bearer {self._hub_user["idToken"]}'}
+        headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
         logging.debug(f"List Files URL: {url}")
         logging.debug(f"Headers: {headers}")
@@ -758,7 +758,7 @@ class Client:
 
         # Get contract ABI and bytecode
         abi = self._get_model_executor_abi()
-        bin_path = Path(__file__).parent / "contracts" / "templates" / "ModelExecutorHistorical.bin"
+        bin_path = Path(__file__).parent / "bin" / "ModelExecutorHistorical.bin"
 
         with open(bin_path, "r") as f:
             bytecode = f.read().strip()
@@ -769,12 +769,7 @@ class Client:
         contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
 
         # Deploy contract with constructor arguments
-        transaction = contract.constructor(
-            model_cid,
-            input_query.to_abi_format(),
-            "0x00000000000000000000000000000000000000F5",  # Historical contract address
-            input_tensor_name,
-        ).build_transaction(
+        transaction = contract.constructor().build_transaction(
             {
                 "from": self._wallet_account.address,
                 "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
@@ -812,7 +807,7 @@ class Client:
                 }
             ]
 
-            scheduler_address = "0xE81a54399CFDf551bB917d0427464fE54537D245"
+            scheduler_address = "0x6F937b9f4Fa7723932827cd73063B70Be2b56748"
             scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
 
             try:
@@ -916,21 +911,23 @@ def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFA
         max_retries (int): Maximum number of retry attempts
         retry_delay (float): Delay in seconds between retries for nonce issues
     """
-    NONCE_TOO_LOW = 'nonce too low'
-    NONCE_TOO_HIGH = 'nonce too high'
+    NONCE_TOO_LOW = "nonce too low"
+    NONCE_TOO_HIGH = "nonce too high"
+    INVALID_NONCE = "invalid nonce"
 
     effective_retries = max_retries if max_retries is not None else DEFAULT_MAX_RETRY
-    
+
     for attempt in range(effective_retries):
         try:
             return txn_function()
         except Exception as e:
             error_msg = str(e).lower()
-            
-            if NONCE_TOO_LOW in error_msg or NONCE_TOO_HIGH in error_msg:
-                if attempt == max_retries - 1:
+
+            nonce_errors = [INVALID_NONCE, NONCE_TOO_LOW, NONCE_TOO_HIGH]
+            if any(error in error_msg for error in nonce_errors):
+                if attempt == effective_retries - 1:
                     raise OpenGradientError(f"Transaction failed after {effective_retries} attempts: {e}")
                 time.sleep(retry_delay)
                 continue
-            
+
             raise

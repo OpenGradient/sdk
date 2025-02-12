@@ -18,7 +18,8 @@ class CandleType(IntEnum):
 
 @dataclass
 class HistoricalInputQuery:
-    currency_pair: str
+    base: str
+    quote: str
     total_candles: int
     candle_duration_in_mins: int
     order: CandleOrder
@@ -27,7 +28,8 @@ class HistoricalInputQuery:
     def to_abi_format(self) -> tuple:
         """Convert to format expected by contract ABI"""
         return (
-            self.currency_pair,
+            self.base,
+            self.quote,
             self.total_candles,
             self.candle_duration_in_mins,
             int(self.order),
@@ -39,9 +41,9 @@ class HistoricalInputQuery:
         """Create HistoricalInputQuery from dictionary format"""
         order = CandleOrder[data["order"].upper()]
         candle_types = [CandleType[ct.upper()] for ct in data["candle_types"]]
-
         return cls(
-            currency_pair=data["currency_pair"],
+            base=data["base"],
+            quote=data["quote"],
             total_candles=int(data["total_candles"]),
             candle_duration_in_mins=int(data["candle_duration_in_mins"]),
             order=order,
@@ -128,6 +130,7 @@ class Abi:
 
 class LLM(str, Enum):
     """Enum for available LLM models"""
+
     META_LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
     LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
     QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
@@ -138,6 +141,7 @@ class LLM(str, Enum):
 
 class TEE_LLM(str, Enum):
     """Enum for LLM models available for TEE execution"""
+
     META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
 
 
