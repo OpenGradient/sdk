@@ -2,6 +2,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import Dict, List, Optional, Tuple, Union
+import numpy as np
 
 
 class CandleOrder(IntEnum):
@@ -88,8 +89,12 @@ class LlmInferenceMode:
 
 @dataclass
 class ModelOutput:
-    numbers: List[NumberTensor]
-    strings: List[StringTensor]
+    """
+    Model output struct based on translations from smart contract.
+    """
+    numbers: Dict[str, np.ndarray]
+    strings: Dict[str, np.ndarray]
+    jsons: Dict[str, np.ndarray]  # Converts to JSON dictionary
     is_simulation_result: bool
 
 

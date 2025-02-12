@@ -8,6 +8,7 @@ from opengradient.alphasense import create_read_workflow_tool, ToolType
 from opengradient.llm import OpenGradientChatModel
 from opengradient import LLM
 from opengradient import init
+from opengradient import read_workflow_result
 
 
 class TestLLM(unittest.TestCase):
@@ -38,18 +39,23 @@ class TestLLM(unittest.TestCase):
         self.assertIn("0.145", list(events)[-1]["messages"][-1].content)
 
     def test_workflow(self):
+        # Read current workflow result
+        workflow_result = read_workflow_result(contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0")
+        expected_result = str(workflow_result.numbers['Y'][0])
+
         btc_workflow_tool = create_read_workflow_tool(
             tool_type=ToolType.LANGCHAIN,
-            workflow_contract_address="0x6F937b9f4Fa7723932827cd73063B70Be2b56748",
+            workflow_contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0",
             tool_name="BTC_Price_Forecast",
             tool_description="Reads latest forecast for BTC price",
             output_formatter=lambda x: x
         )
 
         agent_executor = create_react_agent(self.llm, [btc_workflow_tool])
-        events = agent_executor.stream({"messages": [("user", "what is btc forecast?")]}, stream_mode="values", debug=False)
-
-        self.assertIn("0.145", list(events)[-1]["messages"][-1].content)
+        events = agent_executor.stream({"messages": [("user", "Please print the raw value of the latest BTC forecast?")]}, stream_mode="values", debug=False)
+        
+        # Just checks that the first 5 values are in the result
+        self.assertIn(expected_result[:5], list(events)[-1]["messages"][-1].content)
 
 
 if __name__ == "__main__":

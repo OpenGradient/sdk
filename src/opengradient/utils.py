@@ -6,6 +6,8 @@ from typing import Dict, List, Tuple
 import numpy as np
 from web3.datastructures import AttributeDict
 
+from .types import ModelOutput
+
 
 def convert_to_fixed_point(number: float) -> Tuple[int, int]:
     """
@@ -170,3 +172,59 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
     logging.debug(f"Parsed output: {output_dict}")
 
     return output_dict
+
+def convert_array_to_model_output(array_data: List) -> ModelOutput:
+    """
+    Converts inference output (in array form) into a user-readable ModelOutput class.
+    This expects data from the smart contract returned as 4 element array:
+        array_data[0] = NumberTensor
+        array_data[1] = StringTensor
+        array_data[2] = JsonTensor
+        array_data[3] = Bool
+    """
+    logging.debug(f"Parsing array data: {array_data}")
+
+    # Parse number tensors
+    logging.debug(f"Parsing number data: {array_data[0]}")
+    number_data = {}
+    for tensor in array_data[0]:
+        logging.debug(f"Processing tensor: {tensor}")
+        name = tensor[0]
+        values = tensor[1]
+        shape = tensor[2]
+
+        # Convert from fixed point into np.float32
+        converted_values = []
+        for value in values:
+            converted_values.append(convert_to_float32(value=value[0], decimals=value[1]))
+
+        number_data[name] = np.array(converted_values).reshape(shape)
+    logging.debug(f"Parsed number tensors: {number_data}")
+
+    # Parse string tensors
+    logging.debug(f"Parsing string data: {array_data[1]}")
+    string_data = {}
+    for tensor in array_data[1]:
+        logging.debug(f"Processing tensor: {tensor}")
+        name = tensor[0]
+        values = tensor[1]
+        shape = tensor[2]
+        string_data[name] = np.array(values).reshape(shape)
+    logging.debug(f"Parsed string tensors: {number_data}")
+
+    # Parse JSON tensors
+    logging.debug(f"Parsing json data: {array_data[2]}")
+    json_data = {}
+    for tensor in array_data[2]:
+        logging.debug(f"Processing tensor: {tensor}")
+        name = tensor[0]
+        value = tensor[1]
+        json_data[name] = np.array(json.loads(value))
+    logging.debug(f"Parsed string tensors: {json_data}")
+
+    return ModelOutput(
+        numbers=number_data,
+        strings=string_data,
+        jsons=json_data,
+        is_simulation_result=array_data[3],
+    )
