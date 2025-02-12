@@ -7,7 +7,11 @@ from .types import ToolType
 
 
 def create_read_workflow_tool(
-    tool_type: ToolType, workflow_contract_address: str, tool_name: str, tool_description: str, output_formatter: Callable[..., str] = lambda x: x
+    tool_type: ToolType,
+    workflow_contract_address: str,
+    tool_name: str,
+    tool_description: str,
+    output_formatter: Callable[..., str] = lambda x: x,
 ) -> BaseTool:
     """
     Creates a tool that reads results from a workflow contract on OpenGradient.
