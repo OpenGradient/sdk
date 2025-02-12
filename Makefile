@@ -54,7 +54,7 @@ tee_chat:
 	python -m opengradient.cli chat --model $(LLAMA_70B_MODEL) --mode TEE --messages '[{"role":"user","content":"hello"}]' --max-tokens 150
 
 docs:
-	pdoc opengradient -o docs --force  --template-dir ./templates
+	pdoc opengradient -o docs --template-dir ./templates
 
 build:
 	python -m build 
@@ -71,7 +71,13 @@ publish:
 	twine upload dist/*
 	@echo "✨ Done! Published to PyPI"
 
-ruff:
+format:
 	ruff format .
 
-.PHONY: docs ruff
+integrationtest:
+	python integrationtest/agent/test_agent.py
+
+utils_test:
+	pytest tests/utils_test.py -v
+
+.PHONY: docs ruff integrationtest

@@ -335,6 +335,7 @@ class Client:
             if len(parsed_logs) < 1:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
 
+            # TODO: This should return a ModelOutput class object
             model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
             return tx_hash.hex(), model_output
 
@@ -838,7 +839,7 @@ class Client:
 
         return contract_address
 
-    def read_workflow_result(self, contract_address: str) -> Any:
+    def read_workflow_result(self, contract_address: str) -> ModelOutput:
         """
         Reads the latest inference result from a deployed workflow contract.
 
@@ -846,7 +847,7 @@ class Client:
             contract_address (str): Address of the deployed workflow contract
 
         Returns:
-            Any: The inference result from the contract
+            ModelOutput: The inference result from the contract
 
         Raises:
             ContractLogicError: If the transaction fails
@@ -857,7 +858,8 @@ class Client:
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
-        return result
+
+        return utils.convert_array_to_model_output(result)
 
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
@@ -899,7 +901,8 @@ class Client:
 
         # Get the inference result from the contract
         result = contract.functions.getInferenceResult().call()
-        return result
+
+        return utils.convert_array_to_model_output(result)
 
 
 def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):

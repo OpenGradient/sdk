@@ -6,6 +6,8 @@ from typing import Dict, List, Tuple
 import numpy as np
 from web3.datastructures import AttributeDict
 
+from .types import ModelOutput
+
 
 def convert_to_fixed_point(number: float) -> Tuple[int, int]:
     """
@@ -170,3 +172,49 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
     logging.debug(f"Parsed output: {output_dict}")
 
     return output_dict
+
+
+def convert_array_to_model_output(array_data: List) -> ModelOutput:
+    """
+    Converts inference output (in array form) into a user-readable ModelOutput class.
+    This expects data from the smart contract returned as 4 element array:
+        array_data[0] = NumberTensor
+        array_data[1] = StringTensor
+        array_data[2] = JsonTensor
+        array_data[3] = Bool
+    """
+    # Parse number tensors
+    number_data = {}
+    for tensor in array_data[0]:
+        name = tensor[0]
+        values = tensor[1]
+        shape = tensor[2]
+
+        # Convert from fixed point into np.float32
+        converted_values = []
+        for value in values:
+            converted_values.append(convert_to_float32(value=value[0], decimals=value[1]))
+
+        number_data[name] = np.array(converted_values).reshape(shape)
+
+    # Parse string tensors
+    string_data = {}
+    for tensor in array_data[1]:
+        name = tensor[0]
+        values = tensor[1]
+        shape = tensor[2]
+        string_data[name] = np.array(values).reshape(shape)
+
+    # Parse JSON tensors
+    json_data = {}
+    for tensor in array_data[2]:
+        name = tensor[0]
+        value = tensor[1]
+        json_data[name] = np.array(json.loads(value))
+
+    return ModelOutput(
+        numbers=number_data,
+        strings=string_data,
+        jsons=json_data,
+        is_simulation_result=array_data[3],
+    )
