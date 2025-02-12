@@ -7,7 +7,7 @@ from .types import ToolType
 
 
 def create_read_workflow_tool(
-    tool_type: ToolType, workflow_contract_address: str, tool_name: str, output_formatter: Callable[..., str], tool_description: str
+    tool_type: ToolType, workflow_contract_address: str, tool_name: str, tool_description: str, output_formatter: Callable[..., str] = lambda x: x
 ) -> BaseTool:
     """
     Creates a tool that reads results from a workflow contract on OpenGradient.
@@ -24,11 +24,11 @@ def create_read_workflow_tool(
             to read results.
         tool_name (str): The name to assign to the created tool. This will be used to
             identify and invoke the tool within the agent.
-        output_formatter (Callable[..., str]): A function that takes the workflow output
-            and formats it into a string. This ensures the output is compatible with
-            the tool framework.
         tool_description (str): A description of what the tool does and how it processes
             the workflow results.
+        output_formatter (Callable[..., str], optional): A function that takes the workflow output
+            and formats it into a string. This ensures the output is compatible with
+            the tool framework. Default returns string as is.
 
     Returns:
         BaseTool: For ToolType.LANGCHAIN, returns a LangChain StructuredTool.
