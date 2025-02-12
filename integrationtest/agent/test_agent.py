@@ -19,9 +19,7 @@ class TestLLM(unittest.TestCase):
             raise ValueError("PRIVATE_KEY environment variable is not set")
 
         init(private_key=private_key, email=None, password=None)
-        self.llm = OpenGradientChatModel(
-            private_key=private_key, 
-            model_cid=LLM.QWEN_2_5_72B_INSTRUCT)
+        self.llm = OpenGradientChatModel(private_key=private_key, model_cid=LLM.QWEN_2_5_72B_INSTRUCT)
 
     def test_simple_completion(self):
         message = self.llm.invoke("say 'hello'. literally")
@@ -41,19 +39,21 @@ class TestLLM(unittest.TestCase):
     def test_workflow(self):
         # Read current workflow result
         workflow_result = read_workflow_result(contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0")
-        expected_result = str(workflow_result.numbers['Y'][0])
+        expected_result = str(workflow_result.numbers["Y"][0])
 
         btc_workflow_tool = create_read_workflow_tool(
             tool_type=ToolType.LANGCHAIN,
             workflow_contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0",
             tool_name="BTC_Price_Forecast",
             tool_description="Reads latest forecast for BTC price",
-            output_formatter=lambda x: x
+            output_formatter=lambda x: x,
         )
 
         agent_executor = create_react_agent(self.llm, [btc_workflow_tool])
-        events = agent_executor.stream({"messages": [("user", "Please print the raw value of the latest BTC forecast?")]}, stream_mode="values", debug=False)
-        
+        events = agent_executor.stream(
+            {"messages": [("user", "Please print the raw value of the latest BTC forecast?")]}, stream_mode="values", debug=False
+        )
+
         # Just checks that the first 5 values are in the result
         self.assertIn(expected_result[:5], list(events)[-1]["messages"][-1].content)
 

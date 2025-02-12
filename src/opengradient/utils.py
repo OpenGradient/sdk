@@ -173,6 +173,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
 
     return output_dict
 
+
 def convert_array_to_model_output(array_data: List) -> ModelOutput:
     """
     Converts inference output (in array form) into a user-readable ModelOutput class.

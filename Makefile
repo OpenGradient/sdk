@@ -78,4 +78,7 @@ format:
 integrationtest:
 	python integrationtest/agent/test_agent.py
 
+utils_test:
+	pytest tests/utils_test.py -v
+
 .PHONY: docs ruff integrationtest

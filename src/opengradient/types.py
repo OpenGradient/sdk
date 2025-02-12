@@ -92,6 +92,7 @@ class ModelOutput:
     """
     Model output struct based on translations from smart contract.
     """
+
     numbers: Dict[str, np.ndarray]
     strings: Dict[str, np.ndarray]
     jsons: Dict[str, np.ndarray]  # Converts to JSON dictionary

@@ -901,7 +901,7 @@ class Client:
 
         # Get the inference result from the contract
         result = contract.functions.getInferenceResult().call()
-        
+
         return utils.convert_array_to_model_output(result)
 
 
