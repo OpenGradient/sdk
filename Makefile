@@ -2,7 +2,6 @@
 MESSAGES_FILE := messages.json
 TOOLS_FILE := tools.json
 LLAMA_3B_MODEL := meta-llama/Meta-Llama-3-8B-Instruct
-MISTRAL_MODEL := mistralai/Mistral-7B-Instruct-v0.3
 LLAMA_70B_MODEL := meta-llama/Llama-3.1-70B-Instruct
 QWEN_2_5_72B_INSTRUCT := Qwen/Qwen2.5-72B-Instruct
 DOBBY_UNHINGED_3_1_8B := SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B
