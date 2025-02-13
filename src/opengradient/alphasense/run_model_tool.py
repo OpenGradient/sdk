@@ -5,24 +5,15 @@ from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
 import opengradient as og
+from .types import ToolType
 
 
-class ToolType(str, Enum):
-    """Indicates the framework the tool is compatible with."""
-
-    LANGCHAIN = "langchain"
-    SWARM = "swarm"
-
-    def __str__(self) -> str:
-        return self.value
-
-
-def create_og_model_tool(
+def create_run_model_tool(
     tool_type: ToolType,
     model_cid: str,
     tool_name: str,
     input_getter: Callable,
-    output_formatter: Callable[..., str],
+    output_formatter: Callable[..., str] = lambda x: x,
     input_schema: Type[BaseModel] = None,
     tool_description: str = "Executes the given ML model",
     inference_mode: og.InferenceMode = og.InferenceMode.VANILLA,
@@ -44,9 +35,9 @@ def create_og_model_tool(
             and invoke the tool within the agent.
         input_getter (Callable): A function that returns the input data required by the model.
             The function should return data in a format compatible with the model's expectations.
-        output_formatter (Callable[..., str]): A function that takes the model output and
+        output_formatter (Callable[..., str], optional): A function that takes the model output and
             formats it into a string. This is required to ensure the output is compatible
-            with the tool framework.
+            with the tool framework. Default returns string as is.
         input_schema (Type[BaseModel], optional): A Pydantic BaseModel class defining the
             input schema. This will be used directly for LangChain tools and converted
             to appropriate annotations for Swarm tools. Default is None.
