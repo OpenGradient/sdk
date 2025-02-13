@@ -374,7 +374,7 @@ class Client:
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
 
-            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
+            if inference_mode == LlmInferenceMode.TEE and model_cid not in [llm.value for llm in TEE_LLM]:
                 raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
