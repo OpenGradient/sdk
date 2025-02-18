@@ -26,7 +26,7 @@ class OGCompletions(object):
         # convert OpenAI message format so it's compatible with the SDK
         sdk_messages = OGCompletions.convert_to_abi_compatible(messages)
 
-        _, finish_reason, chat_completion = self.client.llm_chat(
+        chat_output = self.client.llm_chat(
             model_cid=model,
             messages=sdk_messages,
             max_tokens=200,
@@ -35,6 +35,8 @@ class OGCompletions(object):
             temperature=0.25,
             inference_mode=og.LlmInferenceMode.VANILLA,
         )
+        finish_reason = chat_output.finish_reason
+        chat_completion = chat_output.message
 
         choice = {
             "index": 0,  # Add missing index field

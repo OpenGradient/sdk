@@ -91,7 +91,7 @@ class OpenGradientChatModel(BaseChatModel):
             else:
                 raise ValueError(f"Unexpected message type: {message}")
 
-        _, finish_reason, chat_response = self.client.llm_chat(
+        chat_output = self.client.llm_chat(
             model_cid=self.model_cid,
             messages=sdk_messages,
             stop_sequence=stop,
@@ -99,6 +99,8 @@ class OpenGradientChatModel(BaseChatModel):
             tools=self.tools,
             inference_mode=LlmInferenceMode.VANILLA,
         )
+        finish_reason = chat_output.finish_reason
+        chat_response = chat_output.message
 
         if "tool_calls" in chat_response and chat_response["tool_calls"]:
             tool_calls = []
