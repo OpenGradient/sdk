@@ -18,7 +18,7 @@ from web3.logs import DISCARD
 from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, SchedulerParams
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, TextGenerationOutput, SchedulerParams
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {
@@ -418,7 +418,11 @@ class Client:
                 raise OpenGradientError("LLM completion result event not found in transaction logs")
 
             llm_answer = parsed_logs[0]["args"]["response"]["answer"]
-            return tx_hash.hex(), llm_answer
+            
+            return TextGenerationOutput(
+                transaction_hash=tx_hash.hex(),
+                answer=llm_answer
+            )
 
         return run_with_retry(execute_transaction, max_retries)
 
@@ -570,7 +574,11 @@ class Client:
             if (tool_calls := message.get("tool_calls")) is not None:
                 message["tool_calls"] = [dict(tool_call) for tool_call in tool_calls]
 
-            return tx_hash.hex(), llm_result["finish_reason"], message
+            return TextGenerationOutput(
+                transaction_hash=tx_hash.hex(),
+                finish_reason=llm_result["finish_reason"],
+                message=message,
+            )
 
         return run_with_retry(execute_transaction, max_retries)
 

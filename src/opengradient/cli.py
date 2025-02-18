@@ -375,7 +375,7 @@ def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens
     client: Client = ctx.obj["client"]
     try:
         click.echo(f'Running LLM completion inference for model "{model_cid}"\n')
-        tx_hash, llm_output = client.llm_completion(
+        completion_output = client.llm_completion(
             model_cid=model_cid,
             inference_mode=LlmInferenceModes[inference_mode],
             prompt=prompt,
@@ -384,7 +384,7 @@ def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens
             temperature=temperature,
         )
 
-        print_llm_completion_result(model_cid, tx_hash, llm_output)
+        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.answer)
     except Exception as e:
         click.echo(f"Error running LLM completion: {str(e)}")
 
@@ -517,7 +517,7 @@ def chat(
         if not tools and not tools_file:
             parsed_tools = None
 
-        tx_hash, finish_reason, llm_chat_output = client.llm_chat(
+        completion_output = client.llm_chat(
             model_cid=model_cid,
             inference_mode=LlmInferenceModes[inference_mode],
             messages=messages,
@@ -528,7 +528,7 @@ def chat(
             tool_choice=tool_choice,
         )
 
-        print_llm_chat_result(model_cid, tx_hash, finish_reason, llm_chat_output)
+        print_llm_chat_result(model_cid, completion_output.transaction_hash, completion_output.finish_reason, completion_output.message)
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
 

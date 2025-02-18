@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, DefaultDict
 import numpy as np
 
 
@@ -97,6 +97,16 @@ class ModelOutput:
     strings: Dict[str, np.ndarray]
     jsons: Dict[str, np.ndarray]  # Converts to JSON dictionary
     is_simulation_result: bool
+
+@dataclass
+class TextGenerationOutput:
+    """
+    Text generation output struct
+    """
+    transaction_hash: str
+    finish_reason: str | None = ""
+    message: Dict[str, Union[str, list]] | None = DefaultDict
+    answer: str | None = ""
 
 
 @dataclass
