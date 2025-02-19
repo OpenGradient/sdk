@@ -101,12 +101,19 @@ class ModelOutput:
 @dataclass
 class TextGenerationOutput:
     """
-    Text generation output struct
+    Output structure for text generation requests.
     """
     transaction_hash: str
+    """Blockchain hash for the transaction."""
+
     finish_reason: str | None = ""
-    message: Dict[str, Union[str, list]] | None = DefaultDict
-    answer: str | None = ""
+    """Reason for completion (e.g., 'tool_call', 'stop', 'error'). Empty string if not applicable."""
+    
+    chat_output: Dict | None = DefaultDict
+    """Dictionary of chat response containing role, message content, tool call parameters, etc.. Empty dict if not applicable."""
+
+    completion_output: str | None = ""
+    """Raw text output from completion-style generation. Empty string if not applicable."""
 
 
 @dataclass

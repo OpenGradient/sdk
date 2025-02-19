@@ -100,7 +100,7 @@ class OpenGradientChatModel(BaseChatModel):
             inference_mode=LlmInferenceMode.VANILLA,
         )
         finish_reason = chat_output.finish_reason
-        chat_response = chat_output.message
+        chat_response = chat_output.chat_output
 
         if "tool_calls" in chat_response and chat_response["tool_calls"]:
             tool_calls = []

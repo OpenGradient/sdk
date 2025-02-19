@@ -350,7 +350,7 @@ class Client:
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
         max_retries: Optional[int] = None,
-    ) -> Tuple[str, str]:
+    ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using completions.
 
@@ -363,7 +363,9 @@ class Client:
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
 
         Returns:
-            Tuple[str, str]: The transaction hash and the LLM completion output.
+            TextGenerationOutput: Generated text results including:
+                - Transaction hash
+                - String of completion output
 
         Raises:
             OpenGradientError: If the inference fails.
@@ -421,7 +423,7 @@ class Client:
             
             return TextGenerationOutput(
                 transaction_hash=tx_hash.hex(),
-                answer=llm_answer
+                completion_output=llm_answer
             )
 
         return run_with_retry(execute_transaction, max_retries)
@@ -437,7 +439,7 @@ class Client:
         tools: Optional[List[Dict]] = [],
         tool_choice: Optional[str] = None,
         max_retries: Optional[int] = None,
-    ) -> Tuple[str, str]:
+    ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using chat.
 
@@ -489,7 +491,10 @@ class Client:
             tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto".
 
         Returns:
-            Tuple[str, str, dict]: The transaction hash, finish reason, and a dictionary struct of LLM chat messages.
+            TextGenerationOutput: Generated text results including:
+                - Transaction hash
+                - Finish reason (tool_call, stop, etc.)
+                - Dictionary of chat message output (role, content, tool_call, etc.)
 
         Raises:
             OpenGradientError: If the inference fails.
@@ -577,7 +582,7 @@ class Client:
             return TextGenerationOutput(
                 transaction_hash=tx_hash.hex(),
                 finish_reason=llm_result["finish_reason"],
-                message=message,
+                chat_output=message,
             )
 
         return run_with_retry(execute_transaction, max_retries)

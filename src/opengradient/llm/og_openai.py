@@ -36,7 +36,7 @@ class OGCompletions(object):
             inference_mode=og.LlmInferenceMode.VANILLA,
         )
         finish_reason = chat_output.finish_reason
-        chat_completion = chat_output.message
+        chat_completion = chat_output.chat_output
 
         choice = {
             "index": 0,  # Add missing index field

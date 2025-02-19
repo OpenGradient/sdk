@@ -384,7 +384,7 @@ def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens
             temperature=temperature,
         )
 
-        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.answer)
+        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.completion_output)
     except Exception as e:
         click.echo(f"Error running LLM completion: {str(e)}")
 
@@ -528,7 +528,7 @@ def chat(
             tool_choice=tool_choice,
         )
 
-        print_llm_chat_result(model_cid, completion_output.transaction_hash, completion_output.finish_reason, completion_output.message)
+        print_llm_chat_result(model_cid, completion_output.transaction_hash, completion_output.finish_reason, completion_output.chat_output)
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
 
