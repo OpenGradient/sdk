@@ -10,6 +10,13 @@ A Python SDK for decentralized model management and inference services on the Op
 - End-to-end verified AI execution
 - Command-line interface (CLI) for direct access
 
+## Model Hub
+
+Browse and discover AI models on our [Model Hub](https://hub.opengradient.ai/). The Hub provides:
+- Registry of models and LLMs
+- Easy model discovery and deployment
+- Direct integration with the SDK
+
 ## Installation
 
 ```bash
@@ -46,7 +53,8 @@ og.init(private_key="<private_key>", email="<email>", password="<password>")
 
 ### 3. Basic Usage
 
-Here's a quick example of model creation and inference:
+Browse available models on our [Model Hub](https://hub.opengradient.ai/) or create and upload your own:
+
 
 ```python
 # Create and upload a model
@@ -96,4 +104,4 @@ For comprehensive documentation, API reference, and examples, visit:
 
 - Run `opengradient --help` for CLI command reference
 - Visit our [documentation](https://docs.opengradient.ai/) for detailed guides
-- Join our [community](https://www.opengradient.ai/) for support
+- Join our [community](https://.opengradient.ai/) for support
