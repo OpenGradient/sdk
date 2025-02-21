@@ -359,25 +359,6 @@ def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
     return _client.run_workflow(contract_address)
 
 
-def get_workflow_history(contract_address: str, num_results: int) -> List[Dict]:
-    """
-    Gets historical inference results from a workflow contract.
-    
-    Args:
-        contract_address (str): Address of the deployed workflow contract
-        num_results (int): Number of historical results to retrieve
-        
-    Returns:
-        List[Dict]: List of historical inference results
-        
-    Raises:
-        RuntimeError: If OpenGradient client is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.get_workflow_history(contract_address, num_results)
-
-
 def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]:
     """
     Gets historical inference results from a workflow contract.
@@ -391,7 +372,7 @@ def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.get_workflow_history(contract_address, num_results)
+    return _client.read_workflow_result_workflow_history(contract_address, num_results)
 
 
 __all__ = [
@@ -410,8 +391,9 @@ __all__ = [
     "new_workflow",
     "read_workflow_result",
     "run_workflow",
-    "get_workflow_history",
     "read_workflow_history",
+    "InferenceMode",
+    "LlmInferenceMode",
     "HistoricalInputQuery",
     "SchedulerParams",
     "CandleType",

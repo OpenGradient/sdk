@@ -985,7 +985,7 @@ class Client:
                 print(f"   Additional info: {e.args}")
             raise
 
-    def get_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
+    def read_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
         """
         Gets historical inference results from a workflow contract.
         
