@@ -19,7 +19,7 @@ from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
 from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, TextGenerationOutput, SchedulerParams
-from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
+from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -761,7 +761,30 @@ class Client:
         input_tensor_name: str,
         scheduler_params: Optional[SchedulerParams] = None,
     ) -> str:
-        """Deploy a new workflow contract with the specified parameters."""
+        """
+        Deploy a new workflow contract with the specified parameters.
+
+        This function deploys a new workflow contract and optionally registers it with
+        the scheduler for automated execution. If scheduler_params is not provided,
+        the workflow will be deployed without automated execution scheduling.
+
+        Args:
+            model_cid (str): IPFS CID of the model to be executed
+            input_query (Union[Dict[str, Any], HistoricalInputQuery]): Query parameters for data input:
+                - If Dict: Must contain base, quote, total_candles, candle_duration_in_mins, order, candle_types
+                - If HistoricalInputQuery: A structured query object
+            input_tensor_name (str): Name of the input tensor expected by the model
+            scheduler_params (Optional[SchedulerParams]): Scheduler configuration for automated execution:
+                - frequency: Execution frequency in seconds
+                - duration_hours: How long to run in hours
+
+        Returns:
+            str: Deployed contract address. If scheduler_params was provided, the workflow
+                 will be automatically executed according to the specified schedule.
+
+        Raises:
+            Exception: If transaction fails or gas estimation fails
+        """
         # Get contract ABI and bytecode
         abi = self._get_model_executor_abi()
         bin_path = Path(__file__).parent / "bin" / "PriceHistoryInference.bin"
@@ -835,11 +858,18 @@ class Client:
 
     def _register_with_scheduler(self, contract_address: str, scheduler_params: SchedulerParams) -> None:
         """
-        Register the deployed workflow contract with the scheduler.
+        Register the deployed workflow contract with the scheduler for automated execution.
         
         Args:
-            contract_address: Address of the deployed workflow contract
-            scheduler_params: Scheduler configuration parameters
+            contract_address (str): Address of the deployed workflow contract
+            scheduler_params (SchedulerParams): Scheduler configuration containing:
+                - frequency: Execution frequency in seconds
+                - duration_hours: How long to run in hours
+                - end_time: Unix timestamp when scheduling should end
+
+        Raises:
+            Exception: If registration with scheduler fails. The workflow contract will
+                      still be deployed and can be executed manually.
         """
 
         print("\n⏰ Setting up automated execution schedule...")
@@ -862,7 +892,7 @@ class Client:
         ]
 
         # Scheduler contract address
-        scheduler_address = "0x7179724De4e7FF9271FA40C0337c7f90C0508eF6"
+        scheduler_address = DEFAULT_SCHEDULER_ADDRESS
         scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
 
         try:
@@ -895,105 +925,85 @@ class Client:
     def read_workflow_result(self, contract_address: str) -> ModelOutput:
         """
         Reads the latest inference result from a deployed workflow contract.
+
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+
+        Returns:
+            ModelOutput: The inference result from the contract
+
+        Raises:
+            ContractLogicError: If the transaction fails
+            Web3Error: If there are issues with the web3 connection or contract interaction
         """
-        print(f"\n🔍 Reading result from contract: {contract_address}")
-        
         # Get the contract interface
-        contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address), 
-            abi=self._get_model_executor_abi()
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+
+        # Get the result
+        result = contract.functions.getInferenceResult().call()
+
+        return utils.convert_array_to_model_output(result)
+    
+    def run_workflow(self, contract_address: str) -> ModelOutput:
+        """
+        Triggers the run() function on a deployed workflow contract and returns the result.
+
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+
+        Returns:
+            ModelOutput: The inference result from the contract
+
+        Raises:
+            ContractLogicError: If the transaction fails
+            Web3Error: If there are issues with the web3 connection or contract interaction
+        """
+        # Get the contract interface
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+
+        # Call run() function
+        nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+
+        run_function = contract.functions.run()
+        transaction = run_function.build_transaction(
+            {
+                "from": self._wallet_account.address,
+                "nonce": nonce,
+                "gas": 30000000,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
+            }
         )
 
-        try:
-            # Try getLastInferenceResults first (returns more info)
-            print("Trying getLastInferenceResults...")
-            results = contract.functions.getLastInferenceResults(1).call()
-            print(f"Results from getLastInferenceResults: {results}")
-            if results and len(results) > 0:
-                return results[0]
-        except Exception as e:
-            print(f"getLastInferenceResults failed: {str(e)}")
+        signed_txn = self._wallet_account.sign_transaction(transaction)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
 
-        try:
-            # Fallback to getInferenceResult
-            print("\nTrying getInferenceResult...")
-            result = contract.functions.getInferenceResult().call()
-            print(f"Result from getInferenceResult: {result}")
-            return result
-        except Exception as e:
-            print(f"getInferenceResult failed: {str(e)}")
-            
-            # Try to get other contract state for debugging
-            try:
-                model_id = contract.functions.modelId().call()
-                input_name = contract.functions.inputName().call()
-                print(f"\nContract state:")
-                print(f"Model ID: {model_id}")
-                print(f"Input name: {input_name}")
-            except Exception as debug_e:
-                print(f"Failed to get contract state: {str(debug_e)}")
-            
-            raise
+        if tx_receipt.status == 0:
+            raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
 
-        raise ValueError("No results available")
+        # Get the inference result from the contract
+        result = contract.functions.getInferenceResult().call()
 
-    def run_workflow(self, contract_address: str) -> str:
-        """Triggers the run() function on a deployed workflow contract."""
-        print(f"\n🔍 Verifying contract at {contract_address}...")
-        
-        # Get the contract interface
-        contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address), 
-            abi=self._get_model_executor_abi()
-        )
-
-        try:
-            print("\n📤 Sending transaction...")
-            # Build and send the transaction
-            transaction = contract.functions.run().build_transaction(
-                {
-                    "from": self._wallet_account.address,
-                    "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
-                    "gas": 3000000,
-                    "gasPrice": self._blockchain.eth.gas_price,
-                    "chainId": self._blockchain.eth.chain_id,
-                }
-            )
-
-            signed_txn = self._wallet_account.sign_transaction(transaction)
-            tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-            
-            print(f"⏳ Waiting for transaction confirmation...")
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
-            
-            if tx_receipt.status == 0:
-                print("\n❌ Transaction failed!")
-                print(f"   Gas used: {tx_receipt.gasUsed}")
-                print(f"   Gas limit: {transaction['gas']}")
-                print(f"   Block number: {tx_receipt.blockNumber}")
-                raise Exception(f"Transaction failed. Receipt: {tx_receipt}")
-            
-            print(f"✅ Transaction confirmed in block {tx_receipt.blockNumber}")
-            return tx_hash.hex()
-
-        except Exception as e:
-            print(f"\n❌ Transaction failed:")
-            print(f"   Error type: {type(e).__name__}")
-            print(f"   Error message: {str(e)}")
-            if hasattr(e, 'args') and len(e.args) > 0:
-                print(f"   Additional info: {e.args}")
-            raise
+        return utils.convert_array_to_model_output(result)
 
     def read_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
         """
         Gets historical inference results from a workflow contract.
+        
+        Retrieves the specified number of most recent inference results from the contract's
+        storage, with the most recent result first.
         
         Args:
             contract_address (str): Address of the deployed workflow contract
             num_results (int): Number of historical results to retrieve
             
         Returns:
-            List[Dict]: List of historical inference results
+            List[Dict]: List of historical inference results, each containing:
+                - prediction values
+                - timestamps
+                - any additional metadata stored with the result
+            
         """
         contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), 
@@ -1002,7 +1012,6 @@ class Client:
         
         results = contract.functions.getLastInferenceResults(num_results).call()
         return [utils.convert_array_to_model_output(result) for result in results]
-
 
 def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """
