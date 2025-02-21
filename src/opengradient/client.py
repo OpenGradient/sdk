@@ -211,7 +211,7 @@ class Client:
         Raises:
             OpenGradientError: If the upload fails.
         """
-        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
+        from requests_toolbelt import MultipartEncoder, MultipartConstrurMonitor
 
         if not self._hub_user:
             raise ValueError("User not authenticated")
@@ -748,9 +748,9 @@ class Client:
 
     def _get_model_executor_abi(self) -> List[Dict]:
         """
-        Returns the ABI for the ModelExecutorHistorical contract.
+        Returns the ABI for the PriceHistoryInference contract.
         """
-        abi_path = Path(__file__).parent / "abi" / "ModelExecutorHistorical.abi"
+        abi_path = Path(__file__).parent / "abi" / "PriceHistoryInference.abi"
         with open(abi_path, "r") as f:
             return json.load(f)
 
@@ -761,158 +761,248 @@ class Client:
         input_tensor_name: str,
         scheduler_params: Optional[SchedulerParams] = None,
     ) -> str:
-        """
-        Deploy a new workflow contract with the specified parameters.
-        """
-        if isinstance(input_query, dict):
-            input_query = HistoricalInputQuery.from_dict(input_query)
-
+        """Deploy a new workflow contract with the specified parameters."""
         # Get contract ABI and bytecode
         abi = self._get_model_executor_abi()
-        bin_path = Path(__file__).parent / "bin" / "ModelExecutorHistorical.bin"
+        bin_path = Path(__file__).parent / "bin" / "PriceHistoryInference.bin"
 
-        with open(bin_path, "r") as f:
+        # Read bytecode with explicit encoding
+        with open(bin_path, 'r', encoding='utf-8') as f:
             bytecode = f.read().strip()
+            if not bytecode.startswith('0x'):
+                bytecode = '0x' + bytecode
 
-        print("📦 Deploying workflow contract...")
+        print("\n📦 Deploying workflow contract...")
 
-        # Create contract instance
-        contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
+        def deploy_transaction():
+            contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
 
-        # Deploy contract with constructor arguments
-        transaction = contract.constructor().build_transaction(
-            {
-                "from": self._wallet_account.address,
-                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
-                "gas": 15000000,
-                "gasPrice": self._blockchain.eth.gas_price,
-                "chainId": self._blockchain.eth.chain_id,
-            }
-        )
+            if isinstance(input_query, dict):
+                query_tuple = (
+                    input_query["base"],
+                    input_query["quote"],
+                    input_query["total_candles"],
+                    input_query["candle_duration_in_mins"],
+                    input_query["order"],
+                    input_query["candle_types"],
+                )
+            else:
+                query_tuple = input_query.to_abi_format()
 
-        signed_txn = self._wallet_account.sign_transaction(transaction)
-        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=REGULAR_TX_TIMEOUT)
-        contract_address = tx_receipt.contractAddress
-
-        print(f"✅ Workflow contract deployed at: {contract_address}")
-
-        # Register with scheduler if params provided
-        if scheduler_params:
-            print("\n⏰ Setting up automated execution schedule...")
-            print(f"   • Frequency: Every {scheduler_params.frequency} seconds")
-            print(f"   • Duration: {scheduler_params.duration_hours} hours")
-            print(f"   • End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(scheduler_params.end_time))}")
-
-            scheduler_abi = [
-                {
-                    "inputs": [
-                        {"internalType": "address", "name": "contractAddress", "type": "address"},
-                        {"internalType": "uint256", "name": "endTime", "type": "uint256"},
-                        {"internalType": "uint256", "name": "frequency", "type": "uint256"},
-                    ],
-                    "name": "registerTask",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function",
-                }
-            ]
-
-            scheduler_address = "0x6F937b9f4Fa7723932827cd73063B70Be2b56748"
-            scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
+            constructor_args = [model_cid, input_tensor_name, query_tuple]
 
             try:
-                # Register the workflow with the scheduler
-                scheduler_tx = scheduler_contract.functions.registerTask(
-                    contract_address, scheduler_params.end_time, scheduler_params.frequency
-                ).build_transaction(
-                    {
-                        "from": self._wallet_account.address,
-                        "gas": 300000,
-                        "gasPrice": self._blockchain.eth.gas_price,
-                        "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
-                        "chainId": self._blockchain.eth.chain_id,
-                    }
-                )
-
-                signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
-                scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-                self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
-
-                print("✅ Automated execution schedule set successfully!")
-                print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
-
+                # Estimate gas needed
+                estimated_gas = contract.constructor(*constructor_args).estimate_gas({
+                    "from": self._wallet_account.address
+                })
+                gas_limit = int(estimated_gas * 1.2)
+                print(f"📊 Estimated gas needed: {estimated_gas}")
             except Exception as e:
-                print("❌ Failed to set up automated execution schedule")
-                print(f"   Error: {str(e)}")
-                print("   The workflow contract is still deployed and can be executed manually.")
+                print(f"⚠️ Gas estimation failed: {str(e)}")
+                gas_limit = 5000000  # Conservative fallback
+                print(f"📊 Using fallback gas limit: {gas_limit}")
+
+            transaction = contract.constructor(*constructor_args).build_transaction({
+                "from": self._wallet_account.address,
+                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                "gas": gas_limit,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
+            })
+
+            signed_txn = self._wallet_account.sign_transaction(transaction)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+            
+            print(f"\n⏳ Waiting for transaction {tx_hash.hex()}")
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+            
+            if tx_receipt["status"] == 0:
+                print("\n❌ Transaction failed!")
+                print(f"Transaction hash: {tx_hash.hex()}")
+                raise Exception(f"Contract deployment failed")
+
+            print(f"✅ Contract deployed successfully!")
+            return tx_receipt.contractAddress
+
+        contract_address = run_with_retry(deploy_transaction)
+        print(f"📍 Contract address: {contract_address}")
+
+        if scheduler_params:
+            time.sleep(2)  # Small delay to ensure contract is ready
+            self._register_with_scheduler(contract_address, scheduler_params)
 
         return contract_address
+
+    def _register_with_scheduler(self, contract_address: str, scheduler_params: SchedulerParams) -> None:
+        """
+        Register the deployed workflow contract with the scheduler.
+        
+        Args:
+            contract_address: Address of the deployed workflow contract
+            scheduler_params: Scheduler configuration parameters
+        """
+
+        print("\n⏰ Setting up automated execution schedule...")
+        print(f"   • Frequency: Every {scheduler_params.frequency} seconds")
+        print(f"   • Duration: {scheduler_params.duration_hours} hours")
+        print(f"   • End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(scheduler_params.end_time))}")
+
+        scheduler_abi = [
+            {
+                "inputs": [
+                    {"internalType": "address", "name": "contractAddress", "type": "address"},
+                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+                    {"internalType": "uint256", "name": "frequency", "type": "uint256"},
+                ],
+                "name": "registerTask",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function",
+            }
+        ]
+
+        # Scheduler contract address
+        scheduler_address = "0x7179724De4e7FF9271FA40C0337c7f90C0508eF6"
+        scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
+
+        try:
+            # Register the workflow with the scheduler
+            scheduler_tx = scheduler_contract.functions.registerTask(
+                contract_address, 
+                scheduler_params.end_time, 
+                scheduler_params.frequency
+            ).build_transaction(
+                {
+                    "from": self._wallet_account.address,
+                    "gas": 300000,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                    "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                    "chainId": self._blockchain.eth.chain_id,
+                }
+            )
+
+            signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
+            scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
+            self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
+
+            print("✅ Automated execution schedule set successfully!")
+            print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
+        except Exception as e:
+            print("❌ Failed to set up automated execution schedule")
+            print(f"   Error: {str(e)}")
+            print("   The workflow contract is still deployed and can be executed manually.")
 
     def read_workflow_result(self, contract_address: str) -> ModelOutput:
         """
         Reads the latest inference result from a deployed workflow contract.
-
-        Args:
-            contract_address (str): Address of the deployed workflow contract
-
-        Returns:
-            ModelOutput: The inference result from the contract
-
-        Raises:
-            ContractLogicError: If the transaction fails
-            Web3Error: If there are issues with the web3 connection or contract interaction
         """
+        print(f"\n🔍 Reading result from contract: {contract_address}")
+        
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
-
-        # Get the result
-        result = contract.functions.getInferenceResult().call()
-
-        return utils.convert_array_to_model_output(result)
-
-    def run_workflow(self, contract_address: str) -> ModelOutput:
-        """
-        Triggers the run() function on a deployed workflow contract and returns the result.
-
-        Args:
-            contract_address (str): Address of the deployed workflow contract
-
-        Returns:
-            ModelOutput: The inference result from the contract
-
-        Raises:
-            ContractLogicError: If the transaction fails
-            Web3Error: If there are issues with the web3 connection or contract interaction
-        """
-        # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
-
-        # Call run() function
-        nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
-
-        run_function = contract.functions.run()
-        transaction = run_function.build_transaction(
-            {
-                "from": self._wallet_account.address,
-                "nonce": nonce,
-                "gas": 30000000,
-                "gasPrice": self._blockchain.eth.gas_price,
-                "chainId": self._blockchain.eth.chain_id,
-            }
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(contract_address), 
+            abi=self._get_model_executor_abi()
         )
 
-        signed_txn = self._wallet_account.sign_transaction(transaction)
-        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
+        try:
+            # Try getLastInferenceResults first (returns more info)
+            print("Trying getLastInferenceResults...")
+            results = contract.functions.getLastInferenceResults(1).call()
+            print(f"Results from getLastInferenceResults: {results}")
+            if results and len(results) > 0:
+                return results[0]
+        except Exception as e:
+            print(f"getLastInferenceResults failed: {str(e)}")
 
-        if tx_receipt.status == 0:
-            raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
+        try:
+            # Fallback to getInferenceResult
+            print("\nTrying getInferenceResult...")
+            result = contract.functions.getInferenceResult().call()
+            print(f"Result from getInferenceResult: {result}")
+            return result
+        except Exception as e:
+            print(f"getInferenceResult failed: {str(e)}")
+            
+            # Try to get other contract state for debugging
+            try:
+                model_id = contract.functions.modelId().call()
+                input_name = contract.functions.inputName().call()
+                print(f"\nContract state:")
+                print(f"Model ID: {model_id}")
+                print(f"Input name: {input_name}")
+            except Exception as debug_e:
+                print(f"Failed to get contract state: {str(debug_e)}")
+            
+            raise
 
-        # Get the inference result from the contract
-        result = contract.functions.getInferenceResult().call()
+        raise ValueError("No results available")
 
-        return utils.convert_array_to_model_output(result)
+    def run_workflow(self, contract_address: str) -> str:
+        """Triggers the run() function on a deployed workflow contract."""
+        print(f"\n🔍 Verifying contract at {contract_address}...")
+        
+        # Get the contract interface
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(contract_address), 
+            abi=self._get_model_executor_abi()
+        )
+
+        try:
+            print("\n📤 Sending transaction...")
+            # Build and send the transaction
+            transaction = contract.functions.run().build_transaction(
+                {
+                    "from": self._wallet_account.address,
+                    "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                    "gas": 3000000,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                    "chainId": self._blockchain.eth.chain_id,
+                }
+            )
+
+            signed_txn = self._wallet_account.sign_transaction(transaction)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+            
+            print(f"⏳ Waiting for transaction confirmation...")
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash)
+            
+            if tx_receipt.status == 0:
+                print("\n❌ Transaction failed!")
+                print(f"   Gas used: {tx_receipt.gasUsed}")
+                print(f"   Gas limit: {transaction['gas']}")
+                print(f"   Block number: {tx_receipt.blockNumber}")
+                raise Exception(f"Transaction failed. Receipt: {tx_receipt}")
+            
+            print(f"✅ Transaction confirmed in block {tx_receipt.blockNumber}")
+            return tx_hash.hex()
+
+        except Exception as e:
+            print(f"\n❌ Transaction failed:")
+            print(f"   Error type: {type(e).__name__}")
+            print(f"   Error message: {str(e)}")
+            if hasattr(e, 'args') and len(e.args) > 0:
+                print(f"   Additional info: {e.args}")
+            raise
+
+    def get_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
+        """
+        Gets historical inference results from a workflow contract.
+        
+        Args:
+            contract_address (str): Address of the deployed workflow contract
+            num_results (int): Number of historical results to retrieve
+            
+        Returns:
+            List[Dict]: List of historical inference results
+        """
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(contract_address), 
+            abi=self._get_model_executor_abi()
+        )
+        
+        results = contract.functions.getLastInferenceResults(num_results).call()
+        return [utils.convert_array_to_model_output(result) for result in results]
 
 
 def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):

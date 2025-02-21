@@ -40,8 +40,21 @@ class HistoricalInputQuery:
     @classmethod
     def from_dict(cls, data: dict) -> "HistoricalInputQuery":
         """Create HistoricalInputQuery from dictionary format"""
-        order = CandleOrder[data["order"].upper()]
-        candle_types = [CandleType[ct.upper()] for ct in data["candle_types"]]
+        # Handle both string and integer inputs for order
+        order_val = data["order"]
+        if isinstance(order_val, int):  # Check for int FIRST
+            order = CandleOrder(order_val)
+        else:
+            order = CandleOrder[order_val.upper()]
+
+        # Handle both string and integer inputs for candle_types
+        candle_types = []
+        for ct in data["candle_types"]:
+            if isinstance(ct, int):  # Check for int FIRST
+                candle_types.append(CandleType(ct))
+            else:
+                candle_types.append(CandleType[ct.upper()])
+
         return cls(
             base=data["base"],
             quote=data["quote"],

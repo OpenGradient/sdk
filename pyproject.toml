@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.4.6"
+version = "0.4.7"
 description = "Python SDK for OpenGradient decentralized model management & inference services"
 authors = [{name = "OpenGradient", email = "oliver@opengradient.ai"}]
 license = {file = "LICENSE"}
@@ -53,6 +53,7 @@ exclude = ["tests*", "stresstest*"]
 [tool.setuptools.package-data]
 "opengradient" = [
     "abi/*.abi",
+    "bin/*.bin",
     "proto/*.proto",
     "**/*.py"
 ]
