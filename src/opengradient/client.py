@@ -211,7 +211,7 @@ class Client:
         Raises:
             OpenGradientError: If the upload fails.
         """
-        from requests_toolbelt import MultipartEncoder, MultipartConstrurMonitor
+        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 
         if not self._hub_user:
             raise ValueError("User not authenticated")
