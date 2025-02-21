@@ -372,7 +372,7 @@ def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.read_workflow_result_workflow_history(contract_address, num_results)
+    return _client.read_workflow_history(contract_address, num_results)
 
 
 __all__ = [
