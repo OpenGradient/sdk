@@ -829,7 +829,6 @@ class Client:
         print(f"📍 Contract address: {contract_address}")
 
         if scheduler_params:
-            time.sleep(2)  # Small delay to ensure contract is ready
             self._register_with_scheduler(contract_address, scheduler_params)
 
         return contract_address
