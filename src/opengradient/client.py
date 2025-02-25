@@ -746,14 +746,14 @@ class Client:
             if channel:
                 channel.close()
 
-    def _get_model_executor_abi(self) -> List[Dict]:
+    def _get_abi(self, abi_name) -> List[Dict]:
         """
         Returns the ABI for the PriceHistoryInference contract.
         """
-        abi_path = Path(__file__).parent / "abi" / "PriceHistoryInference.abi"
+        abi_path = Path(__file__).parent / "abi" / abi_name
         with open(abi_path, "r") as f:
             return json.load(f)
-
+        
     def new_workflow(
         self,
         model_cid: str,
@@ -786,7 +786,7 @@ class Client:
             Exception: If transaction fails or gas estimation fails
         """
         # Get contract ABI and bytecode
-        abi = self._get_model_executor_abi()
+        abi = self._get_abi("PriceHistoryInference.abi")
         bin_path = Path(__file__).parent / "bin" / "PriceHistoryInference.bin"
 
         # Read bytecode with explicit encoding
@@ -877,19 +877,7 @@ class Client:
         print(f"   • Duration: {scheduler_params.duration_hours} hours")
         print(f"   • End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(scheduler_params.end_time))}")
 
-        scheduler_abi = [
-            {
-                "inputs": [
-                    {"internalType": "address", "name": "contractAddress", "type": "address"},
-                    {"internalType": "uint256", "name": "endTime", "type": "uint256"},
-                    {"internalType": "uint256", "name": "frequency", "type": "uint256"},
-                ],
-                "name": "registerTask",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function",
-            }
-        ]
+        scheduler_abi = self._get_abi("WorkflowScheduler.abi")
 
         # Scheduler contract address
         scheduler_address = DEFAULT_SCHEDULER_ADDRESS
@@ -937,7 +925,7 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi"))
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
@@ -959,7 +947,7 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_model_executor_abi())
+        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi"))
 
         # Call run() function
         nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
@@ -1007,7 +995,7 @@ class Client:
         """
         contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), 
-            abi=self._get_model_executor_abi()
+            abi=self._get_abi("PriceHistoryInference.abi")
         )
         
         results = contract.functions.getLastInferenceResults(num_results).call()

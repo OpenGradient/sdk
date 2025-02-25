@@ -15,6 +15,7 @@ class CandleType(IntEnum):
     LOW = 1
     OPEN = 2
     CLOSE = 3
+    VOLUME = 4
 
 
 @dataclass

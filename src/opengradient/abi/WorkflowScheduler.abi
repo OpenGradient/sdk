@@ -1,0 +1,13 @@
+[ 
+    {
+        "inputs": [
+            {"internalType": "address", "name": "contractAddress", "type": "address"},
+            {"internalType": "uint256", "name": "endTime", "type": "uint256"},
+            {"internalType": "uint256", "name": "frequency", "type": "uint256"}
+        ],
+        "name": "registerTask",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]
