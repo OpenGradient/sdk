@@ -820,7 +820,6 @@ class Client:
                     "from": self._wallet_account.address
                 })
                 gas_limit = int(estimated_gas * 1.2)
-                print(f"📊 Estimated gas needed: {estimated_gas}")
             except Exception as e:
                 print(f"⚠️ Gas estimation failed: {str(e)}")
                 gas_limit = 5000000  # Conservative fallback
