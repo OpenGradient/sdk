@@ -71,8 +71,9 @@ publish:
 	twine upload dist/*
 	@echo "✨ Done! Published to PyPI"
 
-format:
+check:
 	ruff format .
+	mypy src
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
