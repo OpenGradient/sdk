@@ -25,18 +25,19 @@ from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RP
 class OpenGradientChatModel(BaseChatModel):
     """OpenGradient adapter class for LangChain chat model"""
 
-    client: Client
-    model_cid: LLM
-    max_tokens: int
-    tools: List[Dict] = []
+    _client: Client
+    _model_cid: LLM
+    _max_tokens: int
+    _tools: List[Dict] = []
 
     def __init__(self, private_key: str, model_cid: LLM, max_tokens: int = 300):
         super().__init__()
-        self.client = Client(
+
+        self._client = Client(
             private_key=private_key, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
         )
-        self.model_cid = model_cid
-        self.max_tokens = max_tokens
+        self._model_cid = model_cid
+        self._max_tokens = max_tokens
 
     @property
     def _llm_type(self) -> str:
@@ -70,7 +71,8 @@ class OpenGradientChatModel(BaseChatModel):
             else:
                 tool_dicts.append(tool)
 
-        self.tools = tool_dicts
+        self._tools = tool_dicts
+
         return self
 
     @override
@@ -102,12 +104,12 @@ class OpenGradientChatModel(BaseChatModel):
             else:
                 raise ValueError(f"Unexpected message type: {message}")
 
-        chat_output = self.client.llm_chat(
-            model_cid=self.model_cid,
+        chat_output = self._client.llm_chat(
+            model_cid=self._model_cid,
             messages=sdk_messages,
             stop_sequence=stop,
-            max_tokens=self.max_tokens,
-            tools=self.tools,
+            max_tokens=self._max_tokens,
+            tools=self._tools,
             inference_mode=LlmInferenceMode.VANILLA,
         )
 
@@ -128,5 +130,5 @@ class OpenGradientChatModel(BaseChatModel):
     @property
     def _identifying_params(self) -> Dict[str, Any]:
         return {
-            "model_name": self.model_cid,
+            "model_name": self._model_cid,
         }
