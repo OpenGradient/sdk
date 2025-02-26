@@ -16,7 +16,7 @@ from .types import (
     InferenceMode,
     LlmInferenceMode,
     TextGenerationOutput,
-    ModelOutput
+    ModelOutput,
 )
 
 from . import llm, alphasense
@@ -276,10 +276,7 @@ def new_workflow(
         raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
 
     return _client.new_workflow(
-        model_cid=model_cid, 
-        input_query=input_query, 
-        input_tensor_name=input_tensor_name, 
-        scheduler_params=scheduler_params
+        model_cid=model_cid, input_query=input_query, input_tensor_name=input_tensor_name, scheduler_params=scheduler_params
     )
 
 
@@ -325,11 +322,11 @@ def run_workflow(contract_address: str) -> ModelOutput:
 def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]:
     """
     Gets historical inference results from a workflow contract.
-    
+
     Args:
         contract_address (str): Address of the deployed workflow contract
         num_results (int): Number of historical results to retrieve
-        
+
     Returns:
         List[Dict]: List of historical inference results
     """
