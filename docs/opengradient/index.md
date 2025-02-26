@@ -20,7 +20,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 ### Create model 
 
 ```python
-def create_model(model_name: str, model_desc: str, model_path: str = None)
+def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None)
 ```
 
   
@@ -77,38 +77,6 @@ dict: Version creation response with version metadata
 
   
 
-### Generate image 
-
-```python
-def generate_image(model: str, prompt: str, height: Optional[int] = None, width: Optional[int] = None) ‑> bytes
-```
-
-  
-
-  
-Generate an image from a text prompt.
-  
-
-**Arguments**
-
-* **`model`**: Model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-* **`prompt`**: Text description of the desired image
-* **`height`**: Optional height of the generated image in pixels
-* **`width`**: Optional width of the generated image in pixels
-
-  
-**Returns**
-
-bytes: Raw image data as bytes
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-* **`OpenGradientError`**: If image generation fails
-  
-
-  
-
 ### Infer 
 
 ```python
@@ -131,7 +99,7 @@ Run inference on a model.
   
 **Returns**
 
-Tuple[str, Any]: Transaction hash and model output
+InferenceResult: Transaction hash and model output
 
 **Raises**
 
@@ -195,7 +163,7 @@ List[Dict]: List of file metadata dictionaries
 ### Llm chat 
 
 ```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: str = 0, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None) ‑> Tuple[str, str, Dict]
+def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
@@ -219,7 +187,7 @@ Have a chat conversation with an LLM.
   
 **Returns**
 
-Tuple[str, str, Dict]: Transaction hash, model response, and metadata
+TextGenerationOutput
 
 **Raises**
 
@@ -231,7 +199,7 @@ Tuple[str, str, Dict]: Transaction hash, model response, and metadata
 ### Llm completion 
 
 ```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: str = 0, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None) ‑> Tuple[str, str]
+def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
@@ -253,7 +221,7 @@ Generate text completion using an LLM.
   
 **Returns**
 
-Tuple[str, str]: Transaction hash and generated text
+TextGenerationOutput: Transaction hash and generated text
 
 **Raises**
 
@@ -265,24 +233,24 @@ Tuple[str, str]: Transaction hash and generated text
 ### Login 
 
 ```python
-def login(email: str, password: str)
+def login(model_name: str, version: str) ‑> List[Dict]
 ```
 
   
 
   
-Login to OpenGradient.
+List files in a model repository version.
   
 
 **Arguments**
 
-* **`email`**: User's email address
-* **`password`**: User's password
+* **`model_name`**: Name of the model repository
+* **`version`**: Version string to list files from
 
   
 **Returns**
 
-dict: Login response with authentication tokens
+List[Dict]: List of file metadata dictionaries
 
 **Raises**
 
@@ -330,7 +298,7 @@ str: Deployed contract address. If scheduler_params was provided, the workflow
 ### Read workflow result 
 
 ```python
-def read_workflow_result(contract_address: str) ‑> Dict[str, Union[str, Dict]]
+def read_workflow_result(contract_address: str) ‑> opengradient.types.ModelOutput
 ```
 
   
@@ -359,7 +327,7 @@ Dict[str, Union[str, Dict]]: A dictionary containing:
 ### Run workflow 
 
 ```python
-def run_workflow(contract_address: str) ‑> Dict[str, Union[str, Dict]]
+def run_workflow(contract_address: str) ‑> opengradient.types.ModelOutput
 ```
 
   

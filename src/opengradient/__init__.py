@@ -316,7 +316,6 @@ def run_workflow(contract_address: str) -> ModelOutput:
 
 
 __all__ = [
-    "generate_image",
     "list_files",
     "login",
     "llm_chat",
