@@ -283,9 +283,9 @@ def generate_image(model: str, prompt: str, height: Optional[int] = None, width:
 
 def new_workflow(
     model_cid: str,
-    input_query: Union[Dict[str, Any], HistoricalInputQuery],
+    input_query: HistoricalInputQuery,
     input_tensor_name: str,
-    scheduler_params: Optional[Union[Dict[str, int], SchedulerParams]] = None,
+    scheduler_params: Optional[SchedulerParams] = None,
 ) -> str:
     """
     Deploy a new workflow contract with the specified parameters.
@@ -296,13 +296,9 @@ def new_workflow(
 
     Args:
         model_cid: IPFS CID of the model
-        input_query: Dictionary or HistoricalInputQuery containing query parameters
+        input_query: HistoricalInputQuery containing query parameters
         input_tensor_name: Name of the input tensor
-        scheduler_params: Optional scheduler configuration:
-            - Can be a dictionary with:
-                - frequency: Execution frequency in seconds (default: 600)
-                - duration_hours: How long to run in hours (default: 2)
-            - Or a SchedulerParams instance
+        scheduler_params: Optional scheduler configuration as SchedulerParams instance
             If not provided, the workflow will be deployed without scheduling.
 
     Returns:
@@ -312,11 +308,11 @@ def new_workflow(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
 
-    # Convert scheduler_params if it's a dict, otherwise use as is
-    scheduler = SchedulerParams.from_dict(scheduler_params) if isinstance(scheduler_params, dict) else scheduler_params
-
     return _client.new_workflow(
-        model_cid=model_cid, input_query=input_query, input_tensor_name=input_tensor_name, scheduler_params=scheduler
+        model_cid=model_cid, 
+        input_query=input_query, 
+        input_tensor_name=input_tensor_name, 
+        scheduler_params=scheduler_params
     )
 
 

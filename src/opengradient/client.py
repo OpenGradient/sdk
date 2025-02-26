@@ -748,16 +748,29 @@ class Client:
 
     def _get_abi(self, abi_name) -> List[Dict]:
         """
-        Returns the ABI for the PriceHistoryInference contract.
+        Returns the ABI for the requested contract.
         """
         abi_path = Path(__file__).parent / "abi" / abi_name
         with open(abi_path, "r") as f:
             return json.load(f)
         
+    def _get_bin(self, bin_name) -> List[Dict]:
+        """
+        Returns the bin for the requested contract.
+        """
+        bin_path = Path(__file__).parent / "bin" / bin_name
+        # Read bytecode with explicit encoding
+        with open(bin_path, 'r', encoding='utf-8') as f:
+            bytecode = f.read().strip()
+            if not bytecode.startswith('0x'):
+                bytecode = '0x' + bytecode
+            return bytecode
+        
+        
     def new_workflow(
         self,
         model_cid: str,
-        input_query: Union[Dict[str, Any], HistoricalInputQuery],
+        input_query: HistoricalInputQuery,
         input_tensor_name: str,
         scheduler_params: Optional[SchedulerParams] = None,
     ) -> str:
@@ -770,9 +783,7 @@ class Client:
 
         Args:
             model_cid (str): IPFS CID of the model to be executed
-            input_query (Union[Dict[str, Any], HistoricalInputQuery]): Query parameters for data input:
-                - If Dict: Must contain base, quote, total_candles, candle_duration_in_mins, order, candle_types
-                - If HistoricalInputQuery: A structured query object
+            input_query (HistoricalInputQuery): Query parameters for data input
             input_tensor_name (str): Name of the input tensor expected by the model
             scheduler_params (Optional[SchedulerParams]): Scheduler configuration for automated execution:
                 - frequency: Execution frequency in seconds
@@ -787,31 +798,11 @@ class Client:
         """
         # Get contract ABI and bytecode
         abi = self._get_abi("PriceHistoryInference.abi")
-        bin_path = Path(__file__).parent / "bin" / "PriceHistoryInference.bin"
-
-        # Read bytecode with explicit encoding
-        with open(bin_path, 'r', encoding='utf-8') as f:
-            bytecode = f.read().strip()
-            if not bytecode.startswith('0x'):
-                bytecode = '0x' + bytecode
-
-        print("\n📦 Deploying workflow contract...")
+        bytecode = self._get_bin("PriceHistoryInference.bin")
 
         def deploy_transaction():
             contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
-
-            if isinstance(input_query, dict):
-                query_tuple = (
-                    input_query["base"],
-                    input_query["quote"],
-                    input_query["total_candles"],
-                    input_query["candle_duration_in_mins"],
-                    input_query["order"],
-                    input_query["candle_types"],
-                )
-            else:
-                query_tuple = input_query.to_abi_format()
-
+            query_tuple = input_query.to_abi_format()
             constructor_args = [model_cid, input_tensor_name, query_tuple]
 
             try:
@@ -836,19 +827,14 @@ class Client:
             signed_txn = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
             
-            print(f"\n⏳ Waiting for transaction {tx_hash.hex()}")
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
             
             if tx_receipt["status"] == 0:
-                print("\n❌ Transaction failed!")
-                print(f"Transaction hash: {tx_hash.hex()}")
-                raise Exception(f"Contract deployment failed")
+                raise Exception(f"❌ Contract deployment failed, transaction hash: {tx_hash.hex()}")
 
-            print(f"✅ Contract deployed successfully!")
             return tx_receipt.contractAddress
 
         contract_address = run_with_retry(deploy_transaction)
-        print(f"📍 Contract address: {contract_address}")
 
         if scheduler_params:
             self._register_with_scheduler(contract_address, scheduler_params)
@@ -870,11 +856,6 @@ class Client:
             Exception: If registration with scheduler fails. The workflow contract will
                       still be deployed and can be executed manually.
         """
-
-        print("\n⏰ Setting up automated execution schedule...")
-        print(f"   • Frequency: Every {scheduler_params.frequency} seconds")
-        print(f"   • Duration: {scheduler_params.duration_hours} hours")
-        print(f"   • End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(scheduler_params.end_time))}")
 
         scheduler_abi = self._get_abi("WorkflowScheduler.abi")
 
@@ -901,13 +882,9 @@ class Client:
             signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
             scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
             self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
-
-            print("✅ Automated execution schedule set successfully!")
-            print(f"   Transaction hash: {scheduler_tx_hash.hex()}")
         except Exception as e:
-            print("❌ Failed to set up automated execution schedule")
-            print(f"   Error: {str(e)}")
-            print("   The workflow contract is still deployed and can be executed manually.")
+            print(f"❌ Error registering contract with scheduler: {str(e)}")
+            print("  The workflow contract is still deployed and can be executed manually.")
 
     def read_workflow_result(self, contract_address: str) -> ModelOutput:
         """
