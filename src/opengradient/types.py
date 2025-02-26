@@ -98,6 +98,7 @@ class ModelOutput:
     jsons: Dict[str, np.ndarray]  # Converts to JSON dictionary
     is_simulation_result: bool
 
+
 @dataclass
 class InferenceResult:
     """
@@ -109,6 +110,7 @@ class InferenceResult:
 
     model_output: Dict[str, np.ndarray]
     """Output of ONNX model"""
+
 
 @dataclass
 class TextGenerationOutput:

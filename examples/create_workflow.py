@@ -9,20 +9,12 @@ input_query = og.HistoricalInputQuery(
     quote="USD",
     total_candles=10,
     candle_duration_in_mins=30,
-    order=og.CandleOrder.ASCENDING, 
-    candle_types=[
-        og.CandleType.OPEN,
-        og.CandleType.HIGH,
-        og.CandleType.LOW,
-        og.CandleType.CLOSE
-    ]
+    order=og.CandleOrder.ASCENDING,
+    candle_types=[og.CandleType.OPEN, og.CandleType.HIGH, og.CandleType.LOW, og.CandleType.CLOSE],
 )
 
 # Define schedule
-scheduler_params = og.SchedulerParams(
-    frequency=1800,
-    duration_hours=2
-)
+scheduler_params = og.SchedulerParams(frequency=1800, duration_hours=2)
 
 # Base model CID (ETH volatility forecast)
 model_cid = "QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N"
@@ -33,7 +25,7 @@ contract_address = og_client.new_workflow(
     input_query=input_query,
     # Input name in ONNX model
     input_tensor_name="open_high_low_close",
-    scheduler_params=scheduler_params
+    scheduler_params=scheduler_params,
 )
 
 print(f"Deployed workflow at address: {contract_address}")

@@ -2,19 +2,13 @@ import os
 from langgraph.prebuilt import create_react_agent
 import opengradient as og
 
-llm = og.llm.langchain_adapter(
-    private_key=os.environ.get("OG_PRIVATE_KEY"),
-    model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT
-)
+llm = og.llm.langchain_adapter(private_key=os.environ.get("OG_PRIVATE_KEY"), model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT)
 
 # You define tools here
 tools = []
 
-agent = create_react_agent(
-    llm=llm,
-    tools=tools,
-    prompt="You are a friendly agent..."
-)
+agent = create_react_agent(llm=llm, tools=tools, prompt="You are a friendly agent...")
+
 
 # Helper to print agent steps
 def print_stream(stream):
@@ -24,6 +18,7 @@ def print_stream(stream):
             print(message)
         else:
             message.pretty_print()
+
 
 inputs = {"messages": [("user", "what is the weather in sf?")]}
 print_stream(agent.stream(inputs, stream_mode="values"))

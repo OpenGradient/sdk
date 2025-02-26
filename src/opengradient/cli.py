@@ -334,7 +334,9 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
         click.echo()
 
         click.secho("Inference result:", fg="green")
-        formatted_output = json.dumps(inference_result.model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else str(x))
+        formatted_output = json.dumps(
+            inference_result.model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else str(x)
+        )
         click.echo(formatted_output)
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)

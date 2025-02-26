@@ -18,7 +18,17 @@ from web3.logs import DISCARD
 from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, TextGenerationOutput, SchedulerParams, InferenceResult
+from .types import (
+    LLM,
+    TEE_LLM,
+    HistoricalInputQuery,
+    InferenceMode,
+    LlmInferenceMode,
+    ModelOutput,
+    TextGenerationOutput,
+    SchedulerParams,
+    InferenceResult,
+)
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {
