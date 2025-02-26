@@ -6,7 +6,18 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams, TextGenerationOutput, ModelOutput
+from .types import (
+    LLM,
+    TEE_LLM,
+    HistoricalInputQuery,
+    SchedulerParams,
+    CandleType,
+    CandleOrder,
+    InferenceMode,
+    LlmInferenceMode,
+    TextGenerationOutput,
+    ModelOutput
+)
 
 from . import llm, alphasense
 
@@ -239,9 +250,9 @@ def list_files(model_name: str, version: str) -> List[Dict]:
 
 def new_workflow(
     model_cid: str,
-    input_query: Union[Dict[str, Any], HistoricalInputQuery],
+    input_query: HistoricalInputQuery,
     input_tensor_name: str,
-    scheduler_params: Optional[Union[Dict[str, int], SchedulerParams]] = None,
+    scheduler_params: Optional[SchedulerParams] = None,
 ) -> str:
     """
     Deploy a new workflow contract with the specified parameters.
@@ -252,13 +263,9 @@ def new_workflow(
 
     Args:
         model_cid: IPFS CID of the model
-        input_query: Dictionary or HistoricalInputQuery containing query parameters
+        input_query: HistoricalInputQuery containing query parameters
         input_tensor_name: Name of the input tensor
-        scheduler_params: Optional scheduler configuration:
-            - Can be a dictionary with:
-                - frequency: Execution frequency in seconds (default: 600)
-                - duration_hours: How long to run in hours (default: 2)
-            - Or a SchedulerParams instance
+        scheduler_params: Optional scheduler configuration as SchedulerParams instance
             If not provided, the workflow will be deployed without scheduling.
 
     Returns:
@@ -268,11 +275,11 @@ def new_workflow(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
 
-    # Convert scheduler_params if it's a dict, otherwise use as is
-    scheduler = SchedulerParams.from_dict(scheduler_params) if isinstance(scheduler_params, dict) else scheduler_params
-
     return _client.new_workflow(
-        model_cid=model_cid, input_query=input_query, input_tensor_name=input_tensor_name, scheduler_params=scheduler
+        model_cid=model_cid, 
+        input_query=input_query, 
+        input_tensor_name=input_tensor_name, 
+        scheduler_params=scheduler_params
     )
 
 
@@ -315,6 +322,22 @@ def run_workflow(contract_address: str) -> ModelOutput:
     return _client.run_workflow(contract_address)
 
 
+def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]:
+    """
+    Gets historical inference results from a workflow contract.
+    
+    Args:
+        contract_address (str): Address of the deployed workflow contract
+        num_results (int): Number of historical results to retrieve
+        
+    Returns:
+        List[Dict]: List of historical inference results
+    """
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.read_workflow_history(contract_address, num_results)
+
+
 __all__ = [
     "list_files",
     "login",
@@ -330,6 +353,14 @@ __all__ = [
     "new_workflow",
     "read_workflow_result",
     "run_workflow",
+    "read_workflow_history",
+    "InferenceMode",
+    "LlmInferenceMode",
+    "HistoricalInputQuery",
+    "SchedulerParams",
+    "CandleType",
+    "CandleOrder",
+    "InferenceMode",
     "llm",
     "alphasense",
 ]

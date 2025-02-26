@@ -15,6 +15,7 @@ class CandleType(IntEnum):
     LOW = 1
     OPEN = 2
     CLOSE = 3
+    VOLUME = 4
 
 
 @dataclass
@@ -36,21 +37,6 @@ class HistoricalInputQuery:
             int(self.order),
             [int(ct) for ct in self.candle_types],
         )
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "HistoricalInputQuery":
-        """Create HistoricalInputQuery from dictionary format"""
-        order = CandleOrder[data["order"].upper()]
-        candle_types = [CandleType[ct.upper()] for ct in data["candle_types"]]
-        return cls(
-            base=data["base"],
-            quote=data["quote"],
-            total_candles=int(data["total_candles"]),
-            candle_duration_in_mins=int(data["candle_duration_in_mins"]),
-            order=order,
-            candle_types=candle_types,
-        )
-
 
 @dataclass
 class Number:
