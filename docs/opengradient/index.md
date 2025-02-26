@@ -20,7 +20,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 ### Create model 
 
 ```python
-def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None)
+def create_model(model_name: str, model_desc: str, model_path: str = None)
 ```
 
   
@@ -77,10 +77,42 @@ dict: Version creation response with version metadata
 
   
 
+### Generate image 
+
+```python
+def generate_image(model: str, prompt: str, height: int | None = None, width: int | None = None) ‑> bytes
+```
+
+  
+
+  
+Generate an image from a text prompt.
+  
+
+**Arguments**
+
+* **`model`**: Model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+* **`prompt`**: Text description of the desired image
+* **`height`**: Optional height of the generated image in pixels
+* **`width`**: Optional width of the generated image in pixels
+
+  
+**Returns**
+
+bytes: Raw image data as bytes
+
+**Raises**
+
+* **`RuntimeError`**: If SDK is not initialized
+* **`OpenGradientError`**: If image generation fails
+  
+
+  
+
 ### Infer 
 
 ```python
-def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None)
+def infer(model_cid, inference_mode, model_input, max_retries: int | None = None)
 ```
 
   
@@ -99,7 +131,7 @@ Run inference on a model.
   
 **Returns**
 
-InferenceResult: Transaction hash and model output
+Tuple[str, Any]: Transaction hash and model output
 
 **Raises**
 
@@ -163,7 +195,7 @@ List[Dict]: List of file metadata dictionaries
 ### Llm chat 
 
 ```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
+def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: str = 0, max_tokens: int = 100, stop_sequence: List[str] | None = None, temperature: float = 0.0, tools: List[Dict] | None = None, tool_choice: str | None = None, max_retries: int | None = None) ‑> Tuple[str, str, Dict]
 ```
 
   
@@ -187,7 +219,7 @@ Have a chat conversation with an LLM.
   
 **Returns**
 
-TextGenerationOutput
+Tuple[str, str, Dict]: Transaction hash, model response, and metadata
 
 **Raises**
 
@@ -199,7 +231,7 @@ TextGenerationOutput
 ### Llm completion 
 
 ```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
+def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: str = 0, max_tokens: int = 100, stop_sequence: List[str] | None = None, temperature: float = 0.0, max_retries: int | None = None) ‑> Tuple[str, str]
 ```
 
   
@@ -221,7 +253,7 @@ Generate text completion using an LLM.
   
 **Returns**
 
-TextGenerationOutput: Transaction hash and generated text
+Tuple[str, str]: Transaction hash and generated text
 
 **Raises**
 
@@ -233,24 +265,24 @@ TextGenerationOutput: Transaction hash and generated text
 ### Login 
 
 ```python
-def login(model_name: str, version: str) ‑> List[Dict]
+def login(email: str, password: str)
 ```
 
   
 
   
-List files in a model repository version.
+Login to OpenGradient.
   
 
 **Arguments**
 
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string to list files from
+* **`email`**: User's email address
+* **`password`**: User's password
 
   
 **Returns**
 
-List[Dict]: List of file metadata dictionaries
+dict: Login response with authentication tokens
 
 **Raises**
 
@@ -262,7 +294,7 @@ List[Dict]: List of file metadata dictionaries
 ### New workflow 
 
 ```python
-def new_workflow(model_cid: str, input_query: Union[Dict[str, Any], opengradient.types.HistoricalInputQuery], input_tensor_name: str, scheduler_params: Union[Dict[str, int], opengradient.types.SchedulerParams, ForwardRef(None)] = None) ‑> str
+def new_workflow(model_cid: str, input_query: Dict[str, Any] | opengradient.types.HistoricalInputQuery, input_tensor_name: str, scheduler_params: Dict[str, int] | opengradient.types.SchedulerParams | None = None) ‑> str
 ```
 
   
@@ -295,10 +327,28 @@ str: Deployed contract address. If scheduler_params was provided, the workflow
 
   
 
+### Read workflow history 
+
+```python
+def read_workflow_history(contract_address: str, num_results: int) ‑> List[Dict]
+```
+
+  
+
+  
+Gets historical inference results from a workflow contract.
+  
+
+**Returns**
+
+List[Dict]: List of historical inference results
+
+  
+
 ### Read workflow result 
 
 ```python
-def read_workflow_result(contract_address: str) ‑> opengradient.types.ModelOutput
+def read_workflow_result(contract_address: str) ‑> Dict[str, str | Dict]
 ```
 
   
@@ -327,7 +377,7 @@ Dict[str, Union[str, Dict]]: A dictionary containing:
 ### Run workflow 
 
 ```python
-def run_workflow(contract_address: str) ‑> opengradient.types.ModelOutput
+def run_workflow(contract_address: str) ‑> Dict[str, str | Dict]
 ```
 
   
@@ -373,6 +423,134 @@ dict: Upload response containing file metadata
 ## Classes
     
 
+###  CandleOrder
+
+<code>class <b>CandleOrder</b>(*args, **kwds)</code>
+
+  
+
+  
+Enum where members are also (and must be) ints
+  
+
+#### Variables
+
+  
+    
+* static `ASCENDING`
+    
+* static `DESCENDING`
+
+      
+    
+
+###  CandleType
+
+<code>class <b>CandleType</b>(*args, **kwds)</code>
+
+  
+
+  
+Enum where members are also (and must be) ints
+  
+
+#### Variables
+
+  
+    
+* static `CLOSE`
+    
+* static `HIGH`
+    
+* static `LOW`
+    
+* static `OPEN`
+    
+* static `VOLUME`
+
+      
+    
+
+###  HistoricalInputQuery
+
+<code>class <b>HistoricalInputQuery</b>(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: [CandleOrder](docs/types.md#CandleOrder), candle_types: List[[CandleType](docs/types.md#CandleType)])</code>
+
+  
+
+  
+HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: opengradient.types.CandleOrder, candle_types: List[opengradient.types.CandleType])
+  
+
+  
+
+### From dict 
+
+```python
+def from_dict(data: dict) ‑> opengradient.types.HistoricalInputQuery
+```
+
+  
+
+  
+Create HistoricalInputQuery from dictionary format
+  
+
+  
+
+### To abi format 
+
+```python
+def to_abi_format(self) ‑> tuple
+```
+
+  
+
+  
+Convert to format expected by contract ABI
+  
+
+#### Variables
+
+  
+    
+* static `base  : str`
+    
+* static `candle_duration_in_mins  : int`
+    
+* static `candle_types  : List[opengradient.types.CandleType]`
+    
+* static `order  : opengradient.types.CandleOrder`
+    
+* static `quote  : str`
+    
+* static `total_candles  : int`
+
+      
+    
+
+###  InferenceMode
+
+<code>class <b>InferenceMode</b>()</code>
+
+  
+
+  
+
+  
+
+#### Variables
+
+  
+    
+* static `TEE`
+    
+* static `VANILLA`
+    
+* static `ZKML`
+
+      
+    
+
 ###  LLM
 
 <code>class <b>LLM</b>(*args, **kwds)</code>
@@ -387,17 +565,77 @@ Enum for available LLM models
 
   
     
-* static `DOBBY_LEASHED_3_1_8B` - The type of the None singleton.
+* static `DOBBY_LEASHED_3_1_8B`
     
-* static `DOBBY_UNHINGED_3_1_8B` - The type of the None singleton.
+* static `DOBBY_UNHINGED_3_1_8B`
     
-* static `LLAMA_3_2_3B_INSTRUCT` - The type of the None singleton.
+* static `LLAMA_3_2_3B_INSTRUCT`
     
-* static `META_LLAMA_3_1_70B_INSTRUCT` - The type of the None singleton.
+* static `META_LLAMA_3_1_70B_INSTRUCT`
     
-* static `META_LLAMA_3_8B_INSTRUCT` - The type of the None singleton.
+* static `META_LLAMA_3_8B_INSTRUCT`
     
-* static `QWEN_2_5_72B_INSTRUCT` - The type of the None singleton.
+* static `QWEN_2_5_72B_INSTRUCT`
+
+      
+    
+
+###  LlmInferenceMode
+
+<code>class <b>LlmInferenceMode</b>()</code>
+
+  
+
+  
+
+  
+
+#### Variables
+
+  
+    
+* static `TEE`
+    
+* static `VANILLA`
+
+      
+    
+
+###  SchedulerParams
+
+<code>class <b>SchedulerParams</b>(frequency: int, duration_hours: int)</code>
+
+  
+
+  
+SchedulerParams(frequency: int, duration_hours: int)
+  
+
+  
+
+### From dict 
+
+```python
+def from_dict(data: Dict[str, int] | None) ‑> opengradient.types.SchedulerParams | None
+```
+
+  
+
+  
+
+  
+
+#### Variables
+
+  
+    
+* static `duration_hours  : int`
+    
+* static `frequency  : int`
+
+  
+    
+* `end_time  : int`
 
       
     
@@ -416,4 +654,4 @@ Enum for LLM models available for TEE execution
 
   
     
-* static `META_LLAMA_3_1_70B_INSTRUCT` - The type of the None singleton.
+* static `META_LLAMA_3_1_70B_INSTRUCT`

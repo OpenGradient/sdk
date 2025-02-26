@@ -19,7 +19,7 @@ into existing applications and agent frameworks.
 ### Langchain adapter 
 
 ```python
-def langchain_adapter(private_key: str, model_cid: opengradient.types.LLM, max_tokens: int = 300) ‑> opengradient.llm.og_langchain.OpenGradientChatModel
+def langchain_adapter(private_key: str, model_cid: str, max_tokens: int = 300) ‑> opengradient.llm.og_langchain.OpenGradientChatModel
 ```
 
   
