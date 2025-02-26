@@ -15,7 +15,7 @@ OpenGradient AlphaSense Tools
 ### Create read workflow tool 
 
 ```python
-def create_read_workflow_tool(tool_type: opengradient.alphasense.types.ToolType, workflow_contract_address: str, tool_name: str, tool_description: str, output_formatter: Callable[..., str] = <function <lambda>>) ‑> langchain_core.tools.base.BaseTool
+def create_read_workflow_tool(tool_type: opengradient.alphasense.types.ToolType, workflow_contract_address: str, tool_name: str, tool_description: str, output_formatter: Callable[..., str] = <function <lambda>>) ‑> Union[langchain_core.tools.base.BaseTool, Callable]
 ```
 
   
@@ -44,7 +44,7 @@ Callable: For ToolType.SWARM, returns a decorated function with appropriate meta
 ### Create run model tool 
 
 ```python
-def create_run_model_tool(tool_type: opengradient.alphasense.types.ToolType, model_cid: str, tool_name: str, input_getter: Callable, output_formatter: Callable[..., str] = <function <lambda>>, input_schema: Type[pydantic.main.BaseModel] = None, tool_description: str = 'Executes the given ML model', inference_mode: opengradient.types.InferenceMode = 0) ‑> langchain_core.tools.base.BaseTool
+def create_run_model_tool(tool_type: opengradient.alphasense.types.ToolType, model_cid: str, tool_name: str, input_getter: Callable, output_formatter: Callable[..., str] = <function <lambda>>, input_schema: Optional[Type[pydantic.main.BaseModel]] = None, tool_description: str = 'Executes the given ML model', inference_mode: opengradient.types.InferenceMode = InferenceMode.VANILLA) ‑> Union[langchain_core.tools.base.BaseTool, Callable]
 ```
 
   

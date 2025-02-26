@@ -1,5 +1,6 @@
 import json
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, Callable
+from typing_extensions import override
 
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import (
@@ -14,37 +15,45 @@ from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.messages import ToolCall
 from langchain_core.messages.tool import ToolMessage
 from langchain_core.tools import BaseTool
+from langchain_core.runnables import Runnable
+from langchain_core.language_models.base import LanguageModelInput
 
-from opengradient import Client, LlmInferenceMode
+from opengradient import Client, LlmInferenceMode, LLM
 from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 
 
 class OpenGradientChatModel(BaseChatModel):
     """OpenGradient adapter class for LangChain chat model"""
 
-    client: Client = None
-    model_cid: str = None
-    max_tokens: int = None
-    tools: List[Dict] = []
+    _client: Client
+    _model_cid: LLM
+    _max_tokens: int
+    _tools: List[Dict] = []
 
-    def __init__(self, private_key: str, model_cid: str, max_tokens: int = 300):
+    def __init__(self, private_key: str, model_cid: LLM, max_tokens: int = 300):
         super().__init__()
-        self.client = Client(
+
+        self._client = Client(
             private_key=private_key, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
         )
-        self.model_cid = model_cid
-        self.max_tokens = max_tokens
+        self._model_cid = model_cid
+        self._max_tokens = max_tokens
 
     @property
     def _llm_type(self) -> str:
         return "opengradient"
 
+    @override
     def bind_tools(
         self,
-        tools: Sequence[Union[BaseTool, Dict]],
-    ) -> "OpenGradientChatModel":
+        tools: Sequence[
+            Union[Dict[str, Any], type, Callable, BaseTool]  # noqa: UP006
+        ],
+        **kwargs: Any,
+    ) -> Runnable[LanguageModelInput, BaseMessage]:
         """Bind tools to the model."""
-        tool_dicts = []
+        tool_dicts: List[Dict] = []
+
         for tool in tools:
             if isinstance(tool, BaseTool):
                 tool_dicts.append(
@@ -53,16 +62,20 @@ class OpenGradientChatModel(BaseChatModel):
                         "function": {
                             "name": tool.name,
                             "description": tool.description,
-                            "parameters": tool.args_schema.schema() if hasattr(tool, "args_schema") else {},
+                            "parameters": (
+                                tool.args_schema.schema() if hasattr(tool, "args_schema") and tool.args_schema is not None else {}
+                            ),
                         },
                     }
                 )
             else:
                 tool_dicts.append(tool)
 
-        self.tools = tool_dicts
+        self._tools = tool_dicts
+
         return self
 
+    @override
     def _generate(
         self,
         messages: List[BaseMessage],
@@ -91,16 +104,17 @@ class OpenGradientChatModel(BaseChatModel):
             else:
                 raise ValueError(f"Unexpected message type: {message}")
 
-        chat_output = self.client.llm_chat(
-            model_cid=self.model_cid,
+        chat_output = self._client.llm_chat(
+            model_cid=self._model_cid,
             messages=sdk_messages,
             stop_sequence=stop,
-            max_tokens=self.max_tokens,
-            tools=self.tools,
+            max_tokens=self._max_tokens,
+            tools=self._tools,
             inference_mode=LlmInferenceMode.VANILLA,
         )
-        finish_reason = chat_output.finish_reason
-        chat_response = chat_output.chat_output
+
+        finish_reason = chat_output.finish_reason or ""
+        chat_response = chat_output.chat_output or {}
 
         if "tool_calls" in chat_response and chat_response["tool_calls"]:
             tool_calls = []
@@ -116,5 +130,5 @@ class OpenGradientChatModel(BaseChatModel):
     @property
     def _identifying_params(self) -> Dict[str, Any]:
         return {
-            "model_name": self.model_cid,
+            "model_name": self._model_cid,
         }

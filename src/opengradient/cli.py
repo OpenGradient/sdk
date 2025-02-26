@@ -1,3 +1,5 @@
+# type: ignore
+
 import ast
 import json
 import logging

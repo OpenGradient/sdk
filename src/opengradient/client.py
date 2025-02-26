@@ -2,12 +2,10 @@ import json
 import logging
 import os
 import time
-import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import firebase
-import grpc
 import numpy as np
 import requests
 from eth_account.account import LocalAccount
@@ -17,7 +15,6 @@ from web3.logs import DISCARD
 
 from . import utils
 from .exceptions import OpenGradientError
-from .proto import infer_pb2, infer_pb2_grpc
 from .types import (
     LLM,
     TEE_LLM,
@@ -29,7 +26,6 @@ from .types import (
     SchedulerParams,
     InferenceResult,
 )
-from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -58,7 +54,7 @@ class Client:
     _hub_user: Dict
     _inference_abi: Dict
 
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -147,7 +143,7 @@ class Client:
             logging.error(f"Unexpected error during model creation: {str(e)}")
             raise
 
-    def create_version(self, model_name: str, notes: str = None, is_major: bool = False) -> dict:
+    def create_version(self, model_name: str, notes: str = "", is_major: bool = False) -> dict:
         """
         Create a new version for the specified model.
 
@@ -283,9 +279,7 @@ class Client:
             if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(
-                f"Upload failed due to request exception: {str(e)}", status_code=e.response.status_code if hasattr(e, "response") else None
-            )
+            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}")
         except Exception as e:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
@@ -316,7 +310,7 @@ class Client:
         def execute_transaction():
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
-            inference_mode_uint8 = int(inference_mode)
+            inference_mode_uint8 = inference_mode.value
             converted_model_input = utils.convert_to_model_input(model_input)
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
@@ -355,7 +349,7 @@ class Client:
     def llm_completion(
         self,
         model_cid: LLM,
-        inference_mode: InferenceMode,
+        inference_mode: LlmInferenceMode,
         prompt: str,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
@@ -394,7 +388,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": inference_mode,
+                "mode": inference_mode.value,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
@@ -439,7 +433,7 @@ class Client:
     def llm_chat(
         self,
         model_cid: LLM,
-        inference_mode: InferenceMode,
+        inference_mode: LlmInferenceMode,
         messages: List[Dict],
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
@@ -544,7 +538,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": inference_mode,
+                "mode": inference_mode.value,
                 "modelCID": model_cid,
                 "messages": messages,
                 "max_tokens": max_tokens,
@@ -632,130 +626,128 @@ class Client:
             if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(
-                f"File listing failed: {str(e)}", status_code=e.response.status_code if hasattr(e, "response") else None
-            )
+            raise OpenGradientError(f"File listing failed: {str(e)}")
         except Exception as e:
             logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
-    def generate_image(
-        self,
-        model_cid: str,
-        prompt: str,
-        host: str = DEFAULT_IMAGE_GEN_HOST,
-        port: int = DEFAULT_IMAGE_GEN_PORT,
-        width: int = 1024,
-        height: int = 1024,
-        timeout: int = 300,  # 5 minute timeout
-        max_retries: int = 3,
-    ) -> bytes:
-        """
-        Generate an image using a diffusion model through gRPC.
+    # def generate_image(
+    #     self,
+    #     model_cid: str,
+    #     prompt: str,
+    #     host: str = DEFAULT_IMAGE_GEN_HOST,
+    #     port: int = DEFAULT_IMAGE_GEN_PORT,
+    #     width: int = 1024,
+    #     height: int = 1024,
+    #     timeout: int = 300,  # 5 minute timeout
+    #     max_retries: int = 3,
+    # ) -> bytes:
+    #     """
+    #     Generate an image using a diffusion model through gRPC.
 
-        Args:
-            model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-            prompt (str): The text prompt to generate the image from
-            host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
-            port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
-            width (int, optional): Output image width. Defaults to 1024.
-            height (int, optional): Output image height. Defaults to 1024.
-            timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
-            max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
+    #     Args:
+    #         model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+    #         prompt (str): The text prompt to generate the image from
+    #         host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
+    #         port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
+    #         width (int, optional): Output image width. Defaults to 1024.
+    #         height (int, optional): Output image height. Defaults to 1024.
+    #         timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
+    #         max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
 
-        Returns:
-            bytes: The raw image data bytes
+    #     Returns:
+    #         bytes: The raw image data bytes
 
-        Raises:
-            OpenGradientError: If the image generation fails
-            TimeoutError: If the generation exceeds the timeout period
-        """
+    #     Raises:
+    #         OpenGradientError: If the image generation fails
+    #         TimeoutError: If the generation exceeds the timeout period
+    #     """
 
-        def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
-            """Calculate and sleep for exponential backoff duration"""
-            delay = min(0.1 * (2**attempt), max_delay)
-            time.sleep(delay)
+    #     def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
+    #         """Calculate and sleep for exponential backoff duration"""
+    #         delay = min(0.1 * (2**attempt), max_delay)
+    #         time.sleep(delay)
 
-        channel = None
-        start_time = time.time()
-        retry_count = 0
+    #     channel = None
+    #     start_time = time.time()
+    #     retry_count = 0
 
-        try:
-            while retry_count < max_retries:
-                try:
-                    # Initialize gRPC channel and stub
-                    channel = grpc.insecure_channel(f"{host}:{port}")
-                    stub = infer_pb2_grpc.InferenceServiceStub(channel)
+    #     try:
+    #         while retry_count < max_retries:
+    #             try:
+    #                 # Initialize gRPC channel and stub
+    #                 channel = grpc.insecure_channel(f"{host}:{port}")
+    #                 stub = infer_pb2_grpc.InferenceServiceStub(channel)
 
-                    # Create image generation request
-                    image_request = infer_pb2.ImageGenerationRequest(model=model_cid, prompt=prompt, height=height, width=width)
+    #                 # Create image generation request
+    #                 image_request = infer_pb2.ImageGenerationRequest(model=model_cid, prompt=prompt, height=height, width=width)
 
-                    # Create inference request with random transaction ID
-                    tx_id = str(uuid.uuid4())
-                    request = infer_pb2.InferenceRequest(tx=tx_id, image_generation=image_request)
+    #                 # Create inference request with random transaction ID
+    #                 tx_id = str(uuid.uuid4())
+    #                 request = infer_pb2.InferenceRequest(tx=tx_id, image_generation=image_request)
 
-                    # Send request with timeout
-                    response_id = stub.RunInferenceAsync(
-                        request,
-                        timeout=min(30, timeout),  # Initial request timeout
-                    )
+    #                 # Send request with timeout
+    #                 response_id = stub.RunInferenceAsync(
+    #                     request,
+    #                     timeout=min(30, timeout),  # Initial request timeout
+    #                 )
 
-                    # Poll for completion
-                    attempt = 0
-                    while True:
-                        # Check timeout
-                        if time.time() - start_time > timeout:
-                            raise TimeoutError(f"Image generation timed out after {timeout} seconds")
+    #                 # Poll for completion
+    #                 attempt = 0
+    #                 while True:
+    #                     # Check timeout
+    #                     if time.time() - start_time > timeout:
+    #                         raise TimeoutError(f"Image generation timed out after {timeout} seconds")
 
-                        status_request = infer_pb2.InferenceTxId(id=response_id.id)
-                        try:
-                            status = stub.GetInferenceStatus(
-                                status_request,
-                                timeout=min(5, timeout),  # Status check timeout
-                            ).status
-                        except grpc.RpcError as e:
-                            logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
-                            exponential_backoff(attempt)
-                            attempt += 1
-                            continue
+    #                     status_request = infer_pb2.InferenceTxId(id=response_id.id)
+    #                     try:
+    #                         status = stub.GetInferenceStatus(
+    #                             status_request,
+    #                             timeout=min(5, timeout),  # Status check timeout
+    #                         ).status
+    #                     except grpc.RpcError as e:
+    #                         logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
+    #                         exponential_backoff(attempt)
+    #                         attempt += 1
+    #                         continue
 
-                        if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
-                            break
-                        elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
-                            raise OpenGradientError("Image generation failed on server")
-                        elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
-                            raise OpenGradientError(f"Unexpected status: {status}")
+    #                     if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
+    #                         break
+    #                     elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
+    #                         raise OpenGradientError("Image generation failed on server")
+    #                     elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
+    #                         raise OpenGradientError(f"Unexpected status: {status}")
 
-                        exponential_backoff(attempt)
-                        attempt += 1
+    #                     exponential_backoff(attempt)
+    #                     attempt += 1
 
-                    # Get result
-                    result = stub.GetInferenceResult(
-                        response_id,
-                        timeout=min(30, timeout),  # Result fetch timeout
-                    )
-                    return result.image_generation_result.image_data
+    #                 # Get result
+    #                 result = stub.GetInferenceResult(
+    #                     response_id,
+    #                     timeout=min(30, timeout),  # Result fetch timeout
+    #                 )
+    #                 return result.image_generation_result.image_data
 
-                except (grpc.RpcError, TimeoutError) as e:
-                    retry_count += 1
-                    if retry_count >= max_retries:
-                        raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
+    #             except (grpc.RpcError, TimeoutError) as e:
+    #                 retry_count += 1
+    #                 if retry_count >= max_retries:
+    #                     raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
 
-                    logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
-                    exponential_backoff(retry_count)
+    #                 logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
+    #                 exponential_backoff(retry_count)
 
-        except grpc.RpcError as e:
-            logging.error(f"gRPC error: {str(e)}")
-            raise OpenGradientError(f"Image generation failed: {str(e)}")
-        except TimeoutError as e:
-            logging.error(f"Timeout error: {str(e)}")
-            raise
-        except Exception as e:
-            logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
-            raise OpenGradientError(f"Image generation failed: {str(e)}")
-        finally:
-            if channel:
-                channel.close()
+    #     except grpc.RpcError as e:
+    #         logging.error(f"gRPC error: {str(e)}")
+    #         raise OpenGradientError(f"Image generation failed: {str(e)}")
+    #     except TimeoutError as e:
+    #         logging.error(f"Timeout error: {str(e)}")
+    #         raise
+    #     except Exception as e:
+    #         logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
+    #         raise OpenGradientError(f"Image generation failed: {str(e)}")
+    #     finally:
+    #         if channel:
+    #             channel.close()
 
     def _get_model_executor_abi(self) -> List[Dict]:
         """

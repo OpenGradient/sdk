@@ -10,7 +10,7 @@ from .og_langchain import *
 from .og_openai import *
 
 
-def langchain_adapter(private_key: str, model_cid: str, max_tokens: int = 300) -> OpenGradientChatModel:
+def langchain_adapter(private_key: str, model_cid: LLM, max_tokens: int = 300) -> OpenGradientChatModel:
     """
     Returns an OpenGradient LLM that implements LangChain's LLM interface
     and can be plugged into LangChain agents.

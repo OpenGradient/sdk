@@ -16,7 +16,7 @@ class OGCompletions(object):
 
     def create(
         self,
-        model: str,
+        model: og.LLM,
         messages: List[object],
         tools: List[object],
         tool_choice: str,
