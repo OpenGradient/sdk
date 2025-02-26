@@ -15,6 +15,8 @@ from .types import (
     CandleOrder,
     InferenceMode,
     LlmInferenceMode,
+    TextGenerationOutput,
+    ModelOutput
 )
 
 from . import llm, alphasense
@@ -23,15 +25,19 @@ _client = None
 
 
 def new_client(
-    email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS
+    email: Optional[str],
+    password: Optional[str],
+    private_key: str,
+    rpc_url=DEFAULT_RPC_URL,
+    contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
 ) -> Client:
     """
     Creates a unique OpenGradient client instance with the given authentication and network settings.
 
     Args:
-        email: User's email address for authentication
-        password: User's password for authentication
-        private_key: Ethereum private key for blockchain transactions
+        email: User's email address for authentication with Model Hub
+        password: User's password for authentication with Model Hub
+        private_key: Private key for OpenGradient transactions
         rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
         contract_address: Optional inference contract address
     """
@@ -74,7 +80,7 @@ def upload(model_path, model_name, version):
     return _client.upload(model_path, model_name, version)
 
 
-def create_model(model_name: str, model_desc: str, model_path: str = None):
+def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None):
     """Create a new model repository.
 
     Args:
@@ -130,7 +136,7 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple[str, Any]: Transaction hash and model output
+        InferenceResult: Transaction hash and model output
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -143,12 +149,12 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
 def llm_completion(
     model_cid: LLM,
     prompt: str,
-    inference_mode: str = LlmInferenceMode.VANILLA,
+    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
     max_retries: Optional[int] = None,
-) -> Tuple[str, str]:
+) -> TextGenerationOutput:
     """Generate text completion using an LLM.
 
     Args:
@@ -161,7 +167,7 @@ def llm_completion(
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple[str, str]: Transaction hash and generated text
+        TextGenerationOutput: Transaction hash and generated text
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -182,14 +188,14 @@ def llm_completion(
 def llm_chat(
     model_cid: LLM,
     messages: List[Dict],
-    inference_mode: str = LlmInferenceMode.VANILLA,
+    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
     tools: Optional[List[Dict]] = None,
     tool_choice: Optional[str] = None,
     max_retries: Optional[int] = None,
-) -> Tuple[str, str, Dict]:
+) -> TextGenerationOutput:
     """Have a chat conversation with an LLM.
 
     Args:
@@ -204,7 +210,7 @@ def llm_chat(
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple[str, str, Dict]: Transaction hash, model response, and metadata
+        TextGenerationOutput
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -224,24 +230,6 @@ def llm_chat(
     )
 
 
-def login(email: str, password: str):
-    """Login to OpenGradient.
-
-    Args:
-        email: User's email address
-        password: User's password
-
-    Returns:
-        dict: Login response with authentication tokens
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.login(email, password)
-
-
 def list_files(model_name: str, version: str) -> List[Dict]:
     """List files in a model repository version.
 
@@ -258,27 +246,6 @@ def list_files(model_name: str, version: str) -> List[Dict]:
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.list_files(model_name, version)
-
-
-def generate_image(model: str, prompt: str, height: Optional[int] = None, width: Optional[int] = None) -> bytes:
-    """Generate an image from a text prompt.
-
-    Args:
-        model: Model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-        prompt: Text description of the desired image
-        height: Optional height of the generated image in pixels
-        width: Optional width of the generated image in pixels
-
-    Returns:
-        bytes: Raw image data as bytes
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-        OpenGradientError: If image generation fails
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.generate_image(model, prompt, height=height, width=width)
 
 
 def new_workflow(
@@ -316,7 +283,7 @@ def new_workflow(
     )
 
 
-def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
+def read_workflow_result(contract_address: str) -> ModelOutput:
     """
     Reads the latest inference result from a deployed workflow contract.
 
@@ -340,7 +307,7 @@ def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
     return _client.read_workflow_result(contract_address)
 
 
-def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
+def run_workflow(contract_address: str) -> ModelOutput:
     """
     Executes the workflow by calling run() on the contract to pull latest data and perform inference.
 
@@ -372,7 +339,6 @@ def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]
 
 
 __all__ = [
-    "generate_image",
     "list_files",
     "login",
     "llm_chat",

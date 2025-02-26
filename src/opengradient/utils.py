@@ -1,3 +1,5 @@
+# type: ignore
+
 import json
 import logging
 from decimal import Decimal

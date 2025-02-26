@@ -62,13 +62,13 @@ class ModelInput:
     strings: List[StringTensor]
 
 
-class InferenceMode:
+class InferenceMode(Enum):
     VANILLA = 0
     ZKML = 1
     TEE = 2
 
 
-class LlmInferenceMode:
+class LlmInferenceMode(Enum):
     VANILLA = 0
     TEE = 1
 
@@ -86,6 +86,19 @@ class ModelOutput:
 
 
 @dataclass
+class InferenceResult:
+    """
+    Output for ML inference requests
+    """
+
+    transaction_hash: str
+    """Blockchain hash for the transaction."""
+
+    model_output: Dict[str, np.ndarray]
+    """Output of ONNX model"""
+
+
+@dataclass
 class TextGenerationOutput:
     """
     Output structure for text generation requests.
@@ -94,13 +107,13 @@ class TextGenerationOutput:
     transaction_hash: str
     """Blockchain hash for the transaction."""
 
-    finish_reason: str | None = ""
+    finish_reason: Optional[str] = None
     """Reason for completion (e.g., 'tool_call', 'stop', 'error'). Empty string if not applicable."""
 
-    chat_output: Dict | None = DefaultDict
+    chat_output: Optional[Dict] = None
     """Dictionary of chat response containing role, message content, tool call parameters, etc.. Empty dict if not applicable."""
 
-    completion_output: str | None = ""
+    completion_output: Optional[str] = None
     """Raw text output from completion-style generation. Empty string if not applicable."""
 
 

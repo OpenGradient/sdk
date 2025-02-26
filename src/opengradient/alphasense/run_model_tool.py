@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Callable, Dict, Type
+from typing import Any, Callable, Dict, Type, Optional
 
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
@@ -14,10 +14,10 @@ def create_run_model_tool(
     tool_name: str,
     input_getter: Callable,
     output_formatter: Callable[..., str] = lambda x: x,
-    input_schema: Type[BaseModel] = None,
+    input_schema: Optional[Type[BaseModel]] = None,
     tool_description: str = "Executes the given ML model",
     inference_mode: og.InferenceMode = og.InferenceMode.VANILLA,
-) -> BaseTool:
+) -> BaseTool | Callable:
     """
     Creates a tool that wraps an OpenGradient model for inference.
 

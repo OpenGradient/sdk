@@ -12,7 +12,7 @@ def create_read_workflow_tool(
     tool_name: str,
     tool_description: str,
     output_formatter: Callable[..., str] = lambda x: x,
-) -> BaseTool:
+) -> BaseTool | Callable:
     """
     Creates a tool that reads results from a workflow contract on OpenGradient.
 

@@ -71,8 +71,12 @@ publish:
 	twine upload dist/*
 	@echo "✨ Done! Published to PyPI"
 
-format:
+check:
 	ruff format .
+	mypy src
+	mypy examples
+
+test: integrationtest utils_test infer completion chat tool tee_completion tee_chat
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
