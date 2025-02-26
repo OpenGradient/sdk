@@ -310,7 +310,7 @@ class Client:
         def execute_transaction():
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
-            inference_mode_uint8 = int(inference_mode)
+            inference_mode_uint8 = inference_mode.value
             converted_model_input = utils.convert_to_model_input(model_input)
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
@@ -388,7 +388,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": inference_mode,
+                "mode": inference_mode.value,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
@@ -538,7 +538,7 @@ class Client:
 
             # Prepare LLM input
             llm_request = {
-                "mode": inference_mode,
+                "mode": inference_mode.value,
                 "modelCID": model_cid,
                 "messages": messages,
                 "max_tokens": max_tokens,

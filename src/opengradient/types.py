@@ -121,13 +121,13 @@ class TextGenerationOutput:
     transaction_hash: str
     """Blockchain hash for the transaction."""
 
-    finish_reason: Optional[str]
+    finish_reason: Optional[str] = None
     """Reason for completion (e.g., 'tool_call', 'stop', 'error'). Empty string if not applicable."""
 
-    chat_output: Optional[Dict]
+    chat_output: Optional[Dict] = None
     """Dictionary of chat response containing role, message content, tool call parameters, etc.. Empty dict if not applicable."""
 
-    completion_output: Optional[str]
+    completion_output: Optional[str] = None
     """Raw text output from completion-style generation. Empty string if not applicable."""
 
 
