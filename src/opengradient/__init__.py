@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams, TextGenerationOutput
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams, TextGenerationOutput, ModelOutput
 
 from . import llm, alphasense
 
@@ -251,27 +251,6 @@ def list_files(model_name: str, version: str) -> List[Dict]:
     return _client.list_files(model_name, version)
 
 
-def generate_image(model: str, prompt: str, height: Optional[int] = None, width: Optional[int] = None) -> bytes:
-    """Generate an image from a text prompt.
-
-    Args:
-        model: Model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-        prompt: Text description of the desired image
-        height: Optional height of the generated image in pixels
-        width: Optional width of the generated image in pixels
-
-    Returns:
-        bytes: Raw image data as bytes
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-        OpenGradientError: If image generation fails
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.generate_image(model, prompt, height=height, width=width)
-
-
 def new_workflow(
     model_cid: str,
     input_query: Union[Dict[str, Any], HistoricalInputQuery],
@@ -335,7 +314,7 @@ def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
     return _client.read_workflow_result(contract_address)
 
 
-def run_workflow(contract_address: str) -> Dict[str, Union[str, Dict]]:
+def run_workflow(contract_address: str) -> ModelOutput:
     """
     Executes the workflow by calling run() on the contract to pull latest data and perform inference.
 

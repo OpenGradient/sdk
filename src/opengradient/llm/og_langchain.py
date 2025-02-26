@@ -22,9 +22,9 @@ from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RP
 class OpenGradientChatModel(BaseChatModel):
     """OpenGradient adapter class for LangChain chat model"""
 
-    client: Client = None
-    model_cid: str = None
-    max_tokens: int = None
+    client: Client
+    model_cid: str
+    max_tokens: int
     tools: List[Dict] = []
 
     def __init__(self, private_key: str, model_cid: str, max_tokens: int = 300):
@@ -99,8 +99,9 @@ class OpenGradientChatModel(BaseChatModel):
             tools=self.tools,
             inference_mode=LlmInferenceMode.VANILLA,
         )
-        finish_reason = chat_output.finish_reason
-        chat_response = chat_output.chat_output
+
+        finish_reason = chat_output.finish_reason or ""
+        chat_response = chat_output.chat_output or {}
 
         if "tool_calls" in chat_response and chat_response["tool_calls"]:
             tool_calls = []

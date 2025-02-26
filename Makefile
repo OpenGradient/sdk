@@ -74,6 +74,7 @@ publish:
 check:
 	ruff format .
 	mypy src
+	mypy examples
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
