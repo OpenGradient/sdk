@@ -18,7 +18,7 @@ from web3.logs import DISCARD
 from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, TextGenerationOutput, SchedulerParams
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, TextGenerationOutput, SchedulerParams, InferenceResult
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {
@@ -286,7 +286,7 @@ class Client:
         inference_mode: InferenceMode,
         model_input: Dict[str, Union[str, int, float, List, np.ndarray]],
         max_retries: Optional[int] = None,
-    ) -> Tuple[str, Dict[str, np.ndarray]]:
+    ) -> InferenceResult:
         """
         Perform inference on a model.
 
@@ -297,7 +297,7 @@ class Client:
             max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
 
         Returns:
-            Tuple[str, Dict[str, np.ndarray]]: The transaction hash and the model output.
+            InferenceResult: The transaction hash and the model output.
 
         Raises:
             OpenGradientError: If the inference fails.
@@ -337,7 +337,8 @@ class Client:
 
             # TODO: This should return a ModelOutput class object
             model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
-            return tx_hash.hex(), model_output
+
+            return InferenceResult(tx_hash.hex(), model_output)
 
         return run_with_retry(execute_transaction, max_retries)
 

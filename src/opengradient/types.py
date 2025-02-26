@@ -98,6 +98,17 @@ class ModelOutput:
     jsons: Dict[str, np.ndarray]  # Converts to JSON dictionary
     is_simulation_result: bool
 
+@dataclass
+class InferenceResult:
+    """
+    Output for ML inference requests
+    """
+
+    transaction_hash: str
+    """Blockchain hash for the transaction."""
+
+    model_output: Dict[str, np.ndarray]
+    """Output of ONNX model"""
 
 @dataclass
 class TextGenerationOutput:
