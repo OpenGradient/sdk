@@ -38,6 +38,7 @@ class HistoricalInputQuery:
             [int(ct) for ct in self.candle_types],
         )
 
+
 @dataclass
 class Number:
     value: int

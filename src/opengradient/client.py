@@ -16,7 +16,17 @@ from web3.logs import DISCARD
 from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, ModelOutput, TextGenerationOutput, SchedulerParams, InferenceResult
+from .types import (
+    LLM,
+    TEE_LLM,
+    HistoricalInputQuery,
+    InferenceMode,
+    LlmInferenceMode,
+    ModelOutput,
+    TextGenerationOutput,
+    SchedulerParams,
+    InferenceResult,
+)
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
 
 _FIREBASE_CONFIG = {
@@ -748,20 +758,19 @@ class Client:
         abi_path = Path(__file__).parent / "abi" / abi_name
         with open(abi_path, "r") as f:
             return json.load(f)
-        
+
     def _get_bin(self, bin_name) -> List[Dict]:
         """
         Returns the bin for the requested contract.
         """
         bin_path = Path(__file__).parent / "bin" / bin_name
         # Read bytecode with explicit encoding
-        with open(bin_path, 'r', encoding='utf-8') as f:
+        with open(bin_path, "r", encoding="utf-8") as f:
             bytecode = f.read().strip()
-            if not bytecode.startswith('0x'):
-                bytecode = '0x' + bytecode
+            if not bytecode.startswith("0x"):
+                bytecode = "0x" + bytecode
             return bytecode
-        
-        
+
     def new_workflow(
         self,
         model_cid: str,
@@ -802,28 +811,28 @@ class Client:
 
             try:
                 # Estimate gas needed
-                estimated_gas = contract.constructor(*constructor_args).estimate_gas({
-                    "from": self._wallet_account.address
-                })
+                estimated_gas = contract.constructor(*constructor_args).estimate_gas({"from": self._wallet_account.address})
                 gas_limit = int(estimated_gas * 1.2)
             except Exception as e:
                 print(f"⚠️ Gas estimation failed: {str(e)}")
                 gas_limit = 5000000  # Conservative fallback
                 print(f"📊 Using fallback gas limit: {gas_limit}")
 
-            transaction = contract.constructor(*constructor_args).build_transaction({
-                "from": self._wallet_account.address,
-                "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
-                "gas": gas_limit,
-                "gasPrice": self._blockchain.eth.gas_price,
-                "chainId": self._blockchain.eth.chain_id,
-            })
+            transaction = contract.constructor(*constructor_args).build_transaction(
+                {
+                    "from": self._wallet_account.address,
+                    "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                    "gas": gas_limit,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                    "chainId": self._blockchain.eth.chain_id,
+                }
+            )
 
             signed_txn = self._wallet_account.sign_transaction(transaction)
             tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-            
+
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
-            
+
             if tx_receipt["status"] == 0:
                 raise Exception(f"❌ Contract deployment failed, transaction hash: {tx_hash.hex()}")
 
@@ -839,7 +848,7 @@ class Client:
     def _register_with_scheduler(self, contract_address: str, scheduler_params: SchedulerParams) -> None:
         """
         Register the deployed workflow contract with the scheduler for automated execution.
-        
+
         Args:
             contract_address (str): Address of the deployed workflow contract
             scheduler_params (SchedulerParams): Scheduler configuration containing:
@@ -861,9 +870,7 @@ class Client:
         try:
             # Register the workflow with the scheduler
             scheduler_tx = scheduler_contract.functions.registerTask(
-                contract_address, 
-                scheduler_params.end_time, 
-                scheduler_params.frequency
+                contract_address, scheduler_params.end_time, scheduler_params.frequency
             ).build_transaction(
                 {
                     "from": self._wallet_account.address,
@@ -896,13 +903,15 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi"))
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
+        )
 
         # Get the result
         result = contract.functions.getInferenceResult().call()
 
         return utils.convert_array_to_model_output(result)
-    
+
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
         Triggers the run() function on a deployed workflow contract and returns the result.
@@ -918,7 +927,9 @@ class Client:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._blockchain.eth.contract(address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi"))
+        contract = self._blockchain.eth.contract(
+            address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
+        )
 
         # Call run() function
         nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
@@ -949,28 +960,28 @@ class Client:
     def read_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
         """
         Gets historical inference results from a workflow contract.
-        
+
         Retrieves the specified number of most recent inference results from the contract's
         storage, with the most recent result first.
-        
+
         Args:
             contract_address (str): Address of the deployed workflow contract
             num_results (int): Number of historical results to retrieve
-            
+
         Returns:
             List[Dict]: List of historical inference results, each containing:
                 - prediction values
                 - timestamps
                 - any additional metadata stored with the result
-            
+
         """
         contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address), 
-            abi=self._get_abi("PriceHistoryInference.abi")
+            address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
         )
-        
+
         results = contract.functions.getLastInferenceResults(num_results).call()
         return [utils.convert_array_to_model_output(result) for result in results]
+
 
 def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """
