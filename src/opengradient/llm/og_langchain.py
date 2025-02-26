@@ -1,5 +1,6 @@
 import json
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence, Union, Callable
+from typing_extensions import override
 
 from langchain.chat_models.base import BaseChatModel
 from langchain.schema import (
@@ -14,8 +15,10 @@ from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.messages import ToolCall
 from langchain_core.messages.tool import ToolMessage
 from langchain_core.tools import BaseTool
+from langchain_core.runnables import Runnable
+from langchain_core.language_models.base import LanguageModelInput
 
-from opengradient import Client, LlmInferenceMode
+from opengradient import Client, LlmInferenceMode, LLM
 from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 
 
@@ -23,11 +26,11 @@ class OpenGradientChatModel(BaseChatModel):
     """OpenGradient adapter class for LangChain chat model"""
 
     client: Client
-    model_cid: str
+    model_cid: LLM
     max_tokens: int
     tools: List[Dict] = []
 
-    def __init__(self, private_key: str, model_cid: str, max_tokens: int = 300):
+    def __init__(self, private_key: str, model_cid: LLM, max_tokens: int = 300):
         super().__init__()
         self.client = Client(
             private_key=private_key, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
@@ -39,12 +42,17 @@ class OpenGradientChatModel(BaseChatModel):
     def _llm_type(self) -> str:
         return "opengradient"
 
+    @override
     def bind_tools(
         self,
-        tools: Sequence[Union[BaseTool, Dict]],
-    ) -> "OpenGradientChatModel":
+        tools: Sequence[
+            Union[Dict[str, Any], type, Callable, BaseTool]  # noqa: UP006
+        ],
+        **kwargs: Any,
+    ) -> Runnable[LanguageModelInput, BaseMessage]:
         """Bind tools to the model."""
-        tool_dicts = []
+        tool_dicts: List[Dict] = []
+
         for tool in tools:
             if isinstance(tool, BaseTool):
                 tool_dicts.append(
@@ -53,7 +61,9 @@ class OpenGradientChatModel(BaseChatModel):
                         "function": {
                             "name": tool.name,
                             "description": tool.description,
-                            "parameters": tool.args_schema.schema() if hasattr(tool, "args_schema") else {},
+                            "parameters": (
+                                tool.args_schema.schema() if hasattr(tool, "args_schema") and tool.args_schema is not None else {}
+                            ),
                         },
                     }
                 )
@@ -63,6 +73,7 @@ class OpenGradientChatModel(BaseChatModel):
         self.tools = tool_dicts
         return self
 
+    @override
     def _generate(
         self,
         messages: List[BaseMessage],

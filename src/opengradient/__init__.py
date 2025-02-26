@@ -14,7 +14,11 @@ _client = None
 
 
 def new_client(
-    email: Optional[str], password: Optional[str], private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS
+    email: Optional[str],
+    password: Optional[str],
+    private_key: str,
+    rpc_url=DEFAULT_RPC_URL,
+    contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
 ) -> Client:
     """
     Creates a unique OpenGradient client instance with the given authentication and network settings.
@@ -139,7 +143,7 @@ def llm_completion(
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
     max_retries: Optional[int] = None,
-) -> Tuple[str, str]:
+) -> TextGenerationOutput:
     """Generate text completion using an LLM.
 
     Args:
@@ -152,7 +156,7 @@ def llm_completion(
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple[str, str]: Transaction hash and generated text
+        TextGenerationOutput: Transaction hash and generated text
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -213,24 +217,6 @@ def llm_chat(
         tool_choice=tool_choice,
         max_retries=max_retries,
     )
-
-
-def login(email: str, password: str):
-    """Login to OpenGradient.
-
-    Args:
-        email: User's email address
-        password: User's password
-
-    Returns:
-        dict: Login response with authentication tokens
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.login(email, password)
 
 
 def list_files(model_name: str, version: str) -> List[Dict]:
