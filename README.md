@@ -73,6 +73,10 @@ result = og.infer(
 )
 ```
 
+### 4. Examples
+
+See code examples under [examples](./examples).
+
 ## CLI Usage
 
 The SDK includes a command-line interface for quick operations. First, verify your configuration:
