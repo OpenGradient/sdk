@@ -65,7 +65,7 @@ def upload(model_path, model_name, version):
     return _client.upload(model_path, model_name, version)
 
 
-def create_model(model_name: str, model_desc: str, model_path: str = None):
+def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None):
     """Create a new model repository.
 
     Args:
@@ -134,7 +134,7 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
 def llm_completion(
     model_cid: LLM,
     prompt: str,
-    inference_mode: str = LlmInferenceMode.VANILLA,
+    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
@@ -173,7 +173,7 @@ def llm_completion(
 def llm_chat(
     model_cid: LLM,
     messages: List[Dict],
-    inference_mode: str = LlmInferenceMode.VANILLA,
+    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
@@ -290,7 +290,7 @@ def new_workflow(
     )
 
 
-def read_workflow_result(contract_address: str) -> Dict[str, Union[str, Dict]]:
+def read_workflow_result(contract_address: str) -> ModelOutput:
     """
     Reads the latest inference result from a deployed workflow contract.
 

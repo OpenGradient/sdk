@@ -2,12 +2,10 @@ import json
 import logging
 import os
 import time
-import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import firebase
-import grpc
 import numpy as np
 import requests
 from eth_account.account import LocalAccount
@@ -17,7 +15,6 @@ from web3.logs import DISCARD
 
 from . import utils
 from .exceptions import OpenGradientError
-from .proto import infer_pb2, infer_pb2_grpc
 from .types import (
     LLM,
     TEE_LLM,
@@ -29,7 +26,6 @@ from .types import (
     SchedulerParams,
     InferenceResult,
 )
-from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -283,9 +279,7 @@ class Client:
             if hasattr(e, "response") and e.response is not None:
                 logging.error(f"Response status code: {e.response.status_code}")
                 logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(
-                f"Upload failed due to request exception: {str(e)}, status_code={e.response.status_code if hasattr(e, 'response') else None}"
-            )
+            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}")
         except Exception as e:
             logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
@@ -355,7 +349,7 @@ class Client:
     def llm_completion(
         self,
         model_cid: LLM,
-        inference_mode: InferenceMode,
+        inference_mode: LlmInferenceMode,
         prompt: str,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
