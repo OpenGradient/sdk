@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .client import Client
 from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams
+from .types import LLM, TEE_LLM, HistoricalInputQuery, InferenceMode, LlmInferenceMode, SchedulerParams, TextGenerationOutput
 
 from . import llm, alphasense
 
@@ -121,7 +121,7 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple[str, Any]: Transaction hash and model output
+        InferenceResult: Transaction hash and model output
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -180,7 +180,7 @@ def llm_chat(
     tools: Optional[List[Dict]] = None,
     tool_choice: Optional[str] = None,
     max_retries: Optional[int] = None,
-) -> Tuple[str, str, Dict]:
+) -> TextGenerationOutput:
     """Have a chat conversation with an LLM.
 
     Args:
@@ -195,7 +195,7 @@ def llm_chat(
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        Tuple[str, str, Dict]: Transaction hash, model response, and metadata
+        TextGenerationOutput
 
     Raises:
         RuntimeError: If SDK is not initialized
