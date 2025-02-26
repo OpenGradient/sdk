@@ -28,7 +28,7 @@ scheduler_params = og.SchedulerParams(
 model_cid = "QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N"
 
 # Deploy schedule
-contract_address = og.new_workflow(
+contract_address = og_client.new_workflow(
     model_cid=model_cid,
     input_query=input_query,
     # Input name in ONNX model
