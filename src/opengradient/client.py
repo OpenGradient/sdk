@@ -54,7 +54,7 @@ class Client:
     _hub_user: Dict
     _inference_abi: Dict
 
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: str, password: str):
+    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 

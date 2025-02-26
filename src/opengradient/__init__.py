@@ -14,15 +14,15 @@ _client = None
 
 
 def new_client(
-    email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS
+    email: Optional[str], password: Optional[str], private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS
 ) -> Client:
     """
     Creates a unique OpenGradient client instance with the given authentication and network settings.
 
     Args:
-        email: User's email address for authentication
-        password: User's password for authentication
-        private_key: Ethereum private key for blockchain transactions
+        email: User's email address for authentication with Model Hub
+        password: User's password for authentication with Model Hub
+        private_key: Private key for OpenGradient transactions
         rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
         contract_address: Optional inference contract address
     """
