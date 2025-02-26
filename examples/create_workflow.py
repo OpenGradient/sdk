@@ -24,7 +24,7 @@ scheduler_params = og.SchedulerParams(
     duration_hours=2
 )
 
-# Base model CID
+# Base model CID (ETH volatility forecast)
 model_cid = "QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N"
 
 # Deploy schedule
