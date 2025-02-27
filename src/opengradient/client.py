@@ -27,7 +27,7 @@ from .types import (
     InferenceResult,
 )
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
-from .utils import convert_array_to_model_output
+from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -53,7 +53,7 @@ class Client:
     _blockchain: Web3
     _wallet_account: LocalAccount
 
-    _hub_user: Dict
+    _hub_user: Optional[Dict]
     _inference_abi: Dict
 
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
@@ -313,7 +313,7 @@ class Client:
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             inference_mode_uint8 = inference_mode.value
-            converted_model_input = utils.convert_to_model_input(model_input)
+            converted_model_input = convert_to_model_input(model_input)
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
 
@@ -342,7 +342,7 @@ class Client:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
 
             # TODO: This should return a ModelOutput class object
-            model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
+            model_output = convert_to_model_output(parsed_logs[0]["args"])
 
             return InferenceResult(tx_hash.hex(), model_output)
 
@@ -751,7 +751,7 @@ class Client:
     #         if channel:
     #             channel.close()
 
-    def _get_abi(self, abi_name) -> List[Dict]:
+    def _get_abi(self, abi_name) -> str:
         """
         Returns the ABI for the requested contract.
         """
@@ -759,7 +759,7 @@ class Client:
         with open(abi_path, "r") as f:
             return json.load(f)
 
-    def _get_bin(self, bin_name) -> List[Dict]:
+    def _get_bin(self, bin_name) -> str:
         """
         Returns the bin for the requested contract.
         """
