@@ -14,7 +14,7 @@ input_query = og.HistoricalInputQuery(
 )
 
 # Define schedule
-scheduler_params = og.SchedulerParams(frequency=1800, duration_hours=2)
+scheduler_params = og.SchedulerParams(frequency=60, duration_hours=2)
 
 # Base model CID (ETH volatility forecast)
 model_cid = "QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N"
