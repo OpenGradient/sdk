@@ -960,7 +960,7 @@ class Client:
 
         return utils.convert_array_to_model_output(result)
 
-    def read_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
+    def read_workflow_history(self, contract_address: str, num_results: int) -> List[ModelOutput]:
         """
         Gets historical inference results from a workflow contract.
 
@@ -972,11 +972,7 @@ class Client:
             num_results (int): Number of historical results to retrieve
 
         Returns:
-            List[Dict]: List of historical inference results, each containing:
-                - prediction values
-                - timestamps
-                - any additional metadata stored with the result
-
+            List[ModelOutput]: List of historical inference results
         """
         contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
