@@ -319,7 +319,7 @@ def run_workflow(contract_address: str) -> ModelOutput:
     return _client.run_workflow(contract_address)
 
 
-def read_workflow_history(contract_address: str, num_results: int) -> List[Dict]:
+def read_workflow_history(contract_address: str, num_results: int) -> List[ModelOutput]:
     """
     Gets historical inference results from a workflow contract.
 

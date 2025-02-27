@@ -13,7 +13,6 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
-from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
 from .types import (
@@ -28,6 +27,7 @@ from .types import (
     InferenceResult,
 )
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
+from .utils import convert_array_to_model_output
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -784,12 +784,12 @@ class Client:
         This function deploys a new workflow contract on OpenGradient that connects
         an AI model with its required input data. When executed, the workflow will fetch
         the specified model, evaluate the input query to get data, and perform inference.
-        
+
         The workflow can be set to execute manually or automatically via a scheduler.
 
         Args:
             model_cid (str): CID of the model to be executed from the Model Hub
-            input_query (HistoricalInputQuery): Input definition for the model inference, 
+            input_query (HistoricalInputQuery): Input definition for the model inference,
                 will be evaluated at runtime for each inference
             input_tensor_name (str): Name of the input tensor expected by the model
             scheduler_params (Optional[SchedulerParams]): Scheduler configuration for automated execution:
@@ -913,7 +913,7 @@ class Client:
         # Get the result
         result = contract.functions.getInferenceResult().call()
 
-        return utils.convert_array_to_model_output(result)
+        return convert_array_to_model_output(result)
 
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
@@ -958,7 +958,7 @@ class Client:
         # Get the inference result from the contract
         result = contract.functions.getInferenceResult().call()
 
-        return utils.convert_array_to_model_output(result)
+        return convert_array_to_model_output(result)
 
     def read_workflow_history(self, contract_address: str, num_results: int) -> List[ModelOutput]:
         """
@@ -979,7 +979,7 @@ class Client:
         )
 
         results = contract.functions.getLastInferenceResults(num_results).call()
-        return [utils.convert_array_to_model_output(result) for result in results]
+        return [convert_array_to_model_output(result) for result in results]
 
 
 def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
