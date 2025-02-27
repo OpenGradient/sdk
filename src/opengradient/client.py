@@ -13,7 +13,6 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
-from . import utils
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
 from .types import (
@@ -28,6 +27,7 @@ from .types import (
     InferenceResult,
 )
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
+from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -53,7 +53,7 @@ class Client:
     _blockchain: Web3
     _wallet_account: LocalAccount
 
-    _hub_user: Dict
+    _hub_user: Optional[Dict]
     _inference_abi: Dict
 
     def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
@@ -313,7 +313,7 @@ class Client:
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             inference_mode_uint8 = inference_mode.value
-            converted_model_input = utils.convert_to_model_input(model_input)
+            converted_model_input = convert_to_model_input(model_input)
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
 
@@ -342,7 +342,7 @@ class Client:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
 
             # TODO: This should return a ModelOutput class object
-            model_output = utils.convert_to_model_output(parsed_logs[0]["args"])
+            model_output = convert_to_model_output(parsed_logs[0]["args"])
 
             return InferenceResult(tx_hash.hex(), model_output)
 
@@ -751,7 +751,7 @@ class Client:
     #         if channel:
     #             channel.close()
 
-    def _get_abi(self, abi_name) -> List[Dict]:
+    def _get_abi(self, abi_name) -> str:
         """
         Returns the ABI for the requested contract.
         """
@@ -759,7 +759,7 @@ class Client:
         with open(abi_path, "r") as f:
             return json.load(f)
 
-    def _get_bin(self, bin_name) -> List[Dict]:
+    def _get_bin(self, bin_name) -> str:
         """
         Returns the bin for the requested contract.
         """
@@ -781,17 +781,20 @@ class Client:
         """
         Deploy a new workflow contract with the specified parameters.
 
-        This function deploys a new workflow contract and optionally registers it with
-        the scheduler for automated execution. If scheduler_params is not provided,
-        the workflow will be deployed without automated execution scheduling.
+        This function deploys a new workflow contract on OpenGradient that connects
+        an AI model with its required input data. When executed, the workflow will fetch
+        the specified model, evaluate the input query to get data, and perform inference.
+
+        The workflow can be set to execute manually or automatically via a scheduler.
 
         Args:
-            model_cid (str): IPFS CID of the model to be executed
-            input_query (HistoricalInputQuery): Query parameters for data input
+            model_cid (str): CID of the model to be executed from the Model Hub
+            input_query (HistoricalInputQuery): Input definition for the model inference,
+                will be evaluated at runtime for each inference
             input_tensor_name (str): Name of the input tensor expected by the model
             scheduler_params (Optional[SchedulerParams]): Scheduler configuration for automated execution:
                 - frequency: Execution frequency in seconds
-                - duration_hours: How long to run in hours
+                - duration_hours: How long the schedule should live for
 
         Returns:
             str: Deployed contract address. If scheduler_params was provided, the workflow
@@ -910,7 +913,7 @@ class Client:
         # Get the result
         result = contract.functions.getInferenceResult().call()
 
-        return utils.convert_array_to_model_output(result)
+        return convert_array_to_model_output(result)
 
     def run_workflow(self, contract_address: str) -> ModelOutput:
         """
@@ -955,9 +958,9 @@ class Client:
         # Get the inference result from the contract
         result = contract.functions.getInferenceResult().call()
 
-        return utils.convert_array_to_model_output(result)
+        return convert_array_to_model_output(result)
 
-    def read_workflow_history(self, contract_address: str, num_results: int) -> List[Dict]:
+    def read_workflow_history(self, contract_address: str, num_results: int) -> List[ModelOutput]:
         """
         Gets historical inference results from a workflow contract.
 
@@ -969,18 +972,14 @@ class Client:
             num_results (int): Number of historical results to retrieve
 
         Returns:
-            List[Dict]: List of historical inference results, each containing:
-                - prediction values
-                - timestamps
-                - any additional metadata stored with the result
-
+            List[ModelOutput]: List of historical inference results
         """
         contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
         )
 
         results = contract.functions.getLastInferenceResults(num_results).call()
-        return [utils.convert_array_to_model_output(result) for result in results]
+        return [convert_array_to_model_output(result) for result in results]
 
 
 def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
