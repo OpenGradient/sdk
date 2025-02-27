@@ -781,17 +781,20 @@ class Client:
         """
         Deploy a new workflow contract with the specified parameters.
 
-        This function deploys a new workflow contract and optionally registers it with
-        the scheduler for automated execution. If scheduler_params is not provided,
-        the workflow will be deployed without automated execution scheduling.
+        This function deploys a new workflow contract on OpenGradient that connects
+        an AI model with its required input data. When executed, the workflow will fetch
+        the specified model, evaluate the input query to get data, and perform inference.
+        
+        The workflow can be set to execute manually or automatically via a scheduler.
 
         Args:
-            model_cid (str): IPFS CID of the model to be executed
-            input_query (HistoricalInputQuery): Query parameters for data input
+            model_cid (str): CID of the model to be executed from the Model Hub
+            input_query (HistoricalInputQuery): Input definition for the model inference, 
+                will be evaluated at runtime for each inference
             input_tensor_name (str): Name of the input tensor expected by the model
             scheduler_params (Optional[SchedulerParams]): Scheduler configuration for automated execution:
                 - frequency: Execution frequency in seconds
-                - duration_hours: How long to run in hours
+                - duration_hours: How long the schedule should live for
 
         Returns:
             str: Deployed contract address. If scheduler_params was provided, the workflow
