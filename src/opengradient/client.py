@@ -866,15 +866,25 @@ class Client:
         # Scheduler contract address
         scheduler_address = DEFAULT_SCHEDULER_ADDRESS
         scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
+        checksum_address = Web3.to_checksum_address(contract_address)
+
+        estimated_gas = scheduler_contract.functions.registerTask(
+            checksum_address, scheduler_params.end_time, scheduler_params.frequency
+        ).estimate_gas({"from": self._wallet_account.address})
+        gas_limit = int(estimated_gas * 1.2)  # 20% buffer
+        print(f"Debug - Registering task with parameters:")
+        print(f"  Contract address: {checksum_address}")
+        print(f"  End time: {scheduler_params.end_time}")
+        print(f"  Frequency: {scheduler_params.frequency} seconds")
 
         try:
             # Register the workflow with the scheduler
             scheduler_tx = scheduler_contract.functions.registerTask(
-                contract_address, scheduler_params.end_time, scheduler_params.frequency
+                checksum_address, scheduler_params.end_time, scheduler_params.frequency
             ).build_transaction(
                 {
                     "from": self._wallet_account.address,
-                    "gas": 300000,
+                    "gas": gas_limit,
                     "gasPrice": self._blockchain.eth.gas_price,
                     "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
                     "chainId": self._blockchain.eth.chain_id,
@@ -883,7 +893,8 @@ class Client:
 
             signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
             scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-            self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
+            print(f"✅ Successfully registered scheduler contract: {str(tx_receipt)}")
         except Exception as e:
             print(f"❌ Error registering contract with scheduler: {str(e)}")
             print("  The workflow contract is still deployed and can be executed manually.")
