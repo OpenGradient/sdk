@@ -17,6 +17,8 @@ from .types import (
     LlmInferenceMode,
     TextGenerationOutput,
     ModelOutput,
+    ModelRepository,
+    FileUploadResult,
 )
 
 from . import llm, alphasense
@@ -61,7 +63,7 @@ def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, c
     return _client
 
 
-def upload(model_path, model_name, version):
+def upload(model_path, model_name, version) -> FileUploadResult:
     """Upload a model file to OpenGradient.
 
     Args:
@@ -70,7 +72,7 @@ def upload(model_path, model_name, version):
         version: Version string for this model upload
 
     Returns:
-        dict: Upload response containing file metadata
+        FileUploadResult: Upload response containing file metadata
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -80,7 +82,7 @@ def upload(model_path, model_name, version):
     return _client.upload(model_path, model_name, version)
 
 
-def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None):
+def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None) -> ModelRepository:
     """Create a new model repository.
 
     Args:
@@ -89,7 +91,7 @@ def create_model(model_name: str, model_desc: str, model_path: Optional[str] = N
         model_path: Optional path to model file to upload immediately
 
     Returns:
-        dict: Creation response with model metadata and optional upload results
+        ModelRepository: Creation response with model metadata and optional upload results
 
     Raises:
         RuntimeError: If SDK is not initialized

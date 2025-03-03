@@ -25,6 +25,8 @@ from .types import (
     TextGenerationOutput,
     SchedulerParams,
     InferenceResult,
+    ModelRepository,
+    FileUploadResult,
 )
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
 from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
@@ -88,7 +90,7 @@ class Client:
             logging.error(f"Authentication failed: {str(e)}")
             raise
 
-    def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> dict:
+    def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> ModelRepository:
         """
         Create a new model with the given model_name and model_desc, and a specified version.
 
@@ -111,39 +113,22 @@ class Client:
         payload = {"name": model_name, "description": model_desc}
 
         try:
-            logging.debug(f"Create Model URL: {url}")
-            logging.debug(f"Headers: {headers}")
-            logging.debug(f"Payload: {payload}")
-
             response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
+        except requests.HTTPError as e:
+            error_details = f"HTTP {e.response.status_code}: {e.response.text}"
+            raise OpenGradientError(f"Model creation failed: {error_details}") from e
 
-            json_response = response.json()
-            model_name = json_response.get("name")
-            if not model_name:
-                raise Exception(f"Model creation response missing 'name'. Full response: {json_response}")
-            logging.info(f"Model creation successful. Model name: {model_name}")
+        json_response = response.json()
+        model_name = json_response.get("name")
+        if not model_name:
+            raise Exception(f"Model creation response missing 'name'. Full response: {json_response}")
 
-            # Create the specified version for the newly created model
-            try:
-                version_response = self.create_version(model_name, version)
-                logging.info(f"Version creation successful. Version string: {version_response['versionString']}")
-            except Exception as ve:
-                logging.error(f"Version creation failed, but model was created. Error: {str(ve)}")
-                return {"name": model_name, "versionString": None, "version_error": str(ve)}
+        # Create the specified version for the newly created model
+        version_response = self.create_version(model_name, version)
 
-            return {"name": model_name, "versionString": version_response["versionString"]}
+        return ModelRepository(model_name, version_response["versionString"])
 
-        except requests.RequestException as e:
-            logging.error(f"Model creation failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response headers: {e.response.headers}")
-                logging.error(f"Response content: {e.response.text}")
-            raise Exception(f"Model creation failed: {str(e)}")
-        except Exception as e:
-            logging.error(f"Unexpected error during model creation: {str(e)}")
-            raise
 
     def create_version(self, model_name: str, notes: str = "", is_major: bool = False) -> dict:
         """
@@ -204,7 +189,7 @@ class Client:
             logging.error(f"Unexpected error during version creation: {str(e)}")
             raise
 
-    def upload(self, model_path: str, model_name: str, version: str) -> dict:
+    def upload(self, model_path: str, model_name: str, version: str) -> FileUploadResult:
         """
         Upload a model file to the server.
 
@@ -259,12 +244,9 @@ class Client:
                 if response.status_code == 201:
                     if response.content and response.content != b"null":
                         json_response = response.json()
-                        logging.info(f"JSON response: {json_response}")  # Log the parsed JSON response
-                        logging.info(f"Upload successful. CID: {json_response.get('ipfsCid', 'N/A')}")
-                        result = {"model_cid": json_response.get("ipfsCid"), "size": json_response.get("size")}
+                        return FileUploadResult(json_response.get("ipfsCid"), json_response.get("size"))
                     else:
-                        logging.warning("Empty or null response content received. Assuming upload was successful.")
-                        result = {"model_cid": None, "size": None}
+                        raise RuntimeError("Empty or null response content received. Assuming upload was successful.")
                 elif response.status_code == 500:
                     error_message = "Internal server error occurred. Please try again later or contact support."
                     logging.error(error_message)
@@ -273,8 +255,6 @@ class Client:
                     error_message = response.json().get("detail", "Unknown error occurred")
                     logging.error(f"Upload failed with status code {response.status_code}: {error_message}")
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
-
-                return result
 
         except requests.RequestException as e:
             logging.error(f"Request exception during upload: {str(e)}")
