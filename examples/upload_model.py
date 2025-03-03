@@ -9,7 +9,6 @@ og_client = og.new_client(
 )
 
 model_repo = og_client.create_model(model_name="[Demo] Custom Model", model_desc="My custom model for demoing Model Hub")
+upload_result = og_client.upload(model_name=model_repo.name, version=model_repo.initialVersion, model_path="./path/to/model.onnx")
 
-result = og_client.upload(model_name=model_repo["name"], version=model_repo["versionString"], model_path="./path/to/model.onnx")
-
-print(f"Uploaded model, use following CID to access: {result['modelCid']}")
+print(f"Uploaded model, use following CID to access: {upload_result.modelCid}")
