@@ -184,3 +184,15 @@ class SchedulerParams:
         if data is None:
             return None
         return SchedulerParams(frequency=data.get("frequency", 600), duration_hours=data.get("duration_hours", 2))
+
+
+@dataclass
+class ModelRepository:
+    name: str
+    initialVersion: str
+
+
+@dataclass
+class FileUploadResult:
+    modelCid: str
+    size: int
