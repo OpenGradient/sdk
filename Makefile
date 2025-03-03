@@ -80,6 +80,7 @@ test: integrationtest utils_test infer completion chat tool tee_completion tee_c
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
+	python integrationtest/workflow_models/test_workflow_models.py
 
 utils_test:
 	pytest tests/utils_test.py -v

@@ -15,11 +15,12 @@ workflow_read_tool = og.alphasense.create_read_workflow_tool(
     workflow_contract_address="0x5DbC2b798501d08cF2957f005e25a5C34FAC2b1c",
     tool_name="BtcSpotForecast",
     tool_description="Returns the expected change of bitcoin price over the next 30 mins",
-    output_formatter=lambda x: f"Expected return: {x.numbers['regression_output'][0] * 100}%"
+    output_formatter=lambda x: f"Expected return: {x.numbers['regression_output'][0] * 100}%",
 )
 
 tools: List[BaseTool] = [workflow_read_tool]
 agent = create_react_agent(model=llm, tools=tools, prompt="Answer the users questions using the tools provided")
+
 
 # Helper to print agent steps
 def print_stream(stream):
