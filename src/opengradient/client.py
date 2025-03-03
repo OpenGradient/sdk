@@ -115,27 +115,20 @@ class Client:
         try:
             response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
+        except requests.HTTPError as e:
+            error_details = f"HTTP {e.response.status_code}: {e.response.text}"
+            raise OpenGradientError(f"Model creation failed: {error_details}") from e
 
-            json_response = response.json()
-            model_name = json_response.get("name")
-            if not model_name:
-                raise Exception(f"Model creation response missing 'name'. Full response: {json_response}")
+        json_response = response.json()
+        model_name = json_response.get("name")
+        if not model_name:
+            raise Exception(f"Model creation response missing 'name'. Full response: {json_response}")
 
-            # Create the specified version for the newly created model
-            version_response = self.create_version(model_name, version)
+        # Create the specified version for the newly created model
+        version_response = self.create_version(model_name, version)
 
-            return ModelRepository(model_name, version_response["versionString"])
+        return ModelRepository(model_name, version_response["versionString"])
 
-        except requests.RequestException as e:
-            logging.error(f"Model creation failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response headers: {e.response.headers}")
-                logging.error(f"Response content: {e.response.text}")
-            raise Exception(f"Model creation failed: {str(e)}")
-        except Exception as e:
-            logging.error(f"Unexpected error during model creation: {str(e)}")
-            raise
 
     def create_version(self, model_name: str, notes: str = "", is_major: bool = False) -> dict:
         """
