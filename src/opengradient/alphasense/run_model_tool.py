@@ -1,20 +1,22 @@
 from enum import Enum
-from typing import Any, Callable, Dict, Type, Optional
+from typing import Any, Callable, List, Dict, Type, Optional, Union
 
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
 import opengradient as og
 from .types import ToolType
+from opengradient import InferenceResult
+import numpy as np
 
 
 def create_run_model_tool(
     tool_type: ToolType,
     model_cid: str,
     tool_name: str,
-    input_getter: Callable,
-    output_formatter: Callable[..., str] = lambda x: x,
-    input_schema: Optional[Type[BaseModel]] = None,
+    model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, np.ndarray]]],
+    model_output_formatter: Callable[[InferenceResult], str],
+    tool_input_schema: Optional[Type[BaseModel]] = None,
     tool_description: str = "Executes the given ML model",
     inference_mode: og.InferenceMode = og.InferenceMode.VANILLA,
 ) -> BaseTool | Callable:
@@ -33,14 +35,30 @@ def create_run_model_tool(
         model_cid (str): The CID of the OpenGradient model to be executed.
         tool_name (str): The name to assign to the created tool. This will be used to identify
             and invoke the tool within the agent.
-        input_getter (Callable): A function that returns the input data required by the model.
+        model_input_provider (Callable): A function that takes in the tool_input_schema with arguments
+            filled by the agent and returns input data required by the model.
+
             The function should return data in a format compatible with the model's expectations.
-        output_formatter (Callable[..., str], optional): A function that takes the model output and
-            formats it into a string. This is required to ensure the output is compatible
-            with the tool framework. Default returns string as is.
-        input_schema (Type[BaseModel], optional): A Pydantic BaseModel class defining the
-            input schema. This will be used directly for LangChain tools and converted
-            to appropriate annotations for Swarm tools. Default is None.
+        model_output_formatter (Callable[..., str]): A function that takes the output of
+            the OpenGradient infer method (with type InferenceResult) and formats it into a string.
+
+            This is required to ensure the output is compatible with the tool framework.
+
+            Default returns the InferenceResult object.
+
+            InferenceResult has attributes:
+                * transaction_hash (str): Blockchain hash for the transaction
+                * model_output (Dict[str, np.ndarray]): Output of the ONNX model
+        tool_input_schema (Type[BaseModel], optional): A Pydantic BaseModel class defining the
+            input schema.
+
+            For LangChain tools the schema will be used directly. The defined schema will be used as
+            input keyword arguments for the `model_input_provider` function. If no arguments are required
+            for the `model_input_provider` function then this schema can be unspecified.
+
+            For Swarm tools the schema will be converted to appropriate annotations.
+
+            Default is None -- an empty schema will be provided for LangChain.
         tool_description (str, optional): A description of what the tool does. Defaults to
             "Executes the given ML model".
         inference_mode (og.InferenceMode, optional): The inference mode to use when running
@@ -55,42 +73,62 @@ def create_run_model_tool(
 
     Examples:
         >>> from pydantic import BaseModel, Field
-        >>> class ClassifierInput(BaseModel):
-        ...     query: str = Field(description="User query to analyze")
-        ...     parameters: dict = Field(description="Additional parameters")
-        >>> def get_input():
-        ...     return {"text": "Sample input text"}
-        >>> def format_output(output):
-        ...     return str(output.get("class", "Unknown"))
-        >>> # Create a LangChain tool
-        >>> langchain_tool = create_og_model_tool(
+        >>> from enum import Enum
+        >>> from opengradient.alphasense import create_run_model_tool
+        >>> class Token(str, Enum):
+        ...     ETH = "ethereum"
+        ...     BTC = "bitcoin"
+        ...
+        >>> class InputSchema(BaseModel):
+        ...     token: Token = Field(default=Token.ETH, description="Token name specified by user.")
+        ...
+        >>> eth_model_input = {"price_series": [2010.1, 2012.3, 2020.1, 2019.2]}        # Example data
+        >>> btc_model_input = {"price_series": [100001.1, 100013.2, 100149.2, 99998.1]} # Example data
+        >>> def model_input_provider(**llm_input):
+        ...     token = llm_input.get("token")
+        ...     if token == Token.BTC:
+        ...             return btc_model_input
+        ...     elif token == Token.ETH:
+        ...             return eth_model_input
+        ...     else:
+        ...             raise ValueError("Unexpected token found")
+        ...
+        >>> def output_formatter(inference_result):
+        ...     return format(float(inference_result.model_output["std"].item()), ".3%")
+        ...
+        >>> run_model_tool = create_run_model_tool(
         ...     tool_type=ToolType.LANGCHAIN,
-        ...     model_cid="Qm...",
-        ...     tool_name="text_classifier",
-        ...     input_getter=get_input,
-        ...     output_formatter=format_output,
-        ...     input_schema=ClassifierInput
-        ...     tool_description="Classifies text into categories"
+        ...     model_cid="QmZdSfHWGJyzBiB2K98egzu3MypPcv4R1ASypUxwZ1MFUG",
+        ...     tool_name="Return_volatility_tool",
+        ...     model_input_provider=model_input_provider,
+        ...     model_output_formatter=output_formatter,
+        ...     tool_input_schema=InputSchema,
+        ...     tool_description="This tool takes a token and measures the return volatility (standard deviation of returns).",
+        ...     inference_mode=og.InferenceMode.VANILLA,
         ... )
     """
 
-    # define runnable
     def model_executor(**llm_input):
-        # Combine LLM input with input provided by code
-        combined_input = {**llm_input, **input_getter()}
+        # Pass LLM input arguments (formatted based on tool_input_schema) as parameters into model_input_provider
+        model_input = model_input_provider(**llm_input)
 
-        _, output = og.infer(model_cid=model_cid, inference_mode=inference_mode, model_input=combined_input)
+        inference_result = og.infer(model_cid=model_cid, inference_mode=inference_mode, model_input=model_input)
 
-        return output_formatter(output)
+        return model_output_formatter(inference_result)
 
     if tool_type == ToolType.LANGCHAIN:
-        return StructuredTool.from_function(func=model_executor, name=tool_name, description=tool_description, args_schema=input_schema)
+        if not tool_input_schema:
+            tool_input_schema = type("EmptyInputSchema", (BaseModel,), {})
+
+        return StructuredTool.from_function(
+            func=model_executor, name=tool_name, description=tool_description, args_schema=tool_input_schema
+        )
     elif tool_type == ToolType.SWARM:
         model_executor.__name__ = tool_name
         model_executor.__doc__ = tool_description
         # Convert Pydantic model to Swarm annotations if provided
-        if input_schema:
-            model_executor.__annotations__ = _convert_pydantic_to_annotations(input_schema)
+        if tool_input_schema:
+            model_executor.__annotations__ = _convert_pydantic_to_annotations(tool_input_schema)
         return model_executor
     else:
         raise ValueError(f"Invalid tooltype: {tool_type}")
