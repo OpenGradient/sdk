@@ -47,29 +47,63 @@ class Number:
 
 @dataclass
 class NumberTensor:
+    """
+    A container for numeric tensor data used as input for ONNX models.
+
+    Attributes:
+
+        name: Identifier for this tensor in the model.
+
+        values: List of integer tuples representing the tensor data.
+    """
+
     name: str
     values: List[Tuple[int, int]]
 
 
 @dataclass
 class StringTensor:
+    """
+    A container for string tensor data used as input for ONNX models.
+
+    Attributes:
+
+        name: Identifier for this tensor in the model.
+
+        values: List of strings representing the tensor data.
+    """
+
     name: str
     values: List[str]
 
 
 @dataclass
 class ModelInput:
+    """
+    A collection of tensor inputs required for ONNX model inference.
+
+    Attributes:
+
+        numbers: Collection of numeric tensors for the model.
+
+        strings: Collection of string tensors for the model.
+    """
+
     numbers: List[NumberTensor]
     strings: List[StringTensor]
 
 
 class InferenceMode(Enum):
+    """Enum for the different inference modes available for inference (VANILLA, ZKML, TEE)"""
+
     VANILLA = 0
     ZKML = 1
     TEE = 2
 
 
 class LlmInferenceMode(Enum):
+    """Enum for differetn inference modes available for LLM inferences (VANILLA, TEE)"""
+
     VANILLA = 0
     TEE = 1
 
@@ -89,14 +123,14 @@ class ModelOutput:
 @dataclass
 class InferenceResult:
     """
-    Output for ML inference requests
+    Output for ML inference requests.
+    This class has two fields
+        transaction_hash (str): Blockchain hash for the transaction
+        model_output (Dict[str, np.ndarray]): Output of the ONNX model
     """
 
     transaction_hash: str
-    """Blockchain hash for the transaction."""
-
     model_output: Dict[str, np.ndarray]
-    """Output of ONNX model"""
 
 
 @dataclass

@@ -129,7 +129,6 @@ class Client:
 
         return ModelRepository(model_name, version_response["versionString"])
 
-
     def create_version(self, model_name: str, notes: str = "", is_major: bool = False) -> dict:
         """
         Create a new version for the specified model.
@@ -283,7 +282,9 @@ class Client:
             max_retries (int, optional): Maximum number of retry attempts. Defaults to 5.
 
         Returns:
-            InferenceResult: The transaction hash and the model output.
+            InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
+                transaction_hash (str): Blockchain hash for the transaction
+                model_output (Dict[str, np.ndarray]): Output of the ONNX model
 
         Raises:
             OpenGradientError: If the inference fails.
