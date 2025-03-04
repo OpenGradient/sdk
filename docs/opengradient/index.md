@@ -12,6 +12,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 * [**alphasense**](./alphasense): OpenGradient AlphaSense Tools
 * [**llm**](./llm): OpenGradient LLM Adapters
+* [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
 
 ## Functions
 
@@ -20,7 +21,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 ### Create model 
 
 ```python
-def create_model(model_name: str, model_desc: str, model_path: str = None)
+def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None) ‑> opengradient.types.ModelRepository
 ```
 
   
@@ -38,7 +39,7 @@ Create a new model repository.
   
 **Returns**
 
-dict: Creation response with model metadata and optional upload results
+ModelRepository: Creation response with model metadata and optional upload results
 
 **Raises**
 
@@ -77,42 +78,10 @@ dict: Version creation response with version metadata
 
   
 
-### Generate image 
-
-```python
-def generate_image(model: str, prompt: str, height: int | None = None, width: int | None = None) ‑> bytes
-```
-
-  
-
-  
-Generate an image from a text prompt.
-  
-
-**Arguments**
-
-* **`model`**: Model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-* **`prompt`**: Text description of the desired image
-* **`height`**: Optional height of the generated image in pixels
-* **`width`**: Optional width of the generated image in pixels
-
-  
-**Returns**
-
-bytes: Raw image data as bytes
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-* **`OpenGradientError`**: If image generation fails
-  
-
-  
-
 ### Infer 
 
 ```python
-def infer(model_cid, inference_mode, model_input, max_retries: int | None = None)
+def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None) ‑> opengradient.types.InferenceResult
 ```
 
   
@@ -131,7 +100,9 @@ Run inference on a model.
   
 **Returns**
 
-Tuple[str, Any]: Transaction hash and model output
+InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
+    * transaction_hash (str): Blockchain hash for the transaction
+    * model_output (Dict[str, np.ndarray]): Output of the ONNX model
 
 **Raises**
 
@@ -195,7 +166,7 @@ List[Dict]: List of file metadata dictionaries
 ### Llm chat 
 
 ```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: str = 0, max_tokens: int = 100, stop_sequence: List[str] | None = None, temperature: float = 0.0, tools: List[Dict] | None = None, tool_choice: str | None = None, max_retries: int | None = None) ‑> Tuple[str, str, Dict]
+def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
@@ -219,7 +190,7 @@ Have a chat conversation with an LLM.
   
 **Returns**
 
-Tuple[str, str, Dict]: Transaction hash, model response, and metadata
+TextGenerationOutput
 
 **Raises**
 
@@ -231,7 +202,7 @@ Tuple[str, str, Dict]: Transaction hash, model response, and metadata
 ### Llm completion 
 
 ```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: str = 0, max_tokens: int = 100, stop_sequence: List[str] | None = None, temperature: float = 0.0, max_retries: int | None = None) ‑> Tuple[str, str]
+def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
@@ -253,7 +224,7 @@ Generate text completion using an LLM.
   
 **Returns**
 
-Tuple[str, str]: Transaction hash and generated text
+TextGenerationOutput: Transaction hash and generated text
 
 **Raises**
 
@@ -265,24 +236,24 @@ Tuple[str, str]: Transaction hash and generated text
 ### Login 
 
 ```python
-def login(email: str, password: str)
+def login(model_name: str, version: str) ‑> List[Dict]
 ```
 
   
 
   
-Login to OpenGradient.
+List files in a model repository version.
   
 
 **Arguments**
 
-* **`email`**: User's email address
-* **`password`**: User's password
+* **`model_name`**: Name of the model repository
+* **`version`**: Version string to list files from
 
   
 **Returns**
 
-dict: Login response with authentication tokens
+List[Dict]: List of file metadata dictionaries
 
 **Raises**
 
@@ -294,7 +265,7 @@ dict: Login response with authentication tokens
 ### New workflow 
 
 ```python
-def new_workflow(model_cid: str, input_query: Dict[str, Any] | opengradient.types.HistoricalInputQuery, input_tensor_name: str, scheduler_params: Dict[str, int] | opengradient.types.SchedulerParams | None = None) ‑> str
+def new_workflow(model_cid: str, input_query: opengradient.types.HistoricalInputQuery, input_tensor_name: str, scheduler_params: Optional[opengradient.types.SchedulerParams] = None) ‑> str
 ```
 
   
@@ -310,13 +281,9 @@ the workflow will be deployed without automated execution scheduling.
 **Arguments**
 
 * **`model_cid`**: IPFS CID of the model
-* **`input_query`**: Dictionary or HistoricalInputQuery containing query parameters
+* **`input_query`**: HistoricalInputQuery containing query parameters
 * **`input_tensor_name`**: Name of the input tensor
-* **`scheduler_params`**: Optional scheduler configuration:
-        - Can be a dictionary with:
-            - frequency: Execution frequency in seconds (default: 600)
-            - duration_hours: How long to run in hours (default: 2)
-        - Or a SchedulerParams instance
+* **`scheduler_params`**: Optional scheduler configuration as SchedulerParams instance
         If not provided, the workflow will be deployed without scheduling.
 
   
@@ -330,7 +297,7 @@ str: Deployed contract address. If scheduler_params was provided, the workflow
 ### Read workflow history 
 
 ```python
-def read_workflow_history(contract_address: str, num_results: int) ‑> List[Dict]
+def read_workflow_history(contract_address: str, num_results: int) ‑> List[opengradient.types.ModelOutput]
 ```
 
   
@@ -348,7 +315,7 @@ List[Dict]: List of historical inference results
 ### Read workflow result 
 
 ```python
-def read_workflow_result(contract_address: str) ‑> Dict[str, str | Dict]
+def read_workflow_result(contract_address: str) ‑> opengradient.types.ModelOutput
 ```
 
   
@@ -377,7 +344,7 @@ Dict[str, Union[str, Dict]]: A dictionary containing:
 ### Run workflow 
 
 ```python
-def run_workflow(contract_address: str) ‑> Dict[str, str | Dict]
+def run_workflow(contract_address: str) ‑> opengradient.types.ModelOutput
 ```
 
   
@@ -395,7 +362,7 @@ Dict[str, Union[str, Dict]]: Status of the run operation
 ### Upload 
 
 ```python
-def upload(model_path, model_name, version)
+def upload(model_path, model_name, version) ‑> opengradient.types.FileUploadResult
 ```
 
   
@@ -413,7 +380,7 @@ Upload a model file to OpenGradient.
   
 **Returns**
 
-dict: Upload response containing file metadata
+FileUploadResult: Upload response containing file metadata
 
 **Raises**
 
@@ -483,20 +450,6 @@ HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_
 
   
 
-### From dict 
-
-```python
-def from_dict(data: dict) ‑> opengradient.types.HistoricalInputQuery
-```
-
-  
-
-  
-Create HistoricalInputQuery from dictionary format
-  
-
-  
-
 ### To abi format 
 
 ```python
@@ -530,12 +483,12 @@ Convert to format expected by contract ABI
 
 ###  InferenceMode
 
-<code>class <b>InferenceMode</b>()</code>
+<code>class <b>InferenceMode</b>(*args, **kwds)</code>
 
   
 
   
-
+Enum for the different inference modes available for inference (VANILLA, ZKML, TEE)
   
 
 #### Variables
@@ -582,12 +535,12 @@ Enum for available LLM models
 
 ###  LlmInferenceMode
 
-<code>class <b>LlmInferenceMode</b>()</code>
+<code>class <b>LlmInferenceMode</b>(*args, **kwds)</code>
 
   
 
   
-
+Enum for differetn inference modes available for LLM inferences (VANILLA, TEE)
   
 
 #### Variables
@@ -616,7 +569,7 @@ SchedulerParams(frequency: int, duration_hours: int)
 ### From dict 
 
 ```python
-def from_dict(data: Dict[str, int] | None) ‑> opengradient.types.SchedulerParams | None
+def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.types.SchedulerParams]
 ```
 
   

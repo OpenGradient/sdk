@@ -14,6 +14,7 @@ from .types import (
     CandleType,
     CandleOrder,
     InferenceMode,
+    InferenceResult,
     LlmInferenceMode,
     TextGenerationOutput,
     ModelOutput,
@@ -128,7 +129,7 @@ def create_version(model_name, notes=None, is_major=False):
     return _client.create_version(model_name, notes, is_major)
 
 
-def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None):
+def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None) -> InferenceResult:
     """Run inference on a model.
 
     Args:
@@ -138,7 +139,9 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
         max_retries: Maximum number of retries for failed transactions
 
     Returns:
-        InferenceResult: Transaction hash and model output
+        InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
+            * transaction_hash (str): Blockchain hash for the transaction
+            * model_output (Dict[str, np.ndarray]): Output of the ONNX model
 
     Raises:
         RuntimeError: If SDK is not initialized
