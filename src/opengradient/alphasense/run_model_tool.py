@@ -15,7 +15,7 @@ def create_run_model_tool(
     model_cid: str,
     tool_name: str,
     model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, np.ndarray]]],
-    model_output_formatter: Callable[[InferenceResult], str] = lambda x: x,
+    model_output_formatter: Callable[[InferenceResult], str],
     tool_input_schema: Optional[Type[BaseModel]] = None,
     tool_description: str = "Executes the given ML model",
     inference_mode: og.InferenceMode = og.InferenceMode.VANILLA,
@@ -39,7 +39,7 @@ def create_run_model_tool(
             filled by the agent and returns input data required by the model.
 
             The function should return data in a format compatible with the model's expectations.
-        model_output_formatter (Callable[..., str], optional): A function that takes the output of
+        model_output_formatter (Callable[..., str]): A function that takes the output of
             the OpenGradient infer method (with type InferenceResult) and formats it into a string.
 
             This is required to ensure the output is compatible with the tool framework.
@@ -78,10 +78,10 @@ def create_run_model_tool(
         >>> class Token(str, Enum):
         ...     ETH = "ethereum"
         ...     BTC = "bitcoin"
-        ... 
+        ...
         >>> class InputSchema(BaseModel):
         ...     token: Token = Field(default=Token.ETH, description="Token name specified by user.")
-        ... 
+        ...
         >>> eth_model_input = {"price_series": [2010.1, 2012.3, 2020.1, 2019.2]}        # Example data
         >>> btc_model_input = {"price_series": [100001.1, 100013.2, 100149.2, 99998.1]} # Example data
         >>> def model_input_provider(**llm_input):
@@ -92,10 +92,10 @@ def create_run_model_tool(
         ...             return eth_model_input
         ...     else:
         ...             raise ValueError("Unexpected token found")
-        ... 
+        ...
         >>> def output_formatter(inference_result):
         ...     return format(float(inference_result.model_output["std"].item()), ".3%")
-        ... 
+        ...
         >>> run_model_tool = create_run_model_tool(
         ...     tool_type=ToolType.LANGCHAIN,
         ...     model_cid="QmZdSfHWGJyzBiB2K98egzu3MypPcv4R1ASypUxwZ1MFUG",
