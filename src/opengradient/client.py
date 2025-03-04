@@ -319,7 +319,11 @@ class Client:
 
             parsed_logs = contract.events.InferenceResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
-                raise OpenGradientError("InferenceResult event not found in transaction logs")
+                failed_logs = contract.events.InferenceFailed().process_receipt(tx_receipt, errors=DISCARD)
+                if len(failed_logs) < 1:
+                    raise OpenGradientError("InferenceResult event not found in transaction logs")
+                else:
+                    raise OpenGradientError(f"Inference failed. Reason: {failed_logs[0]['args']['reason']}")
 
             # TODO: This should return a ModelOutput class object
             model_output = convert_to_model_output(parsed_logs[0]["args"])
@@ -404,7 +408,11 @@ class Client:
 
             parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
-                raise OpenGradientError("LLM completion result event not found in transaction logs")
+                failed_logs = contract.events.LLMCompletionFailed().process_receipt(tx_receipt, errors=DISCARD)
+                if len(failed_logs) < 1:
+                    raise OpenGradientError("LLM completion result event not found in transaction logs")
+                else:
+                    raise OpenGradientError(f"LLM completion failed. Reason: {failed_logs[0]['args']['reason']}")
 
             llm_answer = parsed_logs[0]["args"]["response"]["answer"]
 
@@ -556,7 +564,11 @@ class Client:
 
             parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
-                raise OpenGradientError("LLM chat result event not found in transaction logs")
+                failed_logs = contract.events.LLMChatFailed().process_receipt(tx_receipt, errors=DISCARD)
+                if len(failed_logs) < 1:
+                    raise OpenGradientError("LLM chat result event not found in transaction logs")
+                else:
+                    raise OpenGradientError(f"LLM chat failed. Reason: {failed_logs[0]['args']['reason']}")
 
             llm_result = parsed_logs[0]["args"]["response"]
             message = dict(llm_result["message"])
