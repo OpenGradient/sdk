@@ -19,20 +19,14 @@ class Token(str, Enum):
 class InputSchema(BaseModel):
     token: Token = Field(default=Token.ETH, description="Token name specified by user.")
 
-eth_model_input = {
-    "price_series": [2010.1, 2012.3, 2020.1, 2019.2]
-}
-
-btc_model_input = {
-    "price_series": [100001.1, 100013.2, 100149.2, 99998.1]
-}
-
 def model_input_provider(**llm_input):
     token = llm_input.get("token")
     if token == Token.BTC:
-        return btc_model_input
+        # This live-price data would normally come from an exchange
+        return {"price_series": [100001.1, 100013.2, 100149.2, 99998.1]}
     elif token == Token.ETH:
-        return eth_model_input
+        # This live-price data would normally come from an exchange
+        return {"price_series": [2010.1, 2012.3, 2020.1, 2019.2]}
     else:
         raise ValueError("Unexpected option found")
 
