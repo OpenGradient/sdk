@@ -349,7 +349,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
             inference_result.model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else str(x)
         )
         click.echo(formatted_output)
-        click.secho("Attestatino document: ", fg="yellow")
+        click.secho("Attestation document: ", fg="yellow")
         click.echo(inference_result.attestation)
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
