@@ -29,7 +29,7 @@ from .types import (
     FileUploadResult,
 )
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
-from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
+from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output, get_attestation, generate_nonce
 
 _FIREBASE_CONFIG = {
     "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
@@ -271,6 +271,7 @@ class Client:
         inference_mode: InferenceMode,
         model_input: Dict[str, Union[str, int, float, List, np.ndarray]],
         max_retries: Optional[int] = None,
+        tee_nonce: Optional[str] = generate_nonce(),
     ) -> InferenceResult:
         """
         Perform inference on a model.
@@ -325,7 +326,11 @@ class Client:
             # TODO: This should return a ModelOutput class object
             model_output = convert_to_model_output(parsed_logs[0]["args"])
 
-            return InferenceResult(tx_hash.hex(), model_output)
+            # TODO: Temporary measure for getting remote attestation
+            if InferenceMode(inference_mode_uint8) is InferenceMode.TEE:
+                attestation = get_attestation(tee_nonce)
+
+            return InferenceResult(tx_hash.hex(), model_output, attestation)
 
         return run_with_retry(execute_transaction, max_retries)
 

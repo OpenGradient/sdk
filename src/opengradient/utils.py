@@ -10,6 +10,10 @@ from web3.datastructures import AttributeDict
 
 from .types import ModelOutput
 
+import requests
+import os
+import binascii
+
 
 def convert_to_fixed_point(number: float) -> Tuple[int, int]:
     """
@@ -220,3 +224,30 @@ def convert_array_to_model_output(array_data: List) -> ModelOutput:
         jsons=json_data,
         is_simulation_result=array_data[3],
     )
+
+def get_attestation(nonce: str) -> str:
+    """Gets """
+    attestation_url = f"https://18.224.61.175/enclave/attestation"
+    params = {
+        "nonce" : nonce
+    }
+    print("nonce is: ", nonce)
+
+    try:
+        attestation_response=requests.get(attestation_url, params=params, verify=False)
+            
+        if attestation_response.status_code == 200:
+            attestation_document = attestation_response.text
+        else:
+            raise RuntimeError("Attestation request failed, error status %s: %s", attestation_response.status_code, attestation_response.text)
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError("Error occured while requesting attestation document: %s", e)
+    except Exception as e:
+        raise RuntimeError("Verification for attestation document failed: %s" % e)
+    
+    return attestation_document
+
+def generate_nonce() -> str:
+    """Generate nonce for TEE inferences."""
+    random_bytes = os.urandom(20)
+    return binascii.hexlify(random_bytes).decode('ascii')

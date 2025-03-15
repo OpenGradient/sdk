@@ -19,6 +19,7 @@ from .defaults import (
     DEFAULT_RPC_URL,
 )
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+from .utils import generate_nonce
 
 OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 
@@ -280,15 +281,16 @@ def upload_file(obj, file_path: Path, repo_name: str, version: str):
 @click.option(
     "--mode", "inference_mode", type=click.Choice(InferenceModes.keys()), default="VANILLA", help="Inference mode (default: VANILLA)"
 )
-@click.option("--input", "-d", "input_data", type=Dict, help="Input data for inference as a JSON string")
+@click.option("--input", "-d", "input_data", type=Dict, help="Input data for inference as a JSON string, used for TEE inferences")
 @click.option(
     "--input-file",
     "-f",
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, path_type=Path),
     help="JSON file containing input data for inference",
 )
+@click.option("--nonce", type=str, required=False, help="A 20 character long hexadecimal nonce")
 @click.pass_context
-def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path):
+def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path, nonce: Optional[str]):
     """
     Run inference on a model.
 
@@ -322,7 +324,14 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
                 model_input = json.load(file)
 
         click.echo(f'Running {inference_mode} inference for model "{model_cid}"')
-        inference_result = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
+        if InferenceModes[inference_mode] is InferenceMode.TEE:
+            if nonce is None:
+                nonce = generate_nonce()
+                click.echo(f'No nonce provided for TEE inference, generating random nonce: {nonce}')
+            else:
+                click.echo(f'Using provided nonce for TEE inference: {nonce}')
+
+        inference_result = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input, tee_nonce=nonce)
 
         click.echo()  # Add a newline for better spacing
         click.secho("✅ Transaction successful", fg="green", bold=True)
@@ -340,6 +349,8 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
             inference_result.model_output, indent=2, default=lambda x: x.tolist() if hasattr(x, "tolist") else str(x)
         )
         click.echo(formatted_output)
+        click.secho("Attestatino document: ", fg="yellow")
+        click.echo(inference_result.attestation)
     except json.JSONDecodeError as e:
         click.echo(f"Error decoding JSON: {e}", err=True)
         click.echo(f"Error occurred on line {e.lineno}, column {e.colno}", err=True)

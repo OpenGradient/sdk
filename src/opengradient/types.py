@@ -127,10 +127,12 @@ class InferenceResult:
     This class has two fields
         transaction_hash (str): Blockchain hash for the transaction
         model_output (Dict[str, np.ndarray]): Output of the ONNX model
+        attestation (Optinonal[Dict[str, str]]): Decoded attestation document for TEE inferences
     """
 
     transaction_hash: str
     model_output: Dict[str, np.ndarray]
+    attestation: Optional[Dict[str, str]]
 
 
 @dataclass
