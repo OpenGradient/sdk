@@ -1,5 +1,5 @@
 # Default variables
-DEFAULT_RPC_URL = "http://3.144.177.180:8545"
+DEFAULT_RPC_URL = "https://eth-devnet.opengradient.ai"
 DEFAULT_OG_FAUCET_URL = "https://faucet.opengradient.ai/?address="
 DEFAULT_HUB_SIGNUP_URL = "https://hub.opengradient.ai/signup"
 DEFAULT_INFERENCE_CONTRACT_ADDRESS = "0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE"
