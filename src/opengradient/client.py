@@ -3,7 +3,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Callable
 
 import firebase
 import numpy as np
@@ -128,7 +128,6 @@ class Client:
         version_response = self.create_version(model_name, version)
 
         return ModelRepository(model_name, version_response["versionString"])
-
 
     def create_version(self, model_name: str, notes: str = "", is_major: bool = False) -> dict:
         """
@@ -440,11 +439,7 @@ class Client:
 
             parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
-                failed_logs = contract.events.LLMCompletionFailed().process_receipt(tx_receipt, errors=DISCARD)
-                if len(failed_logs) < 1:
-                    raise OpenGradientError("LLM completion result event not found in transaction logs")
-                else:
-                    raise OpenGradientError(f"LLM completion failed. Reason: {failed_logs[0]['args']['reason']}")
+                raise OpenGradientError("LLM completion result event not found in transaction logs")
 
             llm_answer = parsed_logs[0]["args"]["response"]["answer"]
 
@@ -582,7 +577,9 @@ class Client:
                     
                 except ContractLogicError as call_err:
                     raise ContractLogicError(f"simulation failed with revert reason: {call_err.args[0]}")
-                
+
+                raise ContractLogicError(f"simulation failed with no revert reason. Reason: {e}")
+
             # Artificially increase required gas for safety
             gas_limit = int(estimated_gas * 1.5)
 
@@ -608,14 +605,9 @@ class Client:
                 
                 raise ContractLogicError(f"Transaction failed with no revert reason. Receipt: {tx_receipt}")
 
-
             parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
-                failed_logs = contract.events.LLMChatFailed().process_receipt(tx_receipt, errors=DISCARD)
-                if len(failed_logs) < 1:
-                    raise OpenGradientError("LLM chat result event not found in transaction logs")
-                else:
-                    raise OpenGradientError(f"LLM chat failed. Reason: {failed_logs[0]['args']['reason']}")
+                raise OpenGradientError("LLM chat result event not found in transaction logs")
 
             llm_result = parsed_logs[0]["args"]["response"]
             message = dict(llm_result["message"])
@@ -1021,7 +1013,7 @@ class Client:
         return [convert_array_to_model_output(result) for result in results]
 
 
-def run_with_retry(txn_function, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
+def run_with_retry(txn_function: Callable, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """
     Execute a blockchain transaction with retry logic.
 
