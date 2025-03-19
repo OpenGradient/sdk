@@ -400,7 +400,18 @@ class Client:
             run_function = contract.functions.runLLMCompletion(llm_request)
 
             nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
+            try:
+                estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
+            except ContractLogicError as e:
+                try:
+                    run_function.call({"from": self._wallet_account.address})
+                    
+                except ContractLogicError as call_err:
+                    raise ContractLogicError(f"simulation failed with revert reason: {call_err.args[0]}")
+                
+                raise ContractLogicError(f"simulation failed with no revert reason. Reason: {e}")
+
+                    
             # Artificially increase required gas for safety
             gas_limit = int(estimated_gas * 1.5)
 
@@ -418,7 +429,14 @@ class Client:
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
-                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
+                try:
+                    run_function.call({"from": self._wallet_account.address})
+                    
+                except ContractLogicError as call_err:
+                    raise ContractLogicError(f"Transaction failed with revert reason: {call_err.args[0]}")
+                
+                raise ContractLogicError(f"Transaction failed with no revert reason. Receipt: {tx_receipt}")
+
 
             parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
@@ -556,7 +574,15 @@ class Client:
             run_function = contract.functions.runLLMChat(llm_request)
 
             nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
+            try:
+                estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
+            except ContractLogicError as e:
+                try:
+                    run_function.call({"from": self._wallet_account.address})
+                    
+                except ContractLogicError as call_err:
+                    raise ContractLogicError(f"simulation failed with revert reason: {call_err.args[0]}")
+                
             # Artificially increase required gas for safety
             gas_limit = int(estimated_gas * 1.5)
 
@@ -574,7 +600,14 @@ class Client:
             tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
 
             if tx_receipt["status"] == 0:
-                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
+                try:
+                    run_function.call({"from": self._wallet_account.address})
+                    
+                except ContractLogicError as call_err:
+                    raise ContractLogicError(f"Transaction failed with revert reason: {call_err.args[0]}")
+                
+                raise ContractLogicError(f"Transaction failed with no revert reason. Receipt: {tx_receipt}")
+
 
             parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
