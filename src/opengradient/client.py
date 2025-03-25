@@ -695,13 +695,14 @@ class Client:
 
     def _send_tx_with_revert_handling(self, run_function):
         """
-        Execute a blockchain transaction with retry logic and revert handling.
+        Execute a blockchain transaction with revert error.
 
         Args:
             run_function: Function that executes the transaction
 
         Returns:
-            tuple: (tx_hash, tx_receipt) - Transaction hash and receipt
+            tx_hash: Transaction hash
+            tx_receipt: Transaction receipt
 
         Raises:
             Exception: If transaction fails or gas estimation fails
