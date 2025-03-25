@@ -27,6 +27,7 @@ from .types import (
     InferenceResult,
     ModelRepository,
     FileUploadResult,
+    TextEmbeddingOutput,
 )
 from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
 from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
@@ -513,6 +514,38 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries)
 
+    def text_embedding(
+        self,
+        model_name: str,
+        queries: List[str],
+        passages: List[str],
+        inference_mode: InferenceMode = InferenceMode.VANILLA,
+        instruction: str = "",
+    ) -> TextEmbeddingOutput:
+        """
+        Perform text embedding on passages and queries.
+
+        Users can provide an instruction for queries, if nothing is passed a default will be used.
+
+        Args:
+            model_name (TEXT_EMBEDDING_MODELS): The unique model name that you want to embed your text.
+            inference_mode (InferenceMode, optional): The inference mode, defaults to VANILLA.
+            queries (List[str]): A list of query sentences to be combined with an instruction and embedded.
+            instruction (str, optional):
+            passages (List[str]): A list of passages to be embedded.
+
+        Returns:
+            TextEmbeddingOutput: Generated text embedding results including:
+                - transaction_hash (str): Blockchain hash for the inference transaction.
+                - model_name (str): Unique identifier of the model used for text embedding.
+                - queries (List): A list of query text embeddings, returned in the same order as input.
+                - passages (List): A list of passage text embeddings, returned in the same order as input.
+
+        Raises:
+            OpenGradientError: If the inference fails.
+        """
+        pass
+
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
         List files for a specific version of a model.
@@ -713,12 +746,12 @@ class Client:
         except ContractLogicError as e:
             try:
                 run_function.call({"from": self._wallet_account.address})
-                
+
             except ContractLogicError as call_err:
                 raise ContractLogicError(f"simulation failed with revert reason: {call_err.args[0]}")
-            
+
             raise ContractLogicError(f"simulation failed with no revert reason. Reason: {e}")
-        
+
         gas_limit = int(estimated_gas * 3)
 
         transaction = run_function.build_transaction(
@@ -737,10 +770,10 @@ class Client:
         if tx_receipt["status"] == 0:
             try:
                 run_function.call({"from": self._wallet_account.address})
-                
+
             except ContractLogicError as call_err:
                 raise ContractLogicError(f"Transaction failed with revert reason: {call_err.args[0]}")
-            
+
             raise ContractLogicError(f"Transaction failed with no revert reason. Receipt: {tx_receipt}")
 
         return tx_hash, tx_receipt

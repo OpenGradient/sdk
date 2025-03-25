@@ -9,6 +9,7 @@ from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import (
     LLM,
     TEE_LLM,
+    TEXT_EMBEDDING_MODELS,
     HistoricalInputQuery,
     SchedulerParams,
     CandleType,

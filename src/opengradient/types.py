@@ -230,3 +230,28 @@ class ModelRepository:
 class FileUploadResult:
     modelCid: str
     size: int
+
+
+class TEXT_EMBEDDING_MODELS(str, Enum):
+    """Enum for available text embedding models"""
+
+    INTFLOAT_MULTILINGUAL_E5_LARGE_INSTRUCT = ("intfloat/multilingual-e5-large-instruct",)
+    NVIDIA_NV_EMBED_V2 = ("nvidia/NV-Embed-v2",)
+
+
+@dataclass
+class TextEmbeddingOutput:
+    """
+    Output structure for text embedding inferences.
+
+    Consists of:
+        - transaction_hash (str): Blockchain hash for the inference transaction
+        - model_name (str): Unique identifier of the model used for text embedding
+        - queries (List): A list of query text embeddings, returned in the same order as input
+        - passages (List): A list of passage text embeddings, returned in the same order as input
+    """
+
+    transaction_hash: str
+    model_name: str
+    queries: List
+    passages: List
