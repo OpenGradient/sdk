@@ -298,26 +298,7 @@ class Client:
 
             run_function = contract.functions.run(model_cid, inference_mode_uint8, converted_model_input)
 
-            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            gas_limit = int(estimated_gas * 3)
-
-            transaction = run_function.build_transaction(
-                {
-                    "from": self._wallet_account.address,
-                    "nonce": nonce,
-                    "gas": gas_limit,
-                    "gasPrice": self._blockchain.eth.gas_price,
-                }
-            )
-
-            signed_tx = self._wallet_account.sign_transaction(transaction)
-            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
-
-            if tx_receipt["status"] == 0:
-                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
-
+            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
             parsed_logs = contract.events.InferenceResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
                 raise OpenGradientError("InferenceResult event not found in transaction logs")
@@ -382,27 +363,7 @@ class Client:
 
             run_function = contract.functions.runLLMCompletion(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            # Artificially increase required gas for safety
-            gas_limit = int(estimated_gas * 1.5)
-
-            transaction = run_function.build_transaction(
-                {
-                    "from": self._wallet_account.address,
-                    "nonce": nonce,
-                    "gas": gas_limit,
-                    "gasPrice": self._blockchain.eth.gas_price,
-                }
-            )
-
-            signed_tx = self._wallet_account.sign_transaction(transaction)
-            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
-
-            if tx_receipt["status"] == 0:
-                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
-
+            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
             parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM completion result event not found in transaction logs")
@@ -534,27 +495,7 @@ class Client:
 
             run_function = contract.functions.runLLMChat(llm_request)
 
-            nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
-            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
-            # Artificially increase required gas for safety
-            gas_limit = int(estimated_gas * 1.5)
-
-            transaction = run_function.build_transaction(
-                {
-                    "from": self._wallet_account.address,
-                    "nonce": nonce,
-                    "gas": gas_limit,
-                    "gasPrice": self._blockchain.eth.gas_price,
-                }
-            )
-
-            signed_tx = self._wallet_account.sign_transaction(transaction)
-            tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
-            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=LLM_TX_TIMEOUT)
-
-            if tx_receipt["status"] == 0:
-                raise ContractLogicError(f"Transaction failed. Receipt: {tx_receipt}")
-
+            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
             parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
             if len(parsed_logs) < 1:
                 raise OpenGradientError("LLM chat result event not found in transaction logs")
@@ -751,6 +692,58 @@ class Client:
             if not bytecode.startswith("0x"):
                 bytecode = "0x" + bytecode
             return bytecode
+
+    def _send_tx_with_revert_handling(self, run_function):
+        """
+        Execute a blockchain transaction with revert error.
+
+        Args:
+            run_function: Function that executes the transaction
+
+        Returns:
+            tx_hash: Transaction hash
+            tx_receipt: Transaction receipt
+
+        Raises:
+            Exception: If transaction fails or gas estimation fails
+        """
+        nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
+        try:
+            estimated_gas = run_function.estimate_gas({"from": self._wallet_account.address})
+        except ContractLogicError as e:
+            try:
+                run_function.call({"from": self._wallet_account.address})
+                
+            except ContractLogicError as call_err:
+                raise ContractLogicError(f"simulation failed with revert reason: {call_err.args[0]}")
+            
+            raise ContractLogicError(f"simulation failed with no revert reason. Reason: {e}")
+        
+        gas_limit = int(estimated_gas * 3)
+
+        transaction = run_function.build_transaction(
+            {
+                "from": self._wallet_account.address,
+                "nonce": nonce,
+                "gas": gas_limit,
+                "gasPrice": self._blockchain.eth.gas_price,
+            }
+        )
+
+        signed_tx = self._wallet_account.sign_transaction(transaction)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_tx.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
+
+        if tx_receipt["status"] == 0:
+            try:
+                run_function.call({"from": self._wallet_account.address})
+                
+            except ContractLogicError as call_err:
+                raise ContractLogicError(f"Transaction failed with revert reason: {call_err.args[0]}")
+            
+            raise ContractLogicError(f"Transaction failed with no revert reason. Receipt: {tx_receipt}")
+
+        return tx_hash, tx_receipt
 
     def new_workflow(
         self,
