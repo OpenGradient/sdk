@@ -246,12 +246,10 @@ class TextEmbeddingOutput:
 
     Consists of:
         - transaction_hash (str): Blockchain hash for the inference transaction
-        - model_name (str): Unique identifier of the model used for text embedding
         - queries (List): A list of query text embeddings, returned in the same order as input
         - passages (List): A list of passage text embeddings, returned in the same order as input
     """
 
     transaction_hash: str
-    model_name: str
     queries: List
     passages: List

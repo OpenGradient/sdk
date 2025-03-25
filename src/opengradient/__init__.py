@@ -18,6 +18,7 @@ from .types import (
     InferenceResult,
     LlmInferenceMode,
     TextGenerationOutput,
+    TextEmbeddingOutput,
     ModelOutput,
     ModelRepository,
     FileUploadResult,
@@ -233,6 +234,33 @@ def llm_chat(
         tools=tools,
         tool_choice=tool_choice,
         max_retries=max_retries,
+    )
+
+
+def text_embedding(
+    model_name: TEXT_EMBEDDING_MODELS,
+    queries: List[str] = [],
+    passages: List[str] = [],
+    inference_mode: InferenceMode = InferenceMode.VANILLA,
+    instruction: str = "",
+) -> TextEmbeddingOutput:
+    """Embed Text passages or queries
+
+    Args:
+        model_name: Unique model name that you want to embed your text -- Choose from TEXT_EMBEDDING_MODELS
+        inference_mode: Mode of inference, defaults to VANILLA
+        queries: List of query sentences to be combined with an instruction and embedded
+        instruction: Optional instruction to be format queries with
+        passages: List of passages to be embedded
+    """
+    if _client is None:
+        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
+    return _client.text_embedding(
+        model_name=model_name,
+        queries=queries,
+        instruction=instruction,
+        passages=passages,
+        inference_mode=inference_mode,
     )
 
 

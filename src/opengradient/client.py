@@ -517,8 +517,8 @@ class Client:
     def text_embedding(
         self,
         model_name: str,
-        queries: List[str],
-        passages: List[str],
+        queries: List[str] = [],
+        passages: List[str] = [],
         inference_mode: InferenceMode = InferenceMode.VANILLA,
         instruction: str = "",
     ) -> TextEmbeddingOutput:
@@ -530,21 +530,36 @@ class Client:
         Args:
             model_name (TEXT_EMBEDDING_MODELS): The unique model name that you want to embed your text.
             inference_mode (InferenceMode, optional): The inference mode, defaults to VANILLA.
-            queries (List[str]): A list of query sentences to be combined with an instruction and embedded.
-            instruction (str, optional):
-            passages (List[str]): A list of passages to be embedded.
+            queries (List[str], optional): A list of query sentences to be combined with an instruction and embedded.
+            instruction (str, optional): Optional instruction to be format queries with.
+            passages (List[str], optional): A list of passages to be embedded.
 
         Returns:
-            TextEmbeddingOutput: Generated text embedding results including:
+            TextEmbeddingOutput: A return object with the methods:
                 - transaction_hash (str): Blockchain hash for the inference transaction.
-                - model_name (str): Unique identifier of the model used for text embedding.
                 - queries (List): A list of query text embeddings, returned in the same order as input.
                 - passages (List): A list of passage text embeddings, returned in the same order as input.
 
         Raises:
             OpenGradientError: If the inference fails.
         """
-        pass
+        model_input = {
+            "queries": queries,
+            "instruction": instruction,
+            "passages": passages,
+        }
+
+        inference_result = self.infer(model_cid=model_name, inference_mode=InferenceMode.VANILLA, model_input=model_input)
+        print("Inference result model output: ", inference_result.model_output)
+
+        queries = inference_result.model_output.get("queries", [])
+        passages = inference_result.model_output.get("passages", [])
+
+        return TextEmbeddingOutput(
+            transaction_hash=inference_result.transaction_hash,
+            queries=queries,
+            passages=passages,
+        )
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
