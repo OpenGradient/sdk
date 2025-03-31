@@ -17,6 +17,7 @@ from .defaults import (
     DEFAULT_INFERENCE_CONTRACT_ADDRESS,
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
+    DEFAULT_API_URL,
 )
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 
@@ -132,6 +133,7 @@ def cli(ctx):
             ctx.obj["client"] = Client(
                 private_key=ctx.obj["private_key"],
                 rpc_url=DEFAULT_RPC_URL,
+                api_url=DEFAULT_API_URL,
                 contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
                 email=ctx.obj.get("email"),
                 password=ctx.obj.get("password"),

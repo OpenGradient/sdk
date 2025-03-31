@@ -12,6 +12,7 @@ from eth_account.account import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
+import urllib.parse
 
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
@@ -49,6 +50,7 @@ REGULAR_TX_TIMEOUT = 30
 DEFAULT_MAX_RETRY = 5
 DEFAULT_RETRY_DELAY_SEC = 1
 
+PRECOMPILE_CONTRACT_ADDRESS = "0x00000000000000000000000000000000000000F4"
 
 class Client:
     _inference_hub_contract_address: str
@@ -56,9 +58,10 @@ class Client:
     _wallet_account: LocalAccount
 
     _hub_user: Optional[Dict]
+    _api_url: str
     _inference_abi: Dict
-
-    def __init__(self, private_key: str, rpc_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
+    _precompile_abi: Dict
+    def __init__(self, private_key: str, rpc_url: str, api_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -71,11 +74,16 @@ class Client:
         """
         self._inference_hub_contract_address = contract_address
         self._blockchain = Web3(Web3.HTTPProvider(rpc_url))
+        self._api_url = api_url
         self._wallet_account = self._blockchain.eth.account.from_key(private_key)
 
         abi_path = Path(__file__).parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
             self._inference_abi = json.load(abi_file)
+
+        abi_path = Path(__file__).parent / "abi" / "InferencePrecompile.abi"
+        with open(abi_path, "r") as abi_file:
+            self._precompile_abi = json.load(abi_file)
 
         if email is not None:
             self._hub_user = self._login_to_hub(email, password)
@@ -292,6 +300,7 @@ class Client:
 
         def execute_transaction():
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
+            precompile_contract = self._blockchain.eth.contract(address=PRECOMPILE_CONTRACT_ADDRESS, abi=self._precompile_abi)
 
             inference_mode_uint8 = inference_mode.value
             converted_model_input = convert_to_model_input(model_input)
@@ -305,6 +314,12 @@ class Client:
 
             # TODO: This should return a ModelOutput class object
             model_output = convert_to_model_output(parsed_logs[0]["args"])
+            if len(model_output) == 0:
+                # check inference directly from node
+                parsed_logs = precompile_contract.events.ModelInferenceEvent().process_receipt(tx_receipt, errors=DISCARD)
+                inference_id = parsed_logs[0]["args"]["inferenceID"]
+                inference_result = self.get_inference_result_from_node(inference_id)
+                model_output = inference_result
 
             return InferenceResult(tx_hash.hex(), model_output)
 
@@ -955,6 +970,40 @@ class Client:
         results = contract.functions.getLastInferenceResults(num_results).call()
         return [convert_array_to_model_output(result) for result in results]
 
+
+    def get_inference_result_from_node(self, inference_id: str) -> str:
+        """
+        Get the inference result from node.
+        
+        Args:
+            inference_id (str): Inference id for a inference request
+            
+        Returns:
+            str: The inference result as returned by the node
+            
+        Raises:
+            OpenGradientError: If the request fails or returns an error
+        """
+        try:
+            encoded_id = urllib.parse.quote(inference_id, safe='')
+            url = f"{self._api_url}/artela-network/artela-rollkit/inference/tx/{encoded_id}"
+        
+            response = requests.get(url)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                error_message = f"Failed to get inference result: HTTP {response.status_code}"
+                if response.text:
+                    error_message += f" - {response.text}"
+                logging.error(error_message)
+                raise OpenGradientError(error_message)
+                
+        except requests.RequestException as e:
+            logging.error(f"Request exception when getting inference result: {str(e)}")
+            raise OpenGradientError(f"Failed to get inference result: {str(e)}")
+        except Exception as e:
+            logging.error(f"Unexpected error when getting inference result: {str(e)}", exc_info=True)
+            raise OpenGradientError(f"Failed to get inference result: {str(e)}")
 
 def run_with_retry(txn_function: Callable, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """

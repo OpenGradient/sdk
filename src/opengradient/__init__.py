@@ -5,7 +5,7 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .client import Client
-from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
+from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL, DEFAULT_API_URL
 from .types import (
     LLM,
     TEE_LLM,
@@ -32,6 +32,7 @@ def new_client(
     password: Optional[str],
     private_key: str,
     rpc_url=DEFAULT_RPC_URL,
+    api_url=DEFAULT_API_URL,
     contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
 ) -> Client:
     """
@@ -45,7 +46,7 @@ def new_client(
         contract_address: Optional inference contract address
     """
 
-    return Client(email=email, password=password, private_key=private_key, rpc_url=rpc_url, contract_address=contract_address)
+    return Client(email=email, password=password, private_key=private_key, rpc_url=rpc_url, api_url=api_url, contract_address=contract_address)
 
 
 def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
