@@ -1,6 +1,6 @@
-eth-utils>=2.2.0,<2.3.0
-eth-account>=0.10.0,<0.13.6
-web3>=6.11.0,<6.11.3
+eth-utils==2.2.2
+eth-account>=0.13.0
+web3>=6.11.0
 websockets>=14.1
 click>=8.1.7
 firebase-rest-api>=1.11.0
