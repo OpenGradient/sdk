@@ -19,7 +19,7 @@ from langchain_core.runnables import Runnable
 from langchain_core.language_models.base import LanguageModelInput
 
 from opengradient import Client, LlmInferenceMode, LLM
-from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
+from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL, DEFAULT_API_URL
 
 
 class OpenGradientChatModel(BaseChatModel):
@@ -34,7 +34,7 @@ class OpenGradientChatModel(BaseChatModel):
         super().__init__()
 
         self._client = Client(
-            private_key=private_key, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
+            private_key=private_key, rpc_url=DEFAULT_RPC_URL, api_url=DEFAULT_API_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
         )
         self._model_cid = model_cid
         self._max_tokens = max_tokens
