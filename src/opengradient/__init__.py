@@ -49,7 +49,7 @@ def new_client(
     return Client(email=email, password=password, private_key=private_key, rpc_url=rpc_url, api_url=api_url, contract_address=contract_address)
 
 
-def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
+def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, api_url=DEFAULT_API_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
     """Initialize the OpenGradient SDK with authentication and network settings.
 
     Args:
@@ -57,11 +57,12 @@ def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, c
         password: User's password for authentication
         private_key: Ethereum private key for blockchain transactions
         rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
+        api_url: Optional API URL for the OpenGradient API, defaults to mainnet
         contract_address: Optional inference contract address
     """
     global _client
-
-    _client = Client(private_key=private_key, rpc_url=rpc_url, email=email, password=password, contract_address=contract_address)
+    
+    _client = Client(private_key=private_key, rpc_url=rpc_url, api_url=api_url, email=email, password=password, contract_address=contract_address)
     return _client
 
 
