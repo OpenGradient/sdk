@@ -318,8 +318,8 @@ class Client:
                 # check inference directly from node
                 parsed_logs = precompile_contract.events.ModelInferenceEvent().process_receipt(tx_receipt, errors=DISCARD)
                 inference_id = parsed_logs[0]["args"]["inferenceID"]
-                inference_result = self.get_inference_result_from_node(inference_id)
-                model_output = inference_result
+                inference_result = self._get_inference_result_from_node(inference_id)
+                model_output = convert_to_model_output(inference_result)
 
             return InferenceResult(tx_hash.hex(), model_output)
 
@@ -971,7 +971,7 @@ class Client:
         return [convert_array_to_model_output(result) for result in results]
 
 
-    def get_inference_result_from_node(self, inference_id: str) -> str:
+    def _get_inference_result_from_node(self, inference_id: str) -> Dict:
         """
         Get the inference result from node.
         
@@ -979,7 +979,7 @@ class Client:
             inference_id (str): Inference id for a inference request
             
         Returns:
-            str: The inference result as returned by the node
+            Dict: The inference result as returned by the node
             
         Raises:
             OpenGradientError: If the request fails or returns an error

@@ -122,17 +122,12 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
     We need to reshape each output array using the shape parameter in order to get the array
     back into its original shape.
     """
-    logging.debug(f"Parsing event data: {event_data}")
-
     output_dict = {}
-
     output = event_data.get("output", {})
-    logging.debug(f"Output data: {output}")
 
     if isinstance(output, AttributeDict):
         # Parse numbers
         for tensor in output.get("numbers", []):
-            logging.debug(f"Processing number tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get("name")
                 shape = tensor.get("shape")
@@ -149,7 +144,6 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
 
         # Parse strings
         for tensor in output.get("strings", []):
-            logging.debug(f"Processing string tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get("name")
                 shape = tensor.get("shape")
@@ -160,7 +154,6 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
 
         # Parse JSON dicts
         for tensor in output.get("jsons", []):
-            logging.debug(f"Processing JSON tensor: {tensor}")
             if isinstance(tensor, AttributeDict):
                 name = tensor.get("name")
                 value = tensor.get("value")
@@ -172,7 +165,6 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
         logging.warning(f"Unexpected output type: {type(output)}")
 
     logging.debug(f"Parsed output: {output_dict}")
-
     return output_dict
 
 
