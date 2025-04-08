@@ -125,16 +125,15 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
     output_dict = {}
     output = event_data.get("output", {})
 
-    if isinstance(output, AttributeDict):
-        # Parse numbers
+    if isinstance(output, (AttributeDict, dict)):
         for tensor in output.get("numbers", []):
-            if isinstance(tensor, AttributeDict):
+            if isinstance(tensor, (AttributeDict, dict)):
                 name = tensor.get("name")
                 shape = tensor.get("shape")
                 values = []
                 # Convert from fixed point back into np.float32
                 for v in tensor.get("values", []):
-                    if isinstance(v, AttributeDict):
+                    if isinstance(v, (AttributeDict, dict)):
                         values.append(convert_to_float32(value=int(v.get("value")), decimals=int(v.get("decimals"))))
                     else:
                         logging.warning(f"Unexpected number type: {type(v)}")
@@ -144,7 +143,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
 
         # Parse strings
         for tensor in output.get("strings", []):
-            if isinstance(tensor, AttributeDict):
+            if isinstance(tensor, (AttributeDict, dict)):
                 name = tensor.get("name")
                 shape = tensor.get("shape")
                 values = tensor.get("values", [])
@@ -154,7 +153,7 @@ def convert_to_model_output(event_data: AttributeDict) -> Dict[str, np.ndarray]:
 
         # Parse JSON dicts
         for tensor in output.get("jsons", []):
-            if isinstance(tensor, AttributeDict):
+            if isinstance(tensor, (AttributeDict, dict)):
                 name = tensor.get("name")
                 value = tensor.get("value")
                 output_dict[name] = np.array(json.loads(value))

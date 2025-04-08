@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+import base64
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Callable
 
@@ -318,7 +319,7 @@ class Client:
                 # check inference directly from node
                 parsed_logs = precompile_contract.events.ModelInferenceEvent().process_receipt(tx_receipt, errors=DISCARD)
                 inference_id = parsed_logs[0]["args"]["inferenceID"]
-                inference_result = self._get_inference_result_from_node(inference_id)
+                inference_result = self._get_inference_result_from_node(inference_id, inference_mode)
                 model_output = convert_to_model_output(inference_result)
 
             return InferenceResult(tx_hash.hex(), model_output)
@@ -971,7 +972,7 @@ class Client:
         return [convert_array_to_model_output(result) for result in results]
 
 
-    def _get_inference_result_from_node(self, inference_id: str) -> Dict:
+    def _get_inference_result_from_node(self, inference_id: str, inference_mode: InferenceMode) -> Dict:
         """
         Get the inference result from node.
         
@@ -990,7 +991,54 @@ class Client:
         
             response = requests.get(url)
             if response.status_code == 200:
-                return response.json()
+                resp = response.json()
+                inference_result = resp.get("inference_results", {})
+                if inference_result:
+                    decoded_bytes = base64.b64decode(inference_result[0])
+                    decoded_string = decoded_bytes.decode('utf-8')
+                    output = json.loads(decoded_string).get("InferenceResult",{})
+                    if output is None:
+                        raise OpenGradientError("Missing InferenceResult in inference output")
+                    
+                    match inference_mode:
+                        case InferenceMode.VANILLA:
+                            if "VanillaResult" not in output:
+                                raise OpenGradientError("Missing VanillaResult in inference output")
+                            if "model_output" not in output["VanillaResult"]:
+                                raise OpenGradientError("Missing model_output in VanillaResult")
+                            return {
+                                "output": output["VanillaResult"]["model_output"]
+                            }
+                    
+                        case InferenceMode.TEE:
+                            if "TeeNodeResult" not in output:
+                                raise OpenGradientError("Missing TeeNodeResult in inference output")
+                            if "Response" not in output["TeeNodeResult"]:
+                                raise OpenGradientError("Missing Response in TeeNodeResult")
+                            if "VanillaResponse" in output["TeeNodeResult"]["Response"]:
+                                if "model_output" not in output["TeeNodeResult"]["Response"]["VanillaResponse"]:
+                                    raise OpenGradientError("Missing model_output in VanillaResponse")
+                                return {
+                                    "output": output["TeeNodeResult"]["Response"]["VanillaResponse"]["model_output"]
+                                }
+                    
+                            else:
+                                raise OpenGradientError("Missing VanillaResponse in TeeNodeResult Response")
+                                
+                        case InferenceMode.ZKML:
+                            if "ZkmlResult" not in output:
+                                raise OpenGradientError("Missing ZkmlResult in inference output")
+                            if "model_output" not in output["ZkmlResult"]:
+                                raise OpenGradientError("Missing model_output in ZkmlResult")
+                            return {
+                                "output": output["ZkmlResult"]["model_output"]
+                            }
+                    
+                        case _:
+                            raise OpenGradientError(f"Invalid inference mode: {inference_mode}")
+                else:
+                    return None
+                    
             else:
                 error_message = f"Failed to get inference result: HTTP {response.status_code}"
                 if response.text:
