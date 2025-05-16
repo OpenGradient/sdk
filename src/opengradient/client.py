@@ -44,7 +44,7 @@ _FIREBASE_CONFIG = {
 
 # How much time we wait for txn to be included in chain
 LLM_TX_TIMEOUT = 60
-INFERENCE_TX_TIMEOUT = 60
+INFERENCE_TX_TIMEOUT = 120
 REGULAR_TX_TIMEOUT = 30
 
 # How many times we retry a transaction because of nonce conflict
