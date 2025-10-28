@@ -64,15 +64,14 @@ def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, a
     
     _client = Client(private_key=private_key, rpc_url=rpc_url, api_url=api_url, email=email, password=password, contract_address=contract_address)
     return _client
-
-
-def upload(model_path, model_name, version) -> FileUploadResult:
+def upload(model_path, model_name, version, blob_id=None) -> FileUploadResult:  
     """Upload a model file to OpenGradient.
 
     Args:
         model_path: Path to the model file on local filesystem
         model_name: Name of the model repository
         version: Version string for this model upload
+        blob_id: Optional Walrus blob ID to use instead of uploading file
 
     Returns:
         FileUploadResult: Upload response containing file metadata
@@ -82,16 +81,17 @@ def upload(model_path, model_name, version) -> FileUploadResult:
     """
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.upload(model_path, model_name, version)
+    return _client.upload(model_path, model_name, version, blob_id=blob_id)  
 
 
-def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None) -> ModelRepository:
+def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None, blob_id: Optional[str] = None) -> ModelRepository:
     """Create a new model repository.
 
     Args:
         model_name: Name for the new model repository
         model_desc: Description of the model
         model_path: Optional path to model file to upload immediately
+        blob_id: Optional Walrus blob ID to use for upload (requires model_path)
 
     Returns:
         ModelRepository: Creation response with model metadata and optional upload results
@@ -106,11 +106,10 @@ def create_model(model_name: str, model_desc: str, model_path: Optional[str] = N
 
     if model_path:
         version = "0.01"
-        upload_result = _client.upload(model_path, model_name, version)
+        upload_result = _client.upload(model_path, model_name, version, blob_id=blob_id)
         result["upload"] = upload_result
 
     return result
-
 
 def create_version(model_name, notes=None, is_major=False):
     """Create a new version for an existing model.

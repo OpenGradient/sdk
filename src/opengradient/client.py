@@ -197,7 +197,7 @@ class Client:
             logging.error(f"Unexpected error during version creation: {str(e)}")
             raise
 
-    def upload(self, model_path: str, model_name: str, version: str) -> FileUploadResult:
+    def upload(self, model_path: str, model_name: str, version: str, blob_id: str = None) -> FileUploadResult:
         """
         Upload a model file to the server.
 
@@ -205,9 +205,10 @@ class Client:
             model_path (str): The path to the model file.
             model_name (str): The unique identifier for the model.
             version (str): The version identifier for the model.
+            blob_id (str, optional): Walrus blob ID to use instead of uploading file.
 
         Returns:
-            dict: The processed result.
+            FileUploadResult: The processed result.
 
         Raises:
             OpenGradientError: If the upload fails.
@@ -223,6 +224,28 @@ class Client:
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
         headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
+
+        if blob_id:
+            logging.info(f"Registering Walrus blob_id: {blob_id}")
+            
+            params = {
+                "blob_id": blob_id,
+                "filename": os.path.basename(model_path),
+                "file_size": os.path.getsize(model_path),
+            }
+            
+            logging.debug(f"Sending blob_id registration with params: {params}")
+            response = requests.post(url, headers=headers, params=params, timeout=60)
+            
+            logging.info(f"Response status: {response.status_code}")
+            
+            if response.status_code == 201:
+                return FileUploadResult(blob_id, params["file_size"])
+            else:
+                error_message = response.json().get("detail", "Unknown error occurred")
+                logging.error(f"Blob ID registration failed: {error_message}")
+                raise OpenGradientError(f"Blob ID registration failed: {error_message}", status_code=response.status_code)
+    
         logging.info(f"Starting upload for file: {model_path}")
         logging.info(f"File size: {os.path.getsize(model_path)} bytes")
         logging.debug(f"Upload URL: {url}")
@@ -247,7 +270,7 @@ class Client:
                 response = requests.post(url, data=monitor, headers=headers, timeout=3600)  # 1 hour timeout
 
                 logging.info(f"Response received. Status code: {response.status_code}")
-                logging.info(f"Full response content: {response.text}")  # Log the full response content
+                logging.info(f"Full response content: {response.text}")
 
                 if response.status_code == 201:
                     if response.content and response.content != b"null":

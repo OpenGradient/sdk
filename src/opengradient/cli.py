@@ -255,8 +255,9 @@ def create_version(obj, repo_name: str, notes: str, major: bool):
 )
 @click.option("--repo", "-r", "repo_name", required=True, help="Name of the model repository")
 @click.option("--version", "-v", required=True, help='Version of the model (e.g., "0.01")')
+@click.option("--blob-id", "-b", "blob_id", help="Walrus blob ID (optional, skips file upload)") 
 @click.pass_obj
-def upload_file(obj, file_path: Path, repo_name: str, version: str):
+def upload_file(obj, file_path: Path, repo_name: str, version: str, blob_id: str = None):
     """
     Upload a file to an existing model repository and version.
 
@@ -267,15 +268,15 @@ def upload_file(obj, file_path: Path, repo_name: str, version: str):
     \b
     opengradient upload-file path/to/model.onnx --repo my_model_repo --version 0.01
     opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01
+    opengradient upload-file path/to/model.onnx -r my_model_repo -v 0.01 --blob-id abc123
     """
     client: Client = obj["client"]
 
     try:
-        result = client.upload(file_path, repo_name, version)
+        result = client.upload(file_path, repo_name, version, blob_id=blob_id)
         click.echo(f"File uploaded successfully: {result}")
     except Exception as e:
         click.echo(f"Error uploading model: {str(e)}")
-
 
 @cli.command()
 @click.option("--model", "-m", "model_cid", required=True, help="CID of the model to run inference on")
