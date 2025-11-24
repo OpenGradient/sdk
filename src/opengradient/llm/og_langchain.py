@@ -3,13 +3,15 @@ from typing import Any, Dict, List, Optional, Sequence, Union, Callable
 from typing_extensions import override
 
 from langchain.chat_models.base import BaseChatModel
-from langchain.schema import (
+from langchain_core.messages import (
     AIMessage,
     BaseMessage,
-    ChatGeneration,
-    ChatResult,
     HumanMessage,
     SystemMessage,
+)
+from langchain_core.outputs import (
+    ChatGeneration,
+    ChatResult,
 )
 from langchain_core.callbacks.manager import CallbackManagerForLLMRun
 from langchain_core.messages import ToolCall
