@@ -18,6 +18,7 @@ from .defaults import (
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
     DEFAULT_API_URL,
+    DEFAULT_LLM_SERVER_URL,
 )
 from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
 
@@ -119,17 +120,21 @@ def cli(ctx):
 
     Visit https://docs.opengradient.ai/developers/python_sdk/ for more documentation.
     """
-    # Load existing config
     ctx.obj = load_og_config()
 
     no_client_commands = ["config", "create-account", "version"]
 
-    # Only create client if this is not a config management command
     if ctx.invoked_subcommand in no_client_commands:
         return
 
     if all(key in ctx.obj for key in ["private_key"]):
         try:
+            # Extract API keys from config
+            llm_server_url = ctx.obj.get("llm_server_url", DEFAULT_LLM_SERVER_URL)
+            openai_api_key = ctx.obj.get("openai_api_key")
+            anthropic_api_key = ctx.obj.get("anthropic_api_key")
+            google_api_key = ctx.obj.get("google_api_key")
+            
             ctx.obj["client"] = Client(
                 private_key=ctx.obj["private_key"],
                 rpc_url=DEFAULT_RPC_URL,
@@ -137,6 +142,10 @@ def cli(ctx):
                 contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
                 email=ctx.obj.get("email"),
                 password=ctx.obj.get("password"),
+                llm_server_url=llm_server_url,
+                openai_api_key=openai_api_key,
+                anthropic_api_key=anthropic_api_key,
+                google_api_key=google_api_key,
             )
         except Exception as e:
             click.echo(f"Failed to create OpenGradient client: {str(e)}")
@@ -195,6 +204,50 @@ def clear(ctx):
         click.echo("Configs cleared.")
     else:
         click.echo("Config clear cancelled.")
+
+
+@config.command()
+@click.option("--provider", type=click.Choice(["openai", "anthropic", "google"]), required=True)
+@click.option("--key", required=True, help="API key for the provider")
+@click.pass_context
+def set_api_key(ctx, provider: str, key: str):
+    """
+    Set API key for external LLM providers.
+    
+    Example usage:
+    
+    \b
+    opengradient config set-api-key --provider openai --key ..
+    opengradient config set-api-key --provider anthropic --key ...
+    opengradient config set-api-key --provider google --key ...
+    """
+    config_key = f"{provider}_api_key"
+    ctx.obj[config_key] = key
+    save_og_config(ctx)
+    
+    click.secho(f"✅ API key for {provider} has been set", fg="green")
+    click.echo("You can now use models from this provider in completion and chat commands.")
+
+
+@config.command()
+@click.option("--provider", type=click.Choice(["openai", "anthropic", "google"]), required=True)
+@click.pass_context
+def remove_api_key(ctx, provider: str):
+    """
+    Remove API key for an external LLM provider.
+    
+    Example usage:
+    
+    \b
+    opengradient config remove-api-key --provider openai
+    """
+    config_key = f"{provider}_api_key"
+    if config_key in ctx.obj:
+        del ctx.obj[config_key]
+        save_og_config(ctx)
+        click.secho(f"✅ API key for {provider} has been removed", fg="green")
+    else:
+        click.echo(f"No API key found for {provider}")
 
 
 @cli.command()
@@ -354,33 +407,55 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     "--model",
     "-m",
     "model_cid",
-    type=click.Choice([e.value for e in LLM]),
     required=True,
-    help="CID of the LLM model to run inference on",
+    help="Model identifier (local model from LLM enum or external model like 'gpt-4o', 'gemini-2.5-flash-lite', etc.)",
 )
 @click.option(
-    "--mode", "inference_mode", type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", help="Inference mode (default: VANILLA)"
+    "--mode", 
+    "inference_mode", 
+    type=click.Choice(LlmInferenceModes.keys()), 
+    default="VANILLA", 
+    help="Inference mode (only applies to local models, default: VANILLA)"
 )
 @click.option("--prompt", "-p", required=True, help="Input prompt for the LLM completion")
 @click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM completion output")
 @click.option("--stop-sequence", multiple=True, help="Stop sequences for LLM")
 @click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
+@click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
 @click.pass_context
-def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float):
+def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float, local: bool):
     """
-    Run completion inference on an LLM model.
+    Run completion inference on an LLM model (local or external).
 
-    This command runs a completion inference on the specified LLM model using the provided prompt and parameters.
+    This command supports both local OpenGradient models and external providers 
+    (OpenAI, Anthropic, Google, etc.). For external models, make sure to set 
+    the appropriate API key using 'opengradient config set-api-key'.
 
     Example usage:
 
     \b
-    opengradient completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50 --temperature 0.7
-    opengradient completion -m meta-llama/Meta-Llama-3-8B-Instruct -p "Translate to French: Hello world" --stop-sequence "." --stop-sequence "\\n"
+    # Local model
+    opengradient completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50
+    
+    # External OpenAI model
+    opengradient completion --model gpt-4o --prompt "Translate to French: Hello world" --max-tokens 50
+    
+    # External Anthropic model
+    opengradient completion --model claude-haiku-4-5-20251001--prompt "Write a haiku about coding" --max-tokens 100
+    
+    # External Google model
+    opengradient completion --model gemini-2.5-flash-lite --prompt "Explain quantum computing" --max-tokens 200
     """
     client: Client = ctx.obj["client"]
+    
     try:
-        click.echo(f'Running LLM completion inference for model "{model_cid}"\n')
+        is_local = local or model_cid in [llm.value for llm in LLM]
+        
+        if is_local:
+            click.echo(f'Running LLM completion inference for local model "{model_cid}"\n')
+        else:
+            click.echo(f'Running LLM completion inference for external model "{model_cid}"\n')
+        
         completion_output = client.llm_completion(
             model_cid=model_cid,
             inference_mode=LlmInferenceModes[inference_mode],
@@ -388,23 +463,31 @@ def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
             temperature=temperature,
+            local_model=local,
         )
 
-        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.completion_output)
+        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.completion_output, is_local)
+        
     except Exception as e:
         click.echo(f"Error running LLM completion: {str(e)}")
 
 
-def print_llm_completion_result(model_cid, tx_hash, llm_output):
+def print_llm_completion_result(model_cid, tx_hash, llm_output, is_local=True):
     click.secho("✅ LLM completion Successful", fg="green", bold=True)
     click.echo("──────────────────────────────────────")
-    click.echo("Model CID: ", nl=False)
+    click.echo("Model: ", nl=False)
     click.secho(model_cid, fg="cyan", bold=True)
-    click.echo("Transaction hash: ", nl=False)
-    click.secho(tx_hash, fg="cyan", bold=True)
-    block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
-    click.echo("Block explorer link: ", nl=False)
-    click.secho(block_explorer_link, fg="blue", underline=True)
+    
+    if is_local and tx_hash != "external":
+        click.echo("Transaction hash: ", nl=False)
+        click.secho(tx_hash, fg="cyan", bold=True)
+        block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
+        click.echo("Block explorer link: ", nl=False)
+        click.secho(block_explorer_link, fg="blue", underline=True)
+    else:
+        click.echo("Source: ", nl=False)
+        click.secho("External Provider", fg="cyan", bold=True)
+    
     click.echo("──────────────────────────────────────")
     click.secho("LLM Output:", fg="yellow", bold=True)
     click.echo()
@@ -417,12 +500,15 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
     "--model",
     "-m",
     "model_cid",
-    type=click.Choice([e.value for e in LLM]),
     required=True,
-    help="CID of the LLM model to run inference on",
+    help="Model identifier (local model from LLM enum or external model like 'gpt-4o', 'gemini-2.5-flash-lite', etc.)",
 )
 @click.option(
-    "--mode", "inference_mode", type=click.Choice(LlmInferenceModes.keys()), default="VANILLA", help="Inference mode (default: VANILLA)"
+    "--mode", 
+    "inference_mode", 
+    type=click.Choice(LlmInferenceModes.keys()), 
+    default="VANILLA", 
+    help="Inference mode (only applies to local models, default: VANILLA)"
 )
 @click.option("--messages", type=str, required=False, help="Input messages for the chat inference in JSON format")
 @click.option(
@@ -436,9 +522,13 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output):
 @click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
 @click.option("--tools", type=str, default=None, help="Tool configurations in JSON format")
 @click.option(
-    "--tools-file", type=click.Path(exists=True, path_type=Path), required=False, help="Path to JSON file containing tool configurations"
+    "--tools-file", 
+    type=click.Path(exists=True, path_type=Path), 
+    required=False, 
+    help="Path to JSON file containing tool configurations"
 )
 @click.option("--tool-choice", type=str, default="", help="Specific tool choice for the LLM")
+@click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
 @click.pass_context
 def chat(
     ctx,
@@ -452,23 +542,37 @@ def chat(
     tools: Optional[str],
     tools_file: Optional[Path],
     tool_choice: Optional[str],
+    local: bool,
 ):
     """
-    Run chat inference on an LLM model.
+    Run chat inference on an LLM model (local or external).
 
-    This command runs a chat inference on the specified LLM model using the provided messages and parameters.
-
-    Tool call formatting is based on OpenAI documentation tool calls (see here: https://platform.openai.com/docs/guides/function-calling).
+    This command supports both local OpenGradient models and external providers.
+    Tool calling is supported for compatible models.
 
     Example usage:
 
     \b
-    opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50 --temperature 0.7
-    opengradient chat --model mistralai/Mistral-7B-Instruct-v0.3 --messages-file messages.json --tools-file tools.json --max-tokens 200 --stop-sequence "." --stop-sequence "\\n"
+    # Local model
+    opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+    
+    # External OpenAI model with tools
+    opengradient chat --model gpt-4o --messages-file messages.json --tools-file tools.json --max-tokens 200
+    
+    # External Anthropic model
+    opengradient chat --model claude-haiku-4-5-20251001 --messages '[{"role":"user","content":"Write a poem"}]' --max-tokens 100
     """
     client: Client = ctx.obj["client"]
+    
     try:
-        click.echo(f'Running LLM chat inference for model "{model_cid}"\n')
+        is_local = local or model_cid in [llm.value for llm in LLM]
+        
+        if is_local:
+            click.echo(f'Running LLM chat inference for local model "{model_cid}"\n')
+        else:
+            click.echo(f'Running LLM chat inference for external model "{model_cid}"\n')
+        
+        # Parse messages
         if not messages and not messages_file:
             click.echo("Must specify either messages or messages-file")
             ctx.exit(1)
@@ -488,10 +592,10 @@ def chat(
             with messages_file.open("r") as file:
                 messages = json.load(file)
 
-        # Parse tools if provided
+        # Parse tools
         if (tools and tools != "[]") and tools_file:
             click.echo("Cannot have both tools and tools-file")
-            click.exit(1)
+            ctx.exit(1)
             return
 
         parsed_tools = []
@@ -532,23 +636,37 @@ def chat(
             temperature=temperature,
             tools=parsed_tools,
             tool_choice=tool_choice,
+            local_model=local,
         )
 
-        print_llm_chat_result(model_cid, completion_output.transaction_hash, completion_output.finish_reason, completion_output.chat_output)
+        print_llm_chat_result(
+            model_cid, 
+            completion_output.transaction_hash, 
+            completion_output.finish_reason, 
+            completion_output.chat_output,
+            is_local
+        )
+        
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
 
 
-def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
+def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output, is_local=True):
     click.secho("✅ LLM Chat Successful", fg="green", bold=True)
     click.echo("──────────────────────────────────────")
-    click.echo("Model CID: ", nl=False)
+    click.echo("Model: ", nl=False)
     click.secho(model_cid, fg="cyan", bold=True)
-    click.echo("Transaction hash: ", nl=False)
-    click.secho(tx_hash, fg="cyan", bold=True)
-    block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
-    click.echo("Block explorer link: ", nl=False)
-    click.secho(block_explorer_link, fg="blue", underline=True)
+    
+    if is_local and tx_hash != "external":
+        click.echo("Transaction hash: ", nl=False)
+        click.secho(tx_hash, fg="cyan", bold=True)
+        block_explorer_link = f"{DEFAULT_BLOCKCHAIN_EXPLORER}0x{tx_hash}"
+        click.echo("Block explorer link: ", nl=False)
+        click.secho(block_explorer_link, fg="blue", underline=True)
+    else:
+        click.echo("Source: ", nl=False)
+        click.secho("External Provider", fg="cyan", bold=True)
+    
     click.echo("──────────────────────────────────────")
     click.secho("Finish Reason: ", fg="yellow", bold=True)
     click.echo()
@@ -557,7 +675,6 @@ def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output):
     click.secho("Chat Output:", fg="yellow", bold=True)
     click.echo()
     for key, value in chat_output.items():
-        # If the value doesn't give any information, don't print it
         if value != None and value != "" and value != "[]" and value != []:
             click.echo(f"{key}: {value}")
     click.echo()

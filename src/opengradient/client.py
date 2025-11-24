@@ -30,7 +30,7 @@ from .types import (
     ModelRepository,
     FileUploadResult,
 )
-from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS
+from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS, DEFAULT_LLM_SERVER_URL
 from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
 
 _FIREBASE_CONFIG = {
@@ -62,7 +62,21 @@ class Client:
     _api_url: str
     _inference_abi: Dict
     _precompile_abi: Dict
-    def __init__(self, private_key: str, rpc_url: str, api_url: str, contract_address: str, email: Optional[str], password: Optional[str]):
+    _llm_server_url: str
+    _external_api_keys: Dict[str, str]
+    def __init__(
+        self, 
+        private_key: str, 
+        rpc_url: str, 
+        api_url: str, 
+        contract_address: str, 
+        email: Optional[str] = None, 
+        password: Optional[str] = None, 
+        llm_server_url: Optional[str] = DEFAULT_LLM_SERVER_URL,
+        openai_api_key: Optional[str] = None,
+        anthropic_api_key: Optional[str] = None,
+        google_api_key: Optional[str] = None,
+        ):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -90,6 +104,70 @@ class Client:
             self._hub_user = self._login_to_hub(email, password)
         else:
             self._hub_user = None
+
+        self._llm_server_url = llm_server_url
+        
+        self._external_api_keys = {}
+        if openai_api_key or os.getenv("OPENAI_API_KEY"):
+            self._external_api_keys["openai"] = openai_api_key or os.getenv("OPENAI_API_KEY")
+        if anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"):
+            self._external_api_keys["anthropic"] = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
+        if google_api_key or os.getenv("GOOGLE_API_KEY"):
+            self._external_api_keys["google"] = google_api_key or os.getenv("GOOGLE_API_KEY")
+
+    def set_api_key(self, provider: str, api_key: str):
+        """
+        Set or update API key for an external provider.
+        
+        Args:
+            provider: Provider name (e.g., 'openai', 'anthropic', 'google')
+            api_key: The API key for the provider
+        """
+        self._external_api_keys[provider] = api_key
+
+    def _is_local_model(self, model_cid: str) -> bool:
+        """
+        Check if a model is hosted locally on OpenGradient.
+        
+        Args:
+            model_cid: Model identifier
+            
+        Returns:
+            True if model is local, False if it should use external provider
+        """
+        # Check if it's in our local LLM enum
+        try:
+            return model_cid in [llm.value for llm in LLM]
+        except:
+            return False
+
+    def _get_provider_from_model(self, model: str) -> str:
+        """Infer provider from model name."""
+        model_lower = model.lower()
+        
+        if "gpt" in model_lower or model.startswith("openai/"):
+            return "openai"
+        elif "claude" in model_lower or model.startswith("anthropic/"):
+            return "anthropic"
+        elif "gemini" in model_lower or "palm" in model_lower or model.startswith("google/"):
+            return "google"
+        elif "command" in model_lower or model.startswith("cohere/"):
+            return "cohere"
+        else:
+            return "openai"
+
+    def _get_api_key_for_model(self, model: str) -> Optional[str]:
+        """
+        Get the appropriate API key for a model.
+        
+        Args:
+            model: Model identifier
+            
+        Returns:
+            API key string or None
+        """
+        provider = self._get_provider_from_model(model)
+        return self._external_api_keys.get(provider)
 
     def _login_to_hub(self, email, password):
         try:
@@ -328,36 +406,48 @@ class Client:
 
     def llm_completion(
         self,
-        model_cid: LLM,
-        inference_mode: LlmInferenceMode,
+        model_cid: str,  # Changed from LLM to str to accept any model
         prompt: str,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
+        inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_retries: Optional[int] = None,
+        local_model: Optional[bool] = False,
     ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using completions.
 
         Args:
-            model_cid (LLM): The unique content identifier for the model.
-            inference_mode (InferenceMode): The inference mode.
+            model_cid (str): The unique content identifier for the model.
+            inference_mode (LlmInferenceMode): The inference mode (only used for local models).
             prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+            max_retries (int, optional): Maximum number of retry attempts for blockchain transactions.
+            local_model (bool, optional): Force use of local model even if not in LLM enum.
 
         Returns:
             TextGenerationOutput: Generated text results including:
-                - Transaction hash
+                - Transaction hash (or "external" for external providers)
                 - String of completion output
 
         Raises:
             OpenGradientError: If the inference fails.
         """
-
+        # Check if this is a local model or external
+        if not local_model and not self._is_local_model(model_cid):
+            return self._external_llm_completion(
+                model=model_cid,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                stop_sequence=stop_sequence,
+                temperature=temperature,
+            )
+        
+        # Original local model logic
         def execute_transaction():
-            # Check inference mode and supported model
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
 
@@ -366,14 +456,13 @@ class Client:
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
-            # Prepare LLM input
             llm_request = {
                 "mode": inference_mode.value,
                 "modelCID": model_cid,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
                 "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100),  # Scale to 0-100 range
+                "temperature": int(temperature * 100),
             }
             logging.debug(f"Prepared LLM request: {llm_request}")
 
@@ -390,80 +479,117 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries)
 
+    def _external_llm_completion(
+        self,
+        model: str,
+        prompt: str,
+        max_tokens: int = 100,
+        stop_sequence: Optional[List[str]] = None,
+        temperature: float = 0.0,
+    ) -> TextGenerationOutput:
+        """
+        Route completion request to external LLM server.
+        
+        Args:
+            model: Model identifier
+            prompt: Input prompt
+            max_tokens: Maximum tokens to generate
+            stop_sequence: Stop sequences
+            temperature: Sampling temperature
+            
+        Returns:
+            TextGenerationOutput with completion
+            
+        Raises:
+            OpenGradientError: If request fails
+        """
+        url = f"{self._llm_server_url}/v1/completions"
+        
+        headers = {"Content-Type": "application/json"}
+        api_key = self._get_api_key_for_model(model)
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        
+        if stop_sequence:
+            payload["stop"] = stop_sequence
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            response.raise_for_status()
+            
+            result = response.json()
+            
+            return TextGenerationOutput(
+                transaction_hash="external",  # No blockchain transaction for external
+                completion_output=result["completion"]
+            )
+            
+        except requests.RequestException as e:
+            error_msg = f"External LLM completion failed: {str(e)}"
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_detail = e.response.json()
+                    error_msg += f" - {error_detail}"
+                except:
+                    error_msg += f" - {e.response.text}"
+            logging.error(error_msg)
+            raise OpenGradientError(error_msg)
+
     def llm_chat(
         self,
-        model_cid: LLM,
-        inference_mode: LlmInferenceMode,
+        model_cid: str,  # Changed from LLM to str
         messages: List[Dict],
+        inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = [],
         tool_choice: Optional[str] = None,
         max_retries: Optional[int] = None,
+        local_model: Optional[bool] = False,
     ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using chat.
 
         Args:
-            model_cid (LLM): The unique content identifier for the model.
-            inference_mode (InferenceMode): The inference mode.
-            messages (dict): The messages that will be passed into the chat.
-                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create)
-                Example:
-                [
-                    {
-                        "role": "system",
-                        "content": "You are a helpful assistant."
-                    },
-                    {
-                        "role": "user",
-                        "content": "Hello!"
-                    }
-                ]
+            model_cid (str): The unique content identifier for the model.
+            inference_mode (LlmInferenceMode): The inference mode (only used for local models).
+            messages (List[Dict]): The messages that will be passed into the chat.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
-            stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
-            temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-            tools (List[dict], optional): Set of tools
-                This should be in OpenAI API format (https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
-                Example:
-                [
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": "get_current_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "location": {
-                                        "type": "string",
-                                        "description": "The city and state, e.g. San Francisco, CA"
-                                    },
-                                    "unit": {
-                                        "type": "string",
-                                        "enum": ["celsius", "fahrenheit"]
-                                    }
-                                },
-                                "required": ["location"]
-                            }
-                        }
-                    }
-                ]
-            tool_choice (str, optional): Sets a specific tool to choose. Default value is "auto".
+            stop_sequence (List[str], optional): List of stop sequences for LLM.
+            temperature (float): Temperature for LLM inference, between 0 and 1.
+            tools (List[dict], optional): Set of tools for function calling.
+            tool_choice (str, optional): Sets a specific tool to choose.
+            max_retries (int, optional): Maximum number of retry attempts.
+            local_model (bool, optional): Force use of local model.
 
         Returns:
-            TextGenerationOutput: Generated text results including:
-                - Transaction hash
-                - Finish reason (tool_call, stop, etc.)
-                - Dictionary of chat message output (role, content, tool_call, etc.)
+            TextGenerationOutput: Generated text results.
 
         Raises:
             OpenGradientError: If the inference fails.
         """
-
+        # Check if this is a local model or external
+        if not local_model and not self._is_local_model(model_cid):
+            return self._external_llm_chat(
+                model=model_cid,
+                messages=messages,
+                max_tokens=max_tokens,
+                stop_sequence=stop_sequence,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+        
+        # Original local model logic
         def execute_transaction():
-            # Check inference mode and supported model
             if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
 
@@ -472,7 +598,6 @@ class Client:
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
-            # For incoming chat messages, tool_calls can be empty. Add an empty array so that it will fit the ABI.
             for message in messages:
                 if "tool_calls" not in message:
                     message["tool_calls"] = []
@@ -481,7 +606,6 @@ class Client:
                 if "name" not in message:
                     message["name"] = ""
 
-            # Create simplified tool structure for smart contract
             converted_tools = []
             if tools is not None:
                 for tool in tools:
@@ -496,14 +620,13 @@ class Client:
                             raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
                     converted_tools.append(converted_tool)
 
-            # Prepare LLM input
             llm_request = {
                 "mode": inference_mode.value,
                 "modelCID": model_cid,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100),  # Scale to 0-100 range
+                "temperature": int(temperature * 100),
                 "tools": converted_tools or [],
                 "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto"),
             }
@@ -528,6 +651,78 @@ class Client:
             )
 
         return run_with_retry(execute_transaction, max_retries)
+
+    def _external_llm_chat(
+        self,
+        model: str,
+        messages: List[Dict],
+        max_tokens: int = 100,
+        stop_sequence: Optional[List[str]] = None,
+        temperature: float = 0.0,
+        tools: Optional[List[Dict]] = None,
+        tool_choice: Optional[str] = None,
+    ) -> TextGenerationOutput:
+        """
+        Route chat request to external LLM server.
+        
+        Args:
+            model: Model identifier
+            messages: List of chat messages
+            max_tokens: Maximum tokens to generate
+            stop_sequence: Stop sequences
+            temperature: Sampling temperature
+            tools: Function calling tools
+            tool_choice: Tool selection strategy
+            
+        Returns:
+            TextGenerationOutput with chat completion
+            
+        Raises:
+            OpenGradientError: If request fails
+        """
+        url = f"{self._llm_server_url}/v1/chat/completions"
+        
+        headers = {"Content-Type": "application/json"}
+        api_key = self._get_api_key_for_model(model)
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        
+        payload = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        
+        if stop_sequence:
+            payload["stop"] = stop_sequence
+        
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = tool_choice or "auto"
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=60)
+            response.raise_for_status()
+            
+            result = response.json()
+            
+            return TextGenerationOutput(
+                transaction_hash="external",  # No blockchain transaction for external
+                finish_reason=result["finish_reason"],
+                chat_output=result["message"]
+            )
+            
+        except requests.RequestException as e:
+            error_msg = f"External LLM chat failed: {str(e)}"
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_detail = e.response.json()
+                    error_msg += f" - {error_detail}"
+                except:
+                    error_msg += f" - {e.response.text}"
+            logging.error(error_msg)
+            raise OpenGradientError(error_msg)
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
