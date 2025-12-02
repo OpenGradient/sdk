@@ -4,8 +4,19 @@ import opengradient as og
 og_client = og.new_client(email=None, password=None, private_key=os.environ.get("OG_PRIVATE_KEY"))
 
 inference_result = og_client.infer(
-    model_cid="QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ",
-    model_input={"num_input1": [1.0, 2.0, 3.0], "num_input2": 10, "str_input1": ["hello", "ONNX"], "str_input2": " world"},
+    model_cid="hJD2Ja3akZFt1A2LT-D_1oxOCz_OtuGYw4V9eE1m39M",
+    model_input={"open_high_low_close": [
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4],
+        [1,2,3,4]
+    ]},
     inference_mode=og.InferenceMode.VANILLA,
 )
 

@@ -9,7 +9,7 @@ DOBBY_LEASHED_3_1_8B := SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B
 
 infer:
 	pip install -e .
-	python -m opengradient.cli infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10, "str_input1":["hello", "ONNXY"], "str_input2":" world"}'
+	python -m opengradient.cli infer -m "hJD2Ja3akZFt1A2LT-D_1oxOCz_OtuGYw4V9eE1m39M" --input '{"open_high_low_close": [[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4],[1,2,3,4]]}'
 
 completion:
 	pip install -e .
