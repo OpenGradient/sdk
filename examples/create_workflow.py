@@ -17,7 +17,7 @@ input_query = og.HistoricalInputQuery(
 scheduler_params = og.SchedulerParams(frequency=60, duration_hours=2)
 
 # Base model CID (ETH volatility forecast) - from https://hub.opengradient.ai
-model_cid = "QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N"
+model_cid = "hJD2Ja3akZFt1A2LT-D_1oxOCz_OtuGYw4V9eE1m39M"
 
 # Deploy schedule
 contract_address = og_client.new_workflow(
