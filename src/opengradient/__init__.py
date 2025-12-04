@@ -34,6 +34,7 @@ def new_client(
     rpc_url=DEFAULT_RPC_URL,
     api_url=DEFAULT_API_URL,
     contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
+    **kwargs,
 ) -> Client:
     """
     Creates a unique OpenGradient client instance with the given authentication and network settings.
@@ -46,7 +47,7 @@ def new_client(
         contract_address: Optional inference contract address
     """
 
-    return Client(email=email, password=password, private_key=private_key, rpc_url=rpc_url, api_url=api_url, contract_address=contract_address)
+    return Client(email=email, password=password, private_key=private_key, rpc_url=rpc_url, api_url=api_url, contract_address=contract_address, **kwargs)
 
 
 def init(email: str, password: str, private_key: str, rpc_url=DEFAULT_RPC_URL, api_url=DEFAULT_API_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS):
