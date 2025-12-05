@@ -151,6 +151,9 @@ class TextGenerationOutput:
     completion_output: Optional[str] = None
     """Raw text output from completion-style generation. Empty string if not applicable."""
 
+    payment_hash: Optional[str] = None
+    """Payment hash for x402 transaction"""
+
 
 @dataclass
 class AbiFunction:

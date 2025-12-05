@@ -14,6 +14,9 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 import urllib.parse
+import asyncio
+from x402.clients.httpx import x402HttpxClient
+from x402.clients.base import decode_x_payment_response, x402Client
 
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
@@ -30,7 +33,12 @@ from .types import (
     ModelRepository,
     FileUploadResult,
 )
-from .defaults import DEFAULT_IMAGE_GEN_HOST, DEFAULT_IMAGE_GEN_PORT, DEFAULT_SCHEDULER_ADDRESS, DEFAULT_LLM_SERVER_URL
+from .defaults import (
+    DEFAULT_IMAGE_GEN_HOST, 
+    DEFAULT_IMAGE_GEN_PORT, 
+    DEFAULT_SCHEDULER_ADDRESS,
+    DEFAULT_LLM_SERVER_URL, 
+    DEFAULT_OPENGRADIENT_LLM_SERVER_URL)
 from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
 
 _FIREBASE_CONFIG = {
@@ -73,6 +81,7 @@ class Client:
         email: Optional[str] = None, 
         password: Optional[str] = None, 
         llm_server_url: Optional[str] = DEFAULT_LLM_SERVER_URL,
+        og_llm_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
         openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         google_api_key: Optional[str] = None,
@@ -106,6 +115,7 @@ class Client:
             self._hub_user = None
 
         self._llm_server_url = llm_server_url
+        self._og_llm_server_url = og_llm_server_url
         
         self._external_api_keys = {}
         if openai_api_key or os.getenv("OPENAI_API_KEY"):
@@ -404,6 +414,15 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries)
 
+    def _og_payment_selector(self, accepts, network_filter=None, scheme_filter=None, max_value=None):
+        """Custom payment selector for OpenGradient network (og-devnet)."""
+        return x402Client.default_payment_requirements_selector(
+            accepts,
+            network_filter="og-devnet",
+            scheme_filter=scheme_filter,
+            max_value=max_value,
+        )
+
     def llm_completion(
         self,
         model_cid: str,  # Changed from LLM to str to accept any model
@@ -488,7 +507,7 @@ class Client:
         temperature: float = 0.0,
     ) -> TextGenerationOutput:
         """
-        Route completion request to external LLM server.
+        Route completion request to external LLM server with x402 payments.
         
         Args:
             model: Model identifier
@@ -503,35 +522,101 @@ class Client:
         Raises:
             OpenGradientError: If request fails
         """
-        url = f"{self._llm_server_url}/v1/completions"
-        
-        headers = {"Content-Type": "application/json"}
         api_key = self._get_api_key_for_model(model)
+    
         if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
-        
-        if stop_sequence:
-            payload["stop"] = stop_sequence
+            print("External LLM completion using API key")
+            url = f"{self._llm_server_url}/v1/completions"
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            
+            if stop_sequence:
+                payload["stop"] = stop_sequence
+            
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=60)
+                response.raise_for_status()
+                
+                result = response.json()
+                
+                return TextGenerationOutput(
+                    transaction_hash="external",
+                    completion_output=result.get("completion")
+                )
+                
+            except requests.RequestException as e:
+                error_msg = f"External LLM completion failed: {str(e)}"
+                if hasattr(e, 'response') and e.response is not None:
+                    try:
+                        error_detail = e.response.json()
+                        error_msg += f" - {error_detail}"
+                    except:
+                        error_msg += f" - {e.response.text}"
+                logging.error(error_msg)
+                raise OpenGradientError(error_msg)
+
+        async def make_request():
+            async with x402HttpxClient(
+                account=self._wallet_account,
+                base_url=self._og_llm_server_url,
+                payment_requirements_selector=self._og_payment_selector,
+            ) as client:
+                headers = {
+                    "Content-Type": "application/json",
+                    # "Authorization": "Bearer special-key"
+                    "Authorization": "Bearer 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+                }
+                
+                payload = {
+                    "model": model,
+                    "prompt": prompt,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                }
+                
+                if stop_sequence:
+                    payload["stop"] = stop_sequence
+                
+                try:
+                    response = await client.post("/v1/completions", json=payload, headers=headers, timeout=60)
+                    
+                    # Read the response content
+                    content = await response.aread()
+                    result = json.loads(content.decode())
+                    payment_hash = ""
+
+                    print("Payment response headers: ", response.headers)
+                    print("Payment response content: ", result)
+
+                    if "X-Payment-Response" in response.headers:
+                        payment_response = decode_x_payment_response(response.headers["X-Payment-Response"])
+                        payment_hash = payment_response["transaction"]
+                    
+                    return TextGenerationOutput(
+                        transaction_hash="external",  # No blockchain transaction for external
+                        completion_output=result.get("completion"),
+                        payment_hash=payment_hash
+                    )
+                    
+                except Exception as e:
+                    error_msg = f"External LLM completion request failed: {str(e)}"
+                    logging.error(error_msg)
+                    raise OpenGradientError(error_msg)
         
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
-            response.raise_for_status()
-            
-            result = response.json()
-            
-            return TextGenerationOutput(
-                transaction_hash="external",  # No blockchain transaction for external
-                completion_output=result["completion"]
-            )
-            
-        except requests.RequestException as e:
+            # Run the async function in a sync context
+            return asyncio.run(make_request())
+        except Exception as e:
             error_msg = f"External LLM completion failed: {str(e)}"
             if hasattr(e, 'response') and e.response is not None:
                 try:
@@ -663,7 +748,7 @@ class Client:
         tool_choice: Optional[str] = None,
     ) -> TextGenerationOutput:
         """
-        Route chat request to external LLM server.
+        Route chat request to external LLM server with x402 payments.
         
         Args:
             model: Model identifier
@@ -680,40 +765,109 @@ class Client:
         Raises:
             OpenGradientError: If request fails
         """
-        url = f"{self._llm_server_url}/v1/chat/completions"
-        
-        headers = {"Content-Type": "application/json"}
         api_key = self._get_api_key_for_model(model)
+    
         if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        
-        payload = {
-            "model": model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
-        
-        if stop_sequence:
-            payload["stop"] = stop_sequence
-        
-        if tools:
-            payload["tools"] = tools
-            payload["tool_choice"] = tool_choice or "auto"
+            print("External LLM completion using API key")
+            url = f"{self._llm_server_url}/v1/chat/completions"
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            payload = {
+                "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            
+            if stop_sequence:
+                payload["stop"] = stop_sequence
+            
+            if tools:
+                payload["tools"] = tools
+                payload["tool_choice"] = tool_choice or "auto"
+            
+            try:
+                response = requests.post(url, json=payload, headers=headers, timeout=60)
+                response.raise_for_status()
+                
+                result = response.json()
+                
+                return TextGenerationOutput(
+                    transaction_hash="external",
+                    finish_reason=result.get("finish_reason"),
+                    chat_output=result.get("message")
+                )
+                
+            except requests.RequestException as e:
+                error_msg = f"External LLM chat failed: {str(e)}"
+                if hasattr(e, 'response') and e.response is not None:
+                    try:
+                        error_detail = e.response.json()
+                        error_msg += f" - {error_detail}"
+                    except:
+                        error_msg += f" - {e.response.text}"
+                logging.error(error_msg)
+                raise OpenGradientError(error_msg)
+
+        async def make_request():
+            async with x402HttpxClient(
+                account=self._wallet_account,
+                base_url=self._og_llm_server_url,
+                payment_requirements_selector=self._og_payment_selector,
+            ) as client:
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer special-key"
+                }
+                
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                }
+                
+                if stop_sequence:
+                    payload["stop"] = stop_sequence
+                
+                if tools:
+                    payload["tools"] = tools
+                    payload["tool_choice"] = tool_choice or "auto"
+                
+                try:
+                    response = await client.post("/v1/chat/completions", json=payload, headers=headers, timeout=60)
+                    
+                    # Read the response content
+                    content = await response.aread()
+                    result = json.loads(content.decode())
+
+                    payment_hash = ""
+                    print("Payment response headers: ", response.headers)
+                    print("Payment response content: ", result)
+                    if "X-Payment-Response" in response.headers:
+                        payment_response = decode_x_payment_response(response.headers["X-Payment-Response"])
+                        payment_hash = payment_response["transaction"]
+                    
+                    return TextGenerationOutput(
+                        transaction_hash="external",
+                        finish_reason=result["choices"][0].get("finish_reason"),
+                        chat_output=result["choices"][0].get("message"),
+                        payment_hash=payment_hash
+                    )
+                    
+                except Exception as e:
+                    error_msg = f"External LLM chat request failed: {str(e)}"
+                    logging.error(error_msg)
+                    raise OpenGradientError(error_msg)
         
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=60)
-            response.raise_for_status()
-            
-            result = response.json()
-            
-            return TextGenerationOutput(
-                transaction_hash="external",  # No blockchain transaction for external
-                finish_reason=result["finish_reason"],
-                chat_output=result["message"]
-            )
-            
-        except requests.RequestException as e:
+            # Run the async function in a sync context
+            return asyncio.run(make_request())
+        except Exception as e:
             error_msg = f"External LLM chat failed: {str(e)}"
             if hasattr(e, 'response') and e.response is not None:
                 try:
