@@ -29,7 +29,7 @@ dependencies = [
     "langchain>=0.3.7",
     "openai>=1.58.1",
     "pydantic>=2.9.2",
-    "x402 @ git+https://github.com/OpenGradient/x402.git@b05322fb77c9c743172d3277a305275510efc816#egg=x402&subdirectory=python/x402"
+    "og-test-x402==0.0.1",
 ]
 
 [project.scripts]
