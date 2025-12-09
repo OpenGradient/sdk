@@ -528,7 +528,7 @@ class Client:
         api_key = self._get_api_key_for_model(model)
     
         if api_key:
-            logging.debug("External LLM completion using API key")
+            logging.debug("External LLM completions using API key")
             url = f"{self._llm_server_url}/v1/completions"
             
             headers = {
