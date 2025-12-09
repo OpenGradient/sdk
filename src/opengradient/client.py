@@ -576,7 +576,7 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {DUMMY_API_KEY}"
+                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"
                 }
                 
                 payload = {
@@ -819,7 +819,7 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {DUMMY_API_KEY}"
+                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"
                 }
                 
                 payload = {
