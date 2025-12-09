@@ -4,6 +4,8 @@
 # This currently only works with model: gpt-4.1-2025-04-14 but we are quickly working on adding
 # more models.
 import opengradient as og
+import os
+
 client = og.new_client(
     email=None,
     password=None,
