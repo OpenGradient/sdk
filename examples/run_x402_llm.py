@@ -1,22 +1,14 @@
 ## Run non-hosted LLMs with x402 transaction processing through OpenGradient routers
 # Use opengradient version pip install opengradient==0.5.0a3
-# This currently only works with 
-# https://docs.langchain.com/oss/python/integrations/chat
+
+# This currently only works with model: gpt-4.1-2025-04-14 but we are quickly working on adding
+# more models.
 import opengradient as og
-og_gemini_client = og.new_client(
+client = og.new_client(
     email=None,
     password=None,
     private_key=os.environ.get("OG_PRIVATE_KEY"),
-    google_api_key=os.environ.get("GOOGLE_API_KEY")
 )
-
-result = og_gemini_client.llm_completion(
-    model_cid="gemini-2.5-flash-lite", 
-    inference_mode=og.LlmInferenceMode.VANILLA, 
-    prompt="Write a haiku about coding")
-
-print(f"Response: {result.completion_output}")
-print(f"Tx hash: {result.transaction_hash}")
 
 messages = [
     {"role": "user", "content": "What is Python?"}, 
@@ -24,6 +16,6 @@ messages = [
     {"role": "user", "content": "What makes it good for beginners?"}
 ]
 
-result = og_gemini_client.llm_chat(model_cid="gemini-2.5-flash-lite", inference_mode=og.LlmInferenceMode.VANILLA, messages=messages)
+result = client.llm_chat(model_cid="gpt-4.1-2025-04-14", inference_mode=og.LlmInferenceMode.VANILLA, messages=messages)
 print(f"Response: {result.chat_output['content']}")
-print(f"Tx hash: {result.transaction_hash}")
+print(f"Payment hash: {result.payment_hash}")
