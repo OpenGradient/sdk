@@ -61,6 +61,9 @@ DEFAULT_RETRY_DELAY_SEC = 1
 
 PRECOMPILE_CONTRACT_ADDRESS = "0x00000000000000000000000000000000000000F4"
 
+X402_PROCESSING_HASH_HEADER = "x-processing-hash"
+DUMMY_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+
 class Client:
     _inference_hub_contract_address: str
     _blockchain: Web3
@@ -525,7 +528,7 @@ class Client:
         api_key = self._get_api_key_for_model(model)
     
         if api_key:
-            print("External LLM completion using API key")
+            logging.debug("External LLM completion using API key")
             url = f"{self._llm_server_url}/v1/completions"
             
             headers = {
@@ -573,8 +576,7 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    # "Authorization": "Bearer special-key"
-                    "Authorization": "Bearer 0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+                    "Authorization": f"Bearer {DUMMY_API_KEY}"
                 }
                 
                 payload = {
@@ -595,15 +597,11 @@ class Client:
                     result = json.loads(content.decode())
                     payment_hash = ""
 
-                    print("Payment response headers: ", response.headers)
-                    print("Payment response content: ", result)
-
-                    if "X-Payment-Response" in response.headers:
-                        payment_response = decode_x_payment_response(response.headers["X-Payment-Response"])
-                        payment_hash = payment_response["transaction"]
+                    if X402_PROCESSING_HASH_HEADER in response.headers:
+                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
                     
                     return TextGenerationOutput(
-                        transaction_hash="external",  # No blockchain transaction for external
+                        transaction_hash="external",
                         completion_output=result.get("completion"),
                         payment_hash=payment_hash
                     )
@@ -768,7 +766,7 @@ class Client:
         api_key = self._get_api_key_for_model(model)
     
         if api_key:
-            print("External LLM completion using API key")
+            logging.debug("External LLM completion using API key")
             url = f"{self._llm_server_url}/v1/chat/completions"
             
             headers = {
@@ -821,7 +819,7 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": "Bearer special-key"
+                    "Authorization": f"Bearer {DUMMY_API_KEY}"
                 }
                 
                 payload = {
@@ -846,16 +844,17 @@ class Client:
                     result = json.loads(content.decode())
 
                     payment_hash = ""
-                    print("Payment response headers: ", response.headers)
-                    print("Payment response content: ", result)
-                    if "X-Payment-Response" in response.headers:
-                        payment_response = decode_x_payment_response(response.headers["X-Payment-Response"])
-                        payment_hash = payment_response["transaction"]
+                    if X402_PROCESSING_HASH_HEADER in response.headers:
+                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
+                    
+                    choices = result.get("choices")
+                    if not choices:
+                        raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
                     
                     return TextGenerationOutput(
                         transaction_hash="external",
-                        finish_reason=result["choices"][0].get("finish_reason"),
-                        chat_output=result["choices"][0].get("message"),
+                        finish_reason=choices[0].get("finish_reason"),
+                        chat_output=choices[0].get("message"),
                         payment_hash=payment_hash
                     )
                     
