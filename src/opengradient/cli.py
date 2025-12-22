@@ -74,6 +74,12 @@ LlmInferenceModes = {
 }
 
 
+x402SettlementModes = {
+    "SETTLE-BATCH": x402SettlementMode.SETTLE_BATCH,
+    "SETTLE": x402SettlementMode.SETTLE,
+    "SETTLE-METADATA": x402SettlementMode.SETTLE_METADATA,
+}
+
 def initialize_config(ctx):
     """Interactively initialize OpenGradient config"""
     if ctx.obj:  # Check if config data already exists
@@ -417,7 +423,7 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     default="VANILLA", 
     help="Inference mode (only applies to local models, default: VANILLA)"
 )
-@click.option("--x402-settlement-mode", "x402_settlement_mode", type=click.Choice(x402SettlementMode.keys()), default="SETTLE_BATCH", help="Settlement mode (default: SETTLE_BATCH)")
+@click.option("--x402-settlement-mode", "x402_settlement_mode", type=click.Choice(x402SettlementModes.keys()), default="SETTLE_BATCH", help="Settlement mode (default: SETTLE_BATCH)")
 @click.option("--prompt", "-p", required=True, help="Input prompt for the LLM completion")
 @click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM completion output")
 @click.option("--stop-sequence", multiple=True, help="Stop sequences for LLM")
