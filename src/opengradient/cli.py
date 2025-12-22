@@ -20,7 +20,7 @@ from .defaults import (
     DEFAULT_API_URL,
     DEFAULT_LLM_SERVER_URL,
 )
-from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM
+from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM, x402SettlementMode
 
 OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 
@@ -417,13 +417,14 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     default="VANILLA", 
     help="Inference mode (only applies to local models, default: VANILLA)"
 )
+@click.option("--x402-settlement-mode", "x402_settlement_mode", type=click.Choice(x402SettlementMode.keys()), default="SETTLE_BATCH", help="Settlement mode (default: SETTLE_BATCH)")
 @click.option("--prompt", "-p", required=True, help="Input prompt for the LLM completion")
 @click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM completion output")
 @click.option("--stop-sequence", multiple=True, help="Stop sequences for LLM")
 @click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
 @click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
 @click.pass_context
-def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float, local: bool):
+def completion(ctx, model_cid: str, inference_mode: str, x402_settlement_mode: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float, local: bool):
     """
     Run completion inference on an LLM model (local or external).
 
@@ -464,6 +465,7 @@ def completion(ctx, model_cid: str, inference_mode: str, prompt: str, max_tokens
             stop_sequence=list(stop_sequence),
             temperature=temperature,
             local_model=local,
+            x402_settlement_mode=x402_settlement_mode,
         )
 
         print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.completion_output, is_local)
