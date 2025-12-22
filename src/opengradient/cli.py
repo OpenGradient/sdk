@@ -75,9 +75,9 @@ LlmInferenceModes = {
 
 
 x402SettlementModes = {
-    "SETTLE-BATCH": x402SettlementMode.SETTLE_BATCH,
-    "SETTLE": x402SettlementMode.SETTLE,
-    "SETTLE-METADATA": x402SettlementMode.SETTLE_METADATA,
+    "settle-batch": x402SettlementMode.SETTLE_BATCH,
+    "settle": x402SettlementMode.SETTLE,
+    "settle-metadata": x402SettlementMode.SETTLE_METADATA,
 }
 
 def initialize_config(ctx):
@@ -423,12 +423,12 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     default="VANILLA", 
     help="Inference mode (only applies to local models, default: VANILLA)"
 )
-@click.option("--x402-settlement-mode", "x402_settlement_mode", type=click.Choice(x402SettlementModes.keys()), default="SETTLE_BATCH", help="Settlement mode (default: SETTLE_BATCH)")
 @click.option("--prompt", "-p", required=True, help="Input prompt for the LLM completion")
 @click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM completion output")
 @click.option("--stop-sequence", multiple=True, help="Stop sequences for LLM")
 @click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
 @click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
+@click.option("--x402-settlement-mode", "x402_settlement_mode", type=click.Choice(x402SettlementModes.keys()), default="settle-batch", help="Settlement mode for x402 payload")
 @click.pass_context
 def completion(ctx, model_cid: str, inference_mode: str, x402_settlement_mode: str, prompt: str, max_tokens: int, stop_sequence: List[str], temperature: float, local: bool):
     """
@@ -537,6 +537,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output, is_local=True):
 )
 @click.option("--tool-choice", type=str, default="", help="Specific tool choice for the LLM")
 @click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
+@click.option("--x402-settlement-mode", type=click.Choice(x402SettlementModes.keys()), default="settle-batch", help="Settlement mode for x402 payload")
 @click.pass_context
 def chat(
     ctx,
@@ -550,6 +551,7 @@ def chat(
     tools: Optional[str],
     tools_file: Optional[Path],
     tool_choice: Optional[str],
+    x402_settlement_mode: Optional[str],
     local: bool,
 ):
     """
@@ -645,6 +647,7 @@ def chat(
             tools=parsed_tools,
             tool_choice=tool_choice,
             local_model=local,
+            x402_settlement_mode=x402_settlement_mode,
         )
 
         print_llm_chat_result(

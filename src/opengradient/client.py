@@ -581,7 +581,7 @@ class Client:
                 headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                    "X-SETTLEMENT-TYPE": x402_settlement_mode.value,
+                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
                 }
                 
                 payload = {
@@ -642,6 +642,7 @@ class Client:
         tool_choice: Optional[str] = None,
         max_retries: Optional[int] = None,
         local_model: Optional[bool] = False,
+        x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using chat.
@@ -674,6 +675,7 @@ class Client:
                 temperature=temperature,
                 tools=tools,
                 tool_choice=tool_choice,
+                x402_settlement_mode=x402_settlement_mode,
             )
         
         # Original local model logic
@@ -749,6 +751,7 @@ class Client:
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
+        x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
         Route chat request to external LLM server with x402 payments.
@@ -824,7 +827,8 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"
+                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                    "X-SETTLEMENT-TYPE": x402_settlement_mode
                 }
                 
                 payload = {
