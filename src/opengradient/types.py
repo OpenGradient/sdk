@@ -1,9 +1,14 @@
 import time
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, StrEnum
 from typing import Dict, List, Optional, Tuple, Union, DefaultDict
 import numpy as np
 
+
+class x402SettlementMode(StrEnum):
+    SETTLE = "settle"
+    SETTLE_METADATA = "settle-metadata"
+    SETTLE_BATCH = "settle-batch"
 
 class CandleOrder(IntEnum):
     ASCENDING = 0
