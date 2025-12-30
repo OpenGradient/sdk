@@ -60,7 +60,7 @@ route_chat:
 batch_route_chat:
 	pip install -e .
 	@for i in $$(seq 1 50); do \
-		python -m opengradient.cli chat --model gpt-4.1-2025-04-14 --messages '[{"role":"user", "content":"Name me $i random numbers"}]' --max-tokens 50 & \
+		python -m opengradient.cli chat --model gpt-4.1-2025-04-14 --messages '[{"role":"user", "content":"Who are you?"}]' --max-tokens 50 & \
 	done; \
 	wait
 
