@@ -459,7 +459,11 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         # Check if this is a local model or external
-        if not local_model and not self._is_local_model(model_cid):
+        # TODO (Kyle): separate TEE and Vanilla completion requests
+        if inference_mode == LlmInferenceMode.TEE:
+            if model_cid not in TEE_LLM:
+                return OpenGradientError("That model CID is not supported yet for TEE inference")
+
             return self._external_llm_completion(
                 model=model_cid,
                 prompt=prompt,
@@ -470,11 +474,11 @@ class Client:
         
         # Original local model logic
         def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
+            if inference_mode != LlmInferenceMode.VANILLA:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
 
-            if inference_mode == LlmInferenceMode.TEE and model_cid not in [llm.value for llm in TEE_LLM]:
-                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            if model_cid not in [llm.value for llm in LLM]:
+                raise OpenGradientError("That model CID is not yet supported for inference")
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
@@ -627,7 +631,7 @@ class Client:
 
     def llm_chat(
         self,
-        model_cid: str,  # Changed from LLM to str
+        model_cid: str,
         messages: List[Dict],
         inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_tokens: int = 100,
@@ -660,7 +664,11 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         # Check if this is a local model or external
-        if not local_model and not self._is_local_model(model_cid):
+        # TODO (Kyle): separate TEE and Vanilla completion requests
+        if inference_mode == LlmInferenceMode.TEE:
+            if model_cid not in TEE_LLM:
+                return OpenGradientError("That model CID is not supported yet for TEE inference")
+
             return self._external_llm_chat(
                 model=model_cid,
                 messages=messages,
@@ -673,11 +681,11 @@ class Client:
         
         # Original local model logic
         def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
+            if inference_mode != LlmInferenceMode.VANILLA:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-
-            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
-                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            
+            if model_cid not in [llm.value for llm in LLM]:
+                raise OpenGradientError("That model CID is not yet supported for inference")
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
