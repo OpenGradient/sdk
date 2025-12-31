@@ -202,27 +202,27 @@ class LLM(str, Enum):
     DOBBY_LEASHED_3_1_8B = "SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B"
     
     # OpenAI models via TEE
-    GPT_4_1_2025_04_14 = "gpt-4.1-2025-04-14"
-    GPT_4O = "gpt-4o"
-    O4_MINI = "o4-mini"
+    GPT_4_1_2025_04_14 = "OpenAI/gpt-4.1-2025-04-14"
+    GPT_4O = "OpenAI/gpt-4o"
+    O4_MINI = "OpenAI/o4-mini"
     
     # Anthropic models via TEE
-    CLAUDE_3_7_SONNET = "claude-3.7-sonnet"
-    CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
-    CLAUDE_4_0_SONNET = "claude-4.0-sonnet"
+    CLAUDE_3_7_SONNET = "Anthropic/claude-3.7-sonnet"
+    CLAUDE_3_5_HAIKU = "Anthropic/claude-3.5-haiku"
+    CLAUDE_4_0_SONNET = "Anthropic/claude-4.0-sonnet"
     
     # Google models via TEE
-    GEMINI_2_5_FLASH = "gemini-2.5-flash"
-    GEMINI_2_5_PRO = "gemini-2.5-pro"
-    GEMINI_2_0_FLASH = "gemini-2.0-flash"
+    GEMINI_2_5_FLASH = "Google/gemini-2.5-flash"
+    GEMINI_2_5_PRO = "Google/gemini-2.5-pro"
+    GEMINI_2_0_FLASH = "Google/gemini-2.0-flash"
     
     # xAI Grok models via TEE
-    GROK_3_MINI_BETA = "grok-3-mini-beta"
-    GROK_3_BETA = "grok-3-beta"
+    GROK_3_MINI_BETA = "xAI/grok-3-mini-beta"
+    GROK_3_BETA = "xAI/grok-3-beta"
     GROK_2_1212 = "grok-2-1212"
-    GROK_2_VISION_LATEST = "grok-2-vision-latest"
-    GROK_4_1_FAST = "grok-4.1-fast"
-    GROK_4_1_FAST_NON_REASONING = "grok-4-1-fast-non-reasoning"
+    GROK_2_VISION_LATEST = "xAI/grok-2-vision-latest"
+    GROK_4_1_FAST = "xAI/grok-4.1-fast"
+    GROK_4_1_FAST_NON_REASONING = "xAI/grok-4-1-fast-non-reasoning"
 
 class TEE_LLM(str, Enum):
     """Enum for LLM models available for TEE execution"""
@@ -231,27 +231,27 @@ class TEE_LLM(str, Enum):
     # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
     
     # OpenAI models via TEE
-    GPT_4_1_2025_04_14 = "gpt-4.1-2025-04-14"
-    GPT_4O = "gpt-4o"
-    O4_MINI = "o4-mini"
+    GPT_4_1_2025_04_14 = "OpenAI/gpt-4.1-2025-04-14"
+    GPT_4O = "OpenAI/gpt-4o"
+    O4_MINI = "OpenAI/o4-mini"
     
     # Anthropic models via TEE
-    CLAUDE_3_7_SONNET = "claude-3.7-sonnet"
-    CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
-    CLAUDE_4_0_SONNET = "claude-4.0-sonnet"
+    CLAUDE_3_7_SONNET = "Anthropic/claude-3.7-sonnet"
+    CLAUDE_3_5_HAIKU = "Anthropic/claude-3.5-haiku"
+    CLAUDE_4_0_SONNET = "Anthropic/claude-4.0-sonnet"
     
     # Google models via TEE
-    GEMINI_2_5_FLASH = "gemini-2.5-flash"
-    GEMINI_2_5_PRO = "gemini-2.5-pro"
-    GEMINI_2_0_FLASH = "gemini-2.0-flash"
+    GEMINI_2_5_FLASH = "Google/gemini-2.5-flash"
+    GEMINI_2_5_PRO = "Google/gemini-2.5-pro"
+    GEMINI_2_0_FLASH = "Google/gemini-2.0-flash"
     
     # xAI Grok models via TEE
-    GROK_3_MINI_BETA = "grok-3-mini-beta"
-    GROK_3_BETA = "grok-3-beta"
-    GROK_2_1212 = "grok-2-1212"
-    GROK_2_VISION_LATEST = "grok-2-vision-latest"
-    GROK_4_1_FAST = "grok-4.1-fast"
-    GROK_4_1_FAST_NON_REASONING = "grok-4-1-fast-non-reasoning"
+    GROK_3_MINI_BETA = "xAI/grok-3-mini-beta"
+    GROK_3_BETA = "xAI/grok-3-beta"
+    GROK_2_1212 = "xAI/grok-2-1212"
+    GROK_2_VISION_LATEST = "xAI/grok-2-vision-latest"
+    GROK_4_1_FAST = "xAI/grok-4.1-fast"
+    GROK_4_1_FAST_NON_REASONING = "xAI/grok-4-1-fast-non-reasoning"
 
 
 @dataclass
