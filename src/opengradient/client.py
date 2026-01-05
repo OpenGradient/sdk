@@ -23,6 +23,7 @@ from .proto import infer_pb2, infer_pb2_grpc
 from .types import (
     LLM,
     TEE_LLM,
+    x402SettlementMode,
     HistoricalInputQuery,
     InferenceMode,
     LlmInferenceMode,
@@ -436,6 +437,7 @@ class Client:
         inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_retries: Optional[int] = None,
         local_model: Optional[bool] = False,
+        x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using completions.
@@ -459,22 +461,27 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         # Check if this is a local model or external
-        if not local_model and not self._is_local_model(model_cid):
+        # TODO (Kyle): separate TEE and Vanilla completion requests
+        if inference_mode == LlmInferenceMode.TEE:
+            if model_cid not in TEE_LLM:
+                return OpenGradientError("That model CID is not supported yet for TEE inference")
+
             return self._external_llm_completion(
                 model=model_cid,
                 prompt=prompt,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
                 temperature=temperature,
+                x402_settlement_mode=x402_settlement_mode,
             )
         
         # Original local model logic
         def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
+            if inference_mode != LlmInferenceMode.VANILLA:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
 
-            if inference_mode == LlmInferenceMode.TEE and model_cid not in [llm.value for llm in TEE_LLM]:
-                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            if model_cid not in [llm.value for llm in LLM]:
+                raise OpenGradientError("That model CID is not yet supported for inference")
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
@@ -508,6 +515,7 @@ class Client:
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
+        x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
         Route completion request to external LLM server with x402 payments.
@@ -576,7 +584,8 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"
+                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
                 }
                 
                 payload = {
@@ -627,7 +636,7 @@ class Client:
 
     def llm_chat(
         self,
-        model_cid: str,  # Changed from LLM to str
+        model_cid: str,
         messages: List[Dict],
         inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_tokens: int = 100,
@@ -637,6 +646,7 @@ class Client:
         tool_choice: Optional[str] = None,
         max_retries: Optional[int] = None,
         local_model: Optional[bool] = False,
+        x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
         Perform inference on an LLM model using chat.
@@ -660,7 +670,11 @@ class Client:
             OpenGradientError: If the inference fails.
         """
         # Check if this is a local model or external
-        if not local_model and not self._is_local_model(model_cid):
+        # TODO (Kyle): separate TEE and Vanilla completion requests
+        if inference_mode == LlmInferenceMode.TEE:
+            if model_cid not in TEE_LLM:
+                return OpenGradientError("That model CID is not supported yet for TEE inference")
+
             return self._external_llm_chat(
                 model=model_cid,
                 messages=messages,
@@ -669,15 +683,16 @@ class Client:
                 temperature=temperature,
                 tools=tools,
                 tool_choice=tool_choice,
+                x402_settlement_mode=x402_settlement_mode,
             )
         
         # Original local model logic
         def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA and inference_mode != LlmInferenceMode.TEE:
+            if inference_mode != LlmInferenceMode.VANILLA:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-
-            if inference_mode == LlmInferenceMode.TEE and model_cid not in TEE_LLM:
-                raise OpenGradientError("That model CID is not supported yet supported for TEE inference")
+            
+            if model_cid not in [llm.value for llm in LLM]:
+                raise OpenGradientError("That model CID is not yet supported for inference")
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
@@ -744,6 +759,7 @@ class Client:
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
+        x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
         Route chat request to external LLM server with x402 payments.
@@ -819,7 +835,8 @@ class Client:
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"
+                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                    "X-SETTLEMENT-TYPE": x402_settlement_mode
                 }
                 
                 payload = {
