@@ -519,17 +519,37 @@ Enum for available LLM models
 
   
     
-* static `DOBBY_LEASHED_3_1_8B` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
     
-* static `DOBBY_UNHINGED_3_1_8B` - The type of the None singleton.
+* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
     
-* static `LLAMA_3_2_3B_INSTRUCT` - The type of the None singleton.
+* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
     
-* static `META_LLAMA_3_1_70B_INSTRUCT` - The type of the None singleton.
+* static `GEMINI_2_0_FLASH` - The type of the None singleton.
     
-* static `META_LLAMA_3_8B_INSTRUCT` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH` - The type of the None singleton.
     
-* static `QWEN_2_5_72B_INSTRUCT` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
+    
+* static `GEMINI_2_5_PRO` - The type of the None singleton.
+    
+* static `GPT_4O` - The type of the None singleton.
+    
+* static `GPT_4_1_2025_04_14` - The type of the None singleton.
+    
+* static `GROK_2_1212` - The type of the None singleton.
+    
+* static `GROK_2_VISION_LATEST` - The type of the None singleton.
+    
+* static `GROK_3_BETA` - The type of the None singleton.
+    
+* static `GROK_3_MINI_BETA` - The type of the None singleton.
+    
+* static `GROK_4_1_FAST` - The type of the None singleton.
+    
+* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
+    
+* static `O4_MINI` - The type of the None singleton.
 
       
     
@@ -541,7 +561,7 @@ Enum for available LLM models
   
 
   
-Enum for differetn inference modes available for LLM inferences (VANILLA, TEE)
+Enum for different inference modes available for LLM inference (VANILLA, TEE)
   
 
 #### Variables
@@ -608,4 +628,34 @@ Enum for LLM models available for TEE execution
 
   
     
-* static `META_LLAMA_3_1_70B_INSTRUCT` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
+    
+* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
+    
+* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
+    
+* static `GEMINI_2_0_FLASH` - The type of the None singleton.
+    
+* static `GEMINI_2_5_FLASH` - The type of the None singleton.
+    
+* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
+    
+* static `GEMINI_2_5_PRO` - The type of the None singleton.
+    
+* static `GPT_4O` - The type of the None singleton.
+    
+* static `GPT_4_1_2025_04_14` - The type of the None singleton.
+    
+* static `GROK_2_1212` - The type of the None singleton.
+    
+* static `GROK_2_VISION_LATEST` - The type of the None singleton.
+    
+* static `GROK_3_BETA` - The type of the None singleton.
+    
+* static `GROK_3_MINI_BETA` - The type of the None singleton.
+    
+* static `GROK_4_1_FAST` - The type of the None singleton.
+    
+* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
+    
+* static `O4_MINI` - The type of the None singleton.
