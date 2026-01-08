@@ -13,7 +13,7 @@ og_client = og.new_client(
 
 # Example 1: Using OpenAI GPT-4
 completion = og_client.llm_chat(
-    model_cid="gpt-4o",
+    model_cid=og.LLM.GPT_4O,
     messages=[{"role": "user", "content": "Write a haiku about Python programming"}],
     inference_mode=og.LlmInferenceMode.VANILLA,
 )

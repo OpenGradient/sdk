@@ -7,7 +7,7 @@ import opengradient as og
 
 # Number of requests to run serially
 NUM_REQUESTS = 100
-MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
+MODEL = "anthropic/claude-3.5-haiku"
 
 
 def run_prompt(prompt: str):

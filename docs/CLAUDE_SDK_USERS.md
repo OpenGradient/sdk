@@ -27,7 +27,7 @@ client = og.new_client(
 
 # LLM Chat
 result = client.llm_chat(
-    model_cid="gpt-4o",  # or og.LLM.QWEN_2_5_72B_INSTRUCT
+    model_cid="gpt-4o",  # or og.LLM.CLAUDE_3_5_HAIKU
     messages=[{"role": "user", "content": "Hello!"}],
     max_tokens=100,
 )
@@ -102,18 +102,9 @@ result = client.infer(
 
 ## Available Models
 
-### OpenGradient Hosted (og.LLM)
+### TEE-Verified Models (og.LLM and og.TEE_LLM)
 
-```python
-og.LLM.META_LLAMA_3_8B_INSTRUCT
-og.LLM.LLAMA_3_2_3B_INSTRUCT
-og.LLM.QWEN_2_5_72B_INSTRUCT
-og.LLM.META_LLAMA_3_1_70B_INSTRUCT
-og.LLM.DOBBY_UNHINGED_3_1_8B
-og.LLM.DOBBY_LEASHED_3_1_8B
-```
-
-### TEE-Verified Models (og.TEE_LLM)
+All models are now TEE-verified. The following models are available:
 
 ```python
 # OpenAI
@@ -164,7 +155,7 @@ tools = [{
 }]
 
 result = client.llm_chat(
-    model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT,
+    model_cid=og.LLM.CLAUDE_3_7_SONNET,
     messages=[{"role": "user", "content": "What's the weather in NYC?"}],
     tools=tools,
     tool_choice="auto",
@@ -194,7 +185,7 @@ from langgraph.prebuilt import create_react_agent
 # Create LangChain-compatible LLM
 llm = og.llm.langchain_adapter(
     private_key=os.environ["OG_PRIVATE_KEY"],
-    model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT,
+    model_cid=og.LLM.CLAUDE_3_7_SONNET,
     max_tokens=300,
 )
 

@@ -6,7 +6,7 @@ from typing import List
 
 og_key = os.environ.get("OG_PRIVATE_KEY")
 
-llm = og.llm.langchain_adapter(private_key=og_key, model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT)
+llm = og.llm.langchain_adapter(private_key=og_key, model_cid=og.LLM.CLAUDE_3_7_SONNET)
 og.init(private_key=og_key, email=None, password=None)
 
 # Create workflow read tool

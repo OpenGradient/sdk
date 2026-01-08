@@ -4,7 +4,7 @@ from langchain_core.tools import BaseTool
 import opengradient as og
 from typing import List
 
-llm = og.llm.langchain_adapter(private_key=os.environ.get("OG_PRIVATE_KEY"), model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT)
+llm = og.llm.langchain_adapter(private_key=os.environ.get("OG_PRIVATE_KEY"), model_cid=og.LLM.CLAUDE_3_7_SONNET)
 
 # You define tools here
 tools: List[BaseTool] = []

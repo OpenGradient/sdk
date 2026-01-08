@@ -71,7 +71,7 @@ python examples/run_llm.py
 ```
 
 **What it does:**
-- Sends a chat message to a hosted LLM (e.g., Dobby Unhinged)
+- Sends a chat message to a hosted LLM (e.g., Claude 3.5 Haiku)
 - Demonstrates the chat completion interface
 - Returns the LLM response and transaction hash
 
@@ -253,7 +253,7 @@ LLM chat pattern:
 
 ```python
 completion = og_client.llm_chat(
-    model_cid=og.LLM.DOBBY_UNHINGED_3_1_8B,
+    model_cid=og.LLM.CLAUDE_3_5_HAIKU,
     messages=[{"role": "user", "content": "Your message"}],
     inference_mode=og.LlmInferenceMode.VANILLA
 )

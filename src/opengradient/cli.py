@@ -458,8 +458,8 @@ def completion(
     Example usage:
 
     \b
-    # Local model
-    opengradient completion --model meta-llama/Meta-Llama-3-8B-Instruct --prompt "Hello, how are you?" --max-tokens 50
+    # TEE model
+    opengradient completion --model anthropic/claude-3.5-haiku --prompt "Hello, how are you?" --max-tokens 50
 
     # External OpenAI model
     opengradient completion --model gpt-4o --prompt "Translate to French: Hello world" --max-tokens 50
@@ -579,8 +579,8 @@ def chat(
     Example usage:
 
     \b
-    # Local model
-    opengradient chat --model meta-llama/Meta-Llama-3-8B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+    # TEE model
+    opengradient chat --model anthropic/claude-3.5-haiku --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
 
     # External OpenAI model with tools
     opengradient chat --model gpt-4o --messages-file messages.json --tools-file tools.json --max-tokens 200

@@ -24,7 +24,7 @@ class TestLLM(unittest.TestCase):
             raise ValueError("PRIVATE_KEY environment variable is not set")
 
         init(private_key=private_key, email=None, password=None)
-        self.llm = OpenGradientChatModel(private_key=private_key, model_cid=LLM.QWEN_2_5_72B_INSTRUCT)
+        self.llm = OpenGradientChatModel(private_key=private_key, model_cid=LLM.CLAUDE_3_7_SONNET)
 
     def test_simple_completion(self):
         message = self.llm.invoke("say 'hello'. literally")
