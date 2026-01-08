@@ -198,13 +198,13 @@ class Abi:
 class LLM(str, Enum):
     """Enum for available LLM models"""
 
-    # Existing open-source OG hosted models
-    META_LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
-    LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
-    QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
-    META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
-    DOBBY_UNHINGED_3_1_8B = "SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B"
-    DOBBY_LEASHED_3_1_8B = "SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B"
+    # # Existing open-source OG hosted models
+    # META_LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
+    # LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
+    # QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
+    # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
+    # DOBBY_UNHINGED_3_1_8B = "SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B"
+    # DOBBY_LEASHED_3_1_8B = "SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B"
     
     # OpenAI models via TEE
     GPT_4_1_2025_04_14 = "openai/gpt-4.1-2025-04-14"
