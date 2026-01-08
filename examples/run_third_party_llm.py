@@ -11,7 +11,7 @@ og_gemini_client = og.new_client(
 )
 
 result = og_gemini_client.llm_completion(
-    model_cid="gemini-2.5-flash-lite", 
+    model_cid="Google/gemini-2.5-flash-lite", 
     inference_mode=og.LlmInferenceMode.VANILLA, 
     prompt="Write a haiku about coding")
 
@@ -24,6 +24,6 @@ messages = [
     {"role": "user", "content": "What makes it good for beginners?"}
 ]
 
-result = og_gemini_client.llm_chat(model_cid="gemini-2.5-flash-lite", inference_mode=og.LlmInferenceMode.VANILLA, messages=messages)
+result = og_gemini_client.llm_chat(model_cid="Google/gemini-2.5-flash-lite", inference_mode=og.LlmInferenceMode.VANILLA, messages=messages)
 print(f"Response: {result.chat_output['content']}")
 print(f"Tx hash: {result.transaction_hash}")

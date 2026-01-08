@@ -220,6 +220,7 @@ class LLM(str, Enum):
     GEMINI_2_5_FLASH = "Google/gemini-2.5-flash"
     GEMINI_2_5_PRO = "Google/gemini-2.5-pro"
     GEMINI_2_0_FLASH = "Google/gemini-2.0-flash"
+    GEMINI_2_5_FLASH_LITE = "Google/gemini-2.5-flash-lite"
     
     # xAI Grok models via TEE
     GROK_3_MINI_BETA = "xAI/grok-3-mini-beta"
@@ -249,6 +250,7 @@ class TEE_LLM(str, Enum):
     GEMINI_2_5_FLASH = "Google/gemini-2.5-flash"
     GEMINI_2_5_PRO = "Google/gemini-2.5-pro"
     GEMINI_2_0_FLASH = "Google/gemini-2.0-flash"
+    GEMINI_2_5_FLASH_LITE = "Google/gemini-2.5-flash-lite"
     
     # xAI Grok models via TEE
     GROK_3_MINI_BETA = "xAI/grok-3-mini-beta"
