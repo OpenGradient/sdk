@@ -107,7 +107,7 @@ class InferenceMode(Enum):
 
 
 class LlmInferenceMode(Enum):
-    """Enum for differetn inference modes available for LLM inferences (VANILLA, TEE)"""
+    """Enum for different inference modes available for LLM inference (VANILLA, TEE)"""
 
     VANILLA = 0
     TEE = 1
