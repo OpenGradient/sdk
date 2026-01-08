@@ -6,6 +6,32 @@ import numpy as np
 
 
 class x402SettlementMode(StrEnum):
+    """
+    Settlement modes for x402 payment protocol transactions.
+
+    These modes control how inference data is recorded on-chain for payment settlement
+    and auditability. Each mode offers different trade-offs between data completeness,
+    privacy, and transaction costs.
+
+    Attributes:
+        SETTLE: Individual settlement with input/output hashes only.
+            Records cryptographic hashes of the inference input and output.
+            Most privacy-preserving option - actual data is not stored on-chain.
+            Suitable for applications where only proof of execution is needed.
+
+        SETTLE_METADATA: Individual settlement with full metadata.
+            Records complete model information, full input and output data,
+            and all inference metadata on-chain.
+            Provides maximum transparency and auditability.
+            Higher gas costs due to larger data storage.
+
+        SETTLE_BATCH: Batch settlement for multiple inferences.
+            Aggregates multiple inference requests into a single settlement transaction
+            using batch hashes.
+            Most cost-efficient for high-volume applications.
+            Reduced per-inference transaction overhead.
+    """
+
     SETTLE = "settle"
     SETTLE_METADATA = "settle-metadata"
     SETTLE_BATCH = "settle-batch"

@@ -454,11 +454,17 @@ class Client:
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
             max_retries (int, optional): Maximum number of retry attempts for blockchain transactions.
             local_model (bool, optional): Force use of local model even if not in LLM enum.
+            x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
+                - SETTLE: Records input/output hashes only (most privacy-preserving).
+                - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
+                - SETTLE_METADATA: Records full model info, complete input/output data, and all metadata.
+                Defaults to SETTLE_BATCH.
 
         Returns:
             TextGenerationOutput: Generated text results including:
                 - Transaction hash (or "external" for external providers)
                 - String of completion output
+                - Payment hash for x402 transactions (when using x402 settlement)
 
         Raises:
             OpenGradientError: If the inference fails.
@@ -661,9 +667,18 @@ class Client:
             tool_choice (str, optional): Sets a specific tool to choose.
             max_retries (int, optional): Maximum number of retry attempts.
             local_model (bool, optional): Force use of local model.
+            x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
+                - SETTLE: Records input/output hashes only (most privacy-preserving).
+                - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
+                - SETTLE_METADATA: Records full model info, complete input/output data, and all metadata.
+                Defaults to SETTLE_BATCH.
 
         Returns:
-            TextGenerationOutput: Generated text results.
+            TextGenerationOutput: Generated text results including:
+                - chat_output: Dict with role, content, and tool_calls
+                - transaction_hash: Blockchain hash (or "external" for external providers)
+                - finish_reason: Reason for completion (e.g., "stop", "tool_call")
+                - payment_hash: Payment hash for x402 transactions (when using x402 settlement)
 
         Raises:
             OpenGradientError: If the inference fails.

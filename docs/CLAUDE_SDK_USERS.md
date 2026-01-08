@@ -256,10 +256,10 @@ og.InferenceMode.ZKML       # Zero-knowledge proof
 og.LlmInferenceMode.VANILLA
 og.LlmInferenceMode.TEE
 
-# Payment modes
-og.x402SettlementMode.SETTLE
-og.x402SettlementMode.SETTLE_BATCH
-og.x402SettlementMode.SETTLE_METADATA
+# x402 Payment Settlement Modes
+og.x402SettlementMode.SETTLE           # Input/output hashes only (most private)
+og.x402SettlementMode.SETTLE_BATCH     # Batch hashes for multiple inferences (most cost-efficient)
+og.x402SettlementMode.SETTLE_METADATA  # Full model info, input/output data, and metadata
 
 # Workflow data types
 og.CandleType.OPEN, .HIGH, .LOW, .CLOSE, .VOLUME
