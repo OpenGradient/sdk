@@ -20,6 +20,7 @@ from .types import (
     ModelOutput,
     ModelRepository,
     FileUploadResult,
+    x402SettlementMode,
 )
 
 from . import llm, alphasense
