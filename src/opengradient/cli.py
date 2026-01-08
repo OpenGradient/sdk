@@ -448,7 +448,7 @@ def completion(ctx, model_cid: str, inference_mode: str, x402_settlement_mode: s
     opengradient completion --model gpt-4o --prompt "Translate to French: Hello world" --max-tokens 50
     
     # External Anthropic model
-    opengradient completion --model claude-haiku-4-5-20251001--prompt "Write a haiku about coding" --max-tokens 100
+    opengradient completion --model claude-haiku-4-5-20251001 --prompt "Write a haiku about coding" --max-tokens 100
     
     # External Google model
     opengradient completion --model gemini-2.5-flash-lite --prompt "Explain quantum computing" --max-tokens 200

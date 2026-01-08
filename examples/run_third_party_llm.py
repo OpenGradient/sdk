@@ -2,6 +2,7 @@
 # Use opengradient version pip install opengradient==0.5.0a2
 # This works for Gemini, Anthropic, and OpenAI models in langchain
 # https://docs.langchain.com/oss/python/integrations/chat
+import os
 import opengradient as og
 og_gemini_client = og.new_client(
     email=None,

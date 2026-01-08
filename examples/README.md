@@ -255,7 +255,7 @@ LLM chat pattern:
 completion = og_client.llm_chat(
     model_cid=og.LLM.DOBBY_UNHINGED_3_1_8B,
     messages=[{"role": "user", "content": "Your message"}],
-    inference_mode=og.InferenceMode.VANILLA
+    inference_mode=og.LlmInferenceMode.VANILLA
 )
 print(f"Response: {completion.chat_output['content']}")
 ```

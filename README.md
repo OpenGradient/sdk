@@ -104,6 +104,10 @@ For comprehensive documentation, API reference, and examples, visit:
 - [OpenGradient Documentation](https://docs.opengradient.ai/)
 - [API Reference](https://docs.opengradient.ai/api_reference/python_sdk/)
 
+### Claude Code Users
+
+If you use [Claude Code](https://claude.ai/code), copy [docs/CLAUDE_SDK_USERS.md](docs/CLAUDE_SDK_USERS.md) to your project's `CLAUDE.md` to help Claude assist you with OpenGradient SDK development.
+
 ## Support
 
 - Run `opengradient --help` for CLI command reference
