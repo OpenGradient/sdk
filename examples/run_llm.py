@@ -25,7 +25,7 @@ print()
 
 # Example 2: Using a hosted OpenGradient model
 completion = og_client.llm_chat(
-    model_cid=og.LLM.DOBBY_UNHINGED_3_1_8B,
+    model_cid=og.LLM.GPT_4O,
     messages=[{"role": "user", "content": "say something funny"}],
     inference_mode=og.LlmInferenceMode.VANILLA,
 )

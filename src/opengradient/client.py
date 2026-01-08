@@ -467,7 +467,7 @@ class Client:
                 return OpenGradientError("That model CID is not supported yet for TEE inference")
 
             return self._external_llm_completion(
-                model=model_cid,
+                model=model_cid.split('/')[1],
                 prompt=prompt,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
@@ -482,12 +482,16 @@ class Client:
 
             if model_cid not in [llm.value for llm in LLM]:
                 raise OpenGradientError("That model CID is not yet supported for inference")
+            
+            model_name = model_cid
+            if model_cid in [llm.value for llm in TEE_LLM]:
+                model_name = model_cid.split('/')[1]
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
             llm_request = {
                 "mode": inference_mode.value,
-                "modelCID": model_cid,
+                "modelCID": model_name,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
                 "stop_sequence": stop_sequence or [],
@@ -676,7 +680,7 @@ class Client:
                 return OpenGradientError("That model CID is not supported yet for TEE inference")
 
             return self._external_llm_chat(
-                model=model_cid,
+                model=model_cid.split('/')[1],
                 messages=messages,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
@@ -693,6 +697,10 @@ class Client:
             
             if model_cid not in [llm.value for llm in LLM]:
                 raise OpenGradientError("That model CID is not yet supported for inference")
+            
+            model_name = model_cid
+            if model_cid in [llm.value for llm in TEE_LLM]:
+                model_name = model_cid.split('/')[1]
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
@@ -720,7 +728,7 @@ class Client:
 
             llm_request = {
                 "mode": inference_mode.value,
-                "modelCID": model_cid,
+                "modelCID": model_name,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "stop_sequence": stop_sequence or [],
@@ -859,6 +867,8 @@ class Client:
                     # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
+                    # print(f"Response: {response}")
+                    # print(f"Response Headers: {response.headers}")
 
                     payment_hash = ""
                     if X402_PROCESSING_HASH_HEADER in response.headers:

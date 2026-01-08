@@ -55,7 +55,14 @@ tee_chat:
 
 route_chat:
 	pip install -e .
-	python -m opengradient.cli chat --model gpt-4.1-2025-04-14 --mode TEE --messages '[{"role":"user", "content":"Name me three random numbers"}]' --max-tokens 50
+	python -m opengradient.cli chat --model OpenAI/gpt-4.1-2025-04-14 --mode TEE --messages '[{"role":"user", "content":"Name me three random numbers"}]' --max-tokens 50
+
+batch_route_chat:
+	pip install -e .
+	@for i in $$(seq 1 50); do \
+		python -m opengradient.cli chat --model OpenAI/gpt-4.1-2025-04-14 --messages '[{"role":"user", "content":"Who are you?"}]' --max-tokens 50 & \
+	done; \
+	wait
 
 batch_route_chat:
 	pip install -e .

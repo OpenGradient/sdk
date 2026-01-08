@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.5.1"
+version = "0.5.7"
 description = "Python SDK for OpenGradient decentralized model management & inference services"
 authors = [{name = "OpenGradient", email = "kyle@vannalabs.ai"}]
 readme = "README.md"
@@ -30,6 +30,7 @@ dependencies = [
     "openai>=1.58.1",
     "pydantic>=2.9.2",
     "og-test-x402==0.0.1",
+    "x402==0.2.1"
 ]
 
 [project.scripts]
