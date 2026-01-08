@@ -219,7 +219,7 @@ class LLM(str, Enum):
     # xAI Grok models via TEE
     GROK_3_MINI_BETA = "xAI/grok-3-mini-beta"
     GROK_3_BETA = "xAI/grok-3-beta"
-    GROK_2_1212 = "grok-2-1212"
+    GROK_2_1212 = "xAI/grok-2-1212"
     GROK_2_VISION_LATEST = "xAI/grok-2-vision-latest"
     GROK_4_1_FAST = "xAI/grok-4.1-fast"
     GROK_4_1_FAST_NON_REASONING = "xAI/grok-4-1-fast-non-reasoning"
