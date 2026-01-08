@@ -15,7 +15,7 @@ og_client = og.new_client(
 completion = og_client.llm_chat(
     model_cid=og.LLM.GPT_4O,
     messages=[{"role": "user", "content": "Write a haiku about Python programming"}],
-    inference_mode=og.LlmInferenceMode.VANILLA,
+    inference_mode=og.LlmInferenceMode.TEE,
 )
 
 print("OpenAI GPT-4 Response:")

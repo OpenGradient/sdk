@@ -3,6 +3,7 @@
 
 # This currently only works with model: gpt-4.1-2025-04-14 but we are quickly working on adding
 # more models.
+
 import opengradient as og
 import os
 
@@ -18,6 +19,10 @@ messages = [
     {"role": "user", "content": "What makes it good for beginners?"},
 ]
 
-result = client.llm_chat(model_cid=og.LLM.GPT_4_1_2025_04_14, inference_mode=og.LlmInferenceMode.VANILLA, messages=messages)
+result = client.llm_chat(
+    model_cid=og.LLM.GPT_4_1_2025_04_14,
+    inference_mode=og.LlmInferenceMode.TEE,
+    messages=messages,
+)
 print(f"Response: {result.chat_output['content']}")
 print(f"Payment hash: {result.payment_hash}")
