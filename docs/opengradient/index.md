@@ -114,7 +114,7 @@ InferenceResult (InferenceResult): A dataclass object containing the transaction
 ### Init 
 
 ```python
-def init(email: str, password: str, private_key: str, rpc_url='http://18.188.176.119:8545', contract_address='0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE')
+def init(email: str, password: str, private_key: str, rpc_url='https://eth-devnet.opengradient.ai', api_url='https://sdk-devnet.opengradient.ai', contract_address='0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE')
 ```
 
   
@@ -129,6 +129,7 @@ Initialize the OpenGradient SDK with authentication and network settings.
 * **`password`**: User's password for authentication
 * **`private_key`**: Ethereum private key for blockchain transactions
 * **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to mainnet
+* **`api_url`**: Optional API URL for the OpenGradient API, defaults to mainnet
 * **`contract_address`**: Optional inference contract address
   
 
@@ -404,9 +405,9 @@ Enum where members are also (and must be) ints
 
   
     
-* static `ASCENDING`
+* static `ASCENDING` - The type of the None singleton.
     
-* static `DESCENDING`
+* static `DESCENDING` - The type of the None singleton.
 
       
     
@@ -425,15 +426,15 @@ Enum where members are also (and must be) ints
 
   
     
-* static `CLOSE`
+* static `CLOSE` - The type of the None singleton.
     
-* static `HIGH`
+* static `HIGH` - The type of the None singleton.
     
-* static `LOW`
+* static `LOW` - The type of the None singleton.
     
-* static `OPEN`
+* static `OPEN` - The type of the None singleton.
     
-* static `VOLUME`
+* static `VOLUME` - The type of the None singleton.
 
       
     
@@ -466,17 +467,17 @@ Convert to format expected by contract ABI
 
   
     
-* static `base  : str`
+* static `base  : str` - The type of the None singleton.
     
-* static `candle_duration_in_mins  : int`
+* static `candle_duration_in_mins  : int` - The type of the None singleton.
     
-* static `candle_types  : List[opengradient.types.CandleType]`
+* static `candle_types  : List[opengradient.types.CandleType]` - The type of the None singleton.
     
-* static `order  : opengradient.types.CandleOrder`
+* static `order  : opengradient.types.CandleOrder` - The type of the None singleton.
     
-* static `quote  : str`
+* static `quote  : str` - The type of the None singleton.
     
-* static `total_candles  : int`
+* static `total_candles  : int` - The type of the None singleton.
 
       
     
@@ -495,11 +496,11 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
 
   
     
-* static `TEE`
+* static `TEE` - The type of the None singleton.
     
-* static `VANILLA`
+* static `VANILLA` - The type of the None singleton.
     
-* static `ZKML`
+* static `ZKML` - The type of the None singleton.
 
       
     
@@ -518,17 +519,17 @@ Enum for available LLM models
 
   
     
-* static `DOBBY_LEASHED_3_1_8B`
+* static `DOBBY_LEASHED_3_1_8B` - The type of the None singleton.
     
-* static `DOBBY_UNHINGED_3_1_8B`
+* static `DOBBY_UNHINGED_3_1_8B` - The type of the None singleton.
     
-* static `LLAMA_3_2_3B_INSTRUCT`
+* static `LLAMA_3_2_3B_INSTRUCT` - The type of the None singleton.
     
-* static `META_LLAMA_3_1_70B_INSTRUCT`
+* static `META_LLAMA_3_1_70B_INSTRUCT` - The type of the None singleton.
     
-* static `META_LLAMA_3_8B_INSTRUCT`
+* static `META_LLAMA_3_8B_INSTRUCT` - The type of the None singleton.
     
-* static `QWEN_2_5_72B_INSTRUCT`
+* static `QWEN_2_5_72B_INSTRUCT` - The type of the None singleton.
 
       
     
@@ -547,9 +548,9 @@ Enum for differetn inference modes available for LLM inferences (VANILLA, TEE)
 
   
     
-* static `TEE`
+* static `TEE` - The type of the None singleton.
     
-* static `VANILLA`
+* static `VANILLA` - The type of the None singleton.
 
       
     
@@ -582,9 +583,9 @@ def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.type
 
   
     
-* static `duration_hours  : int`
+* static `duration_hours  : int` - The type of the None singleton.
     
-* static `frequency  : int`
+* static `frequency  : int` - The type of the None singleton.
 
   
     
@@ -607,4 +608,4 @@ Enum for LLM models available for TEE execution
 
   
     
-* static `META_LLAMA_3_1_70B_INSTRUCT`
+* static `META_LLAMA_3_1_70B_INSTRUCT` - The type of the None singleton.
