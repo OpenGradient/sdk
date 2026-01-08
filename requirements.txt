@@ -11,3 +11,4 @@ openai>=1.58.1
 pydantic>=2.9.2
 pydantic_core>=2.23.4
 og-test-x402==0.0.1
+x402==0.2.1

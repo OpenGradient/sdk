@@ -867,6 +867,8 @@ class Client:
                     # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
+                    # print(f"Response: {response}")
+                    # print(f"Response Headers: {response.headers}")
 
                     payment_hash = ""
                     if X402_PROCESSING_HASH_HEADER in response.headers:

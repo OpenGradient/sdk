@@ -55,7 +55,7 @@ tee_chat:
 
 route_chat:
 	pip install -e .
-	python -m opengradient.cli chat --model Google/gemini-2.5-flash --mode TEE --messages '[{"role":"user", "content":"Name me three random numbers"}]' --max-tokens 50
+	python -m opengradient.cli chat --model OpenAI/gpt-4.1-2025-04-14 --mode TEE --messages '[{"role":"user", "content":"Name me three random numbers"}]' --max-tokens 50
 
 batch_route_chat:
 	pip install -e .
