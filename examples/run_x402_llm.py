@@ -13,9 +13,9 @@ client = og.new_client(
 )
 
 messages = [
-    {"role": "user", "content": "What is Python?"}, 
+    {"role": "user", "content": "What is Python?"},
     {"role": "assistant", "content": "Python is a high-level programming language."},
-    {"role": "user", "content": "What makes it good for beginners?"}
+    {"role": "user", "content": "What makes it good for beginners?"},
 ]
 
 result = client.llm_chat(model_cid="OpenAI/gpt-4.1-2025-04-14", inference_mode=og.LlmInferenceMode.VANILLA, messages=messages)

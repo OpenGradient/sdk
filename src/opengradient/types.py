@@ -10,6 +10,7 @@ class x402SettlementMode(StrEnum):
     SETTLE_METADATA = "settle-metadata"
     SETTLE_BATCH = "settle-batch"
 
+
 class CandleOrder(IntEnum):
     ASCENDING = 0
     DESCENDING = 1
@@ -205,23 +206,23 @@ class LLM(str, Enum):
     # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
     # DOBBY_UNHINGED_3_1_8B = "SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B"
     # DOBBY_LEASHED_3_1_8B = "SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B"
-    
+
     # OpenAI models via TEE
     GPT_4_1_2025_04_14 = "openai/gpt-4.1-2025-04-14"
     GPT_4O = "openai/gpt-4o"
     O4_MINI = "openai/o4-mini"
-    
+
     # Anthropic models via TEE
     CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
     CLAUDE_3_5_HAIKU = "anthropic/claude-3.5-haiku"
     CLAUDE_4_0_SONNET = "anthropic/claude-4.0-sonnet"
-    
+
     # Google models via TEE
     GEMINI_2_5_FLASH = "google/gemini-2.5-flash"
     GEMINI_2_5_PRO = "google/gemini-2.5-pro"
     GEMINI_2_0_FLASH = "google/gemini-2.0-flash"
     GEMINI_2_5_FLASH_LITE = "google/gemini-2.5-flash-lite"
-    
+
     # xAI Grok models via TEE
     GROK_3_MINI_BETA = "x-ai/grok-3-mini-beta"
     GROK_3_BETA = "x-ai/grok-3-beta"
@@ -230,28 +231,29 @@ class LLM(str, Enum):
     GROK_4_1_FAST = "x-ai/grok-4.1-fast"
     GROK_4_1_FAST_NON_REASONING = "x-ai/grok-4-1-fast-non-reasoning"
 
+
 class TEE_LLM(str, Enum):
     """Enum for LLM models available for TEE execution"""
-    
+
     # Existing (Currently turned off)
     # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
-    
+
     # OpenAI models via TEE
     GPT_4_1_2025_04_14 = "openai/gpt-4.1-2025-04-14"
     GPT_4O = "openai/gpt-4o"
     O4_MINI = "openai/o4-mini"
-    
+
     # Anthropic models via TEE
     CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
     CLAUDE_3_5_HAIKU = "anthropic/claude-3.5-haiku"
     CLAUDE_4_0_SONNET = "anthropic/claude-4.0-sonnet"
-    
+
     # Google models via TEE
     GEMINI_2_5_FLASH = "google/gemini-2.5-flash"
     GEMINI_2_5_PRO = "google/gemini-2.5-pro"
     GEMINI_2_0_FLASH = "google/gemini-2.0-flash"
     GEMINI_2_5_FLASH_LITE = "google/gemini-2.5-flash-lite"
-    
+
     # xAI Grok models via TEE
     GROK_3_MINI_BETA = "x-ai/grok-3-mini-beta"
     GROK_3_BETA = "x-ai/grok-3-beta"

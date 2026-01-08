@@ -11,13 +11,16 @@ og_key = os.environ.get("OG_PRIVATE_KEY")
 llm = og.llm.langchain_adapter(private_key=og_key, model_cid=og.LLM.QWEN_2_5_72B_INSTRUCT)
 og.init(private_key=og_key, email=None, password=None)
 
+
 # Create ad-hoc model inference tool
 class Token(str, Enum):
     ETH = "ethereum"
     BTC = "bitcoin"
 
+
 class InputSchema(BaseModel):
     token: Token = Field(default=Token.ETH, description="Token name specified by user.")
+
 
 def model_input_provider(**llm_input):
     token = llm_input.get("token")
@@ -30,8 +33,10 @@ def model_input_provider(**llm_input):
     else:
         raise ValueError("Unexpected option found")
 
+
 def output_formatter(inference_result: og.InferenceResult):
     return format(float(inference_result.model_output["std"].item()), ".3%")
+
 
 run_model_tool = og.alphasense.create_run_model_tool(
     tool_type=og.alphasense.ToolType.LANGCHAIN,
@@ -41,7 +46,7 @@ run_model_tool = og.alphasense.create_run_model_tool(
     model_output_formatter=output_formatter,
     tool_input_schema=InputSchema,
     tool_description="This tool takes a token and measures the return volatility (standard deviation of returns).",
-    inference_mode=og.InferenceMode.VANILLA
+    inference_mode=og.InferenceMode.VANILLA,
 )
 
 tools: List[BaseTool] = [run_model_tool]

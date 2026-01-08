@@ -35,11 +35,12 @@ from .types import (
     FileUploadResult,
 )
 from .defaults import (
-    DEFAULT_IMAGE_GEN_HOST, 
-    DEFAULT_IMAGE_GEN_PORT, 
+    DEFAULT_IMAGE_GEN_HOST,
+    DEFAULT_IMAGE_GEN_PORT,
     DEFAULT_SCHEDULER_ADDRESS,
-    DEFAULT_LLM_SERVER_URL, 
-    DEFAULT_OPENGRADIENT_LLM_SERVER_URL)
+    DEFAULT_LLM_SERVER_URL,
+    DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
+)
 from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
 
 _FIREBASE_CONFIG = {
@@ -65,6 +66,7 @@ PRECOMPILE_CONTRACT_ADDRESS = "0x00000000000000000000000000000000000000F4"
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
+
 class Client:
     _inference_hub_contract_address: str
     _blockchain: Web3
@@ -76,20 +78,21 @@ class Client:
     _precompile_abi: Dict
     _llm_server_url: str
     _external_api_keys: Dict[str, str]
+
     def __init__(
-        self, 
-        private_key: str, 
-        rpc_url: str, 
-        api_url: str, 
-        contract_address: str, 
-        email: Optional[str] = None, 
-        password: Optional[str] = None, 
+        self,
+        private_key: str,
+        rpc_url: str,
+        api_url: str,
+        contract_address: str,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
         llm_server_url: Optional[str] = DEFAULT_LLM_SERVER_URL,
         og_llm_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
         openai_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         google_api_key: Optional[str] = None,
-        ):
+    ):
         """
         Initialize the Client with private key, RPC URL, and contract address.
 
@@ -120,7 +123,7 @@ class Client:
 
         self._llm_server_url = llm_server_url
         self._og_llm_server_url = og_llm_server_url
-        
+
         self._external_api_keys = {}
         if openai_api_key or os.getenv("OPENAI_API_KEY"):
             self._external_api_keys["openai"] = openai_api_key or os.getenv("OPENAI_API_KEY")
@@ -132,7 +135,7 @@ class Client:
     def set_api_key(self, provider: str, api_key: str):
         """
         Set or update API key for an external provider.
-        
+
         Args:
             provider: Provider name (e.g., 'openai', 'anthropic', 'google')
             api_key: The API key for the provider
@@ -142,10 +145,10 @@ class Client:
     def _is_local_model(self, model_cid: str) -> bool:
         """
         Check if a model is hosted locally on OpenGradient.
-        
+
         Args:
             model_cid: Model identifier
-            
+
         Returns:
             True if model is local, False if it should use external provider
         """
@@ -158,7 +161,7 @@ class Client:
     def _get_provider_from_model(self, model: str) -> str:
         """Infer provider from model name."""
         model_lower = model.lower()
-        
+
         if "gpt" in model_lower or model.startswith("openai/"):
             return "openai"
         elif "claude" in model_lower or model.startswith("anthropic/"):
@@ -173,10 +176,10 @@ class Client:
     def _get_api_key_for_model(self, model: str) -> Optional[str]:
         """
         Get the appropriate API key for a model.
-        
+
         Args:
             model: Model identifier
-            
+
         Returns:
             API key string or None
         """
@@ -467,14 +470,14 @@ class Client:
                 return OpenGradientError("That model CID is not supported yet for TEE inference")
 
             return self._external_llm_completion(
-                model=model_cid.split('/')[1],
+                model=model_cid.split("/")[1],
                 prompt=prompt,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
                 temperature=temperature,
                 x402_settlement_mode=x402_settlement_mode,
             )
-        
+
         # Original local model logic
         def execute_transaction():
             if inference_mode != LlmInferenceMode.VANILLA:
@@ -482,10 +485,10 @@ class Client:
 
             if model_cid not in [llm.value for llm in LLM]:
                 raise OpenGradientError("That model CID is not yet supported for inference")
-            
+
             model_name = model_cid
             if model_cid in [llm.value for llm in TEE_LLM]:
-                model_name = model_cid.split('/')[1]
+                model_name = model_cid.split("/")[1]
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
@@ -523,55 +526,49 @@ class Client:
     ) -> TextGenerationOutput:
         """
         Route completion request to external LLM server with x402 payments.
-        
+
         Args:
             model: Model identifier
             prompt: Input prompt
             max_tokens: Maximum tokens to generate
             stop_sequence: Stop sequences
             temperature: Sampling temperature
-            
+
         Returns:
             TextGenerationOutput with completion
-            
+
         Raises:
             OpenGradientError: If request fails
         """
         api_key = self._get_api_key_for_model(model)
-    
+
         if api_key:
             logging.debug("External LLM completions using API key")
             url = f"{self._llm_server_url}/v1/completions"
-            
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            }
-            
+
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+
             payload = {
                 "model": model,
                 "prompt": prompt,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
             }
-            
+
             if stop_sequence:
                 payload["stop"] = stop_sequence
-            
+
             try:
                 response = requests.post(url, json=payload, headers=headers, timeout=60)
                 response.raise_for_status()
-                
+
                 result = response.json()
-                
-                return TextGenerationOutput(
-                    transaction_hash="external",
-                    completion_output=result.get("completion")
-                )
-                
+
+                return TextGenerationOutput(transaction_hash="external", completion_output=result.get("completion"))
+
             except requests.RequestException as e:
                 error_msg = f"External LLM completion failed: {str(e)}"
-                if hasattr(e, 'response') and e.response is not None:
+                if hasattr(e, "response") and e.response is not None:
                     try:
                         error_detail = e.response.json()
                         error_msg += f" - {error_detail}"
@@ -591,20 +588,20 @@ class Client:
                     "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
                     "X-SETTLEMENT-TYPE": x402_settlement_mode,
                 }
-                
+
                 payload = {
                     "model": model,
                     "prompt": prompt,
                     "max_tokens": max_tokens,
                     "temperature": temperature,
                 }
-                
+
                 if stop_sequence:
                     payload["stop"] = stop_sequence
-                
+
                 try:
                     response = await client.post("/v1/completions", json=payload, headers=headers, timeout=60)
-                    
+
                     # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
@@ -612,24 +609,22 @@ class Client:
 
                     if X402_PROCESSING_HASH_HEADER in response.headers:
                         payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
-                    
+
                     return TextGenerationOutput(
-                        transaction_hash="external",
-                        completion_output=result.get("completion"),
-                        payment_hash=payment_hash
+                        transaction_hash="external", completion_output=result.get("completion"), payment_hash=payment_hash
                     )
-                    
+
                 except Exception as e:
                     error_msg = f"External LLM completion request failed: {str(e)}"
                     logging.error(error_msg)
                     raise OpenGradientError(error_msg)
-        
+
         try:
             # Run the async function in a sync context
             return asyncio.run(make_request())
         except Exception as e:
             error_msg = f"External LLM completion failed: {str(e)}"
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 try:
                     error_detail = e.response.json()
                     error_msg += f" - {error_detail}"
@@ -680,7 +675,7 @@ class Client:
                 return OpenGradientError("That model CID is not supported yet for TEE inference")
 
             return self._external_llm_chat(
-                model=model_cid.split('/')[1],
+                model=model_cid.split("/")[1],
                 messages=messages,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
@@ -689,18 +684,18 @@ class Client:
                 tool_choice=tool_choice,
                 x402_settlement_mode=x402_settlement_mode,
             )
-        
+
         # Original local model logic
         def execute_transaction():
             if inference_mode != LlmInferenceMode.VANILLA:
                 raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-            
+
             if model_cid not in [llm.value for llm in LLM]:
                 raise OpenGradientError("That model CID is not yet supported for inference")
-            
+
             model_name = model_cid
             if model_cid in [llm.value for llm in TEE_LLM]:
-                model_name = model_cid.split('/')[1]
+                model_name = model_cid.split("/")[1]
 
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
 
@@ -771,7 +766,7 @@ class Client:
     ) -> TextGenerationOutput:
         """
         Route chat request to external LLM server with x402 payments.
-        
+
         Args:
             model: Model identifier
             messages: List of chat messages
@@ -780,53 +775,48 @@ class Client:
             temperature: Sampling temperature
             tools: Function calling tools
             tool_choice: Tool selection strategy
-            
+
         Returns:
             TextGenerationOutput with chat completion
-            
+
         Raises:
             OpenGradientError: If request fails
         """
         api_key = self._get_api_key_for_model(model)
-    
+
         if api_key:
             logging.debug("External LLM completion using API key")
             url = f"{self._llm_server_url}/v1/chat/completions"
-            
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            }
-            
+
+            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+
             payload = {
                 "model": model,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
             }
-            
+
             if stop_sequence:
                 payload["stop"] = stop_sequence
-            
+
             if tools:
                 payload["tools"] = tools
                 payload["tool_choice"] = tool_choice or "auto"
-            
+
             try:
                 response = requests.post(url, json=payload, headers=headers, timeout=60)
                 response.raise_for_status()
-                
+
                 result = response.json()
-                
+
                 return TextGenerationOutput(
-                    transaction_hash="external",
-                    finish_reason=result.get("finish_reason"),
-                    chat_output=result.get("message")
+                    transaction_hash="external", finish_reason=result.get("finish_reason"), chat_output=result.get("message")
                 )
-                
+
             except requests.RequestException as e:
                 error_msg = f"External LLM chat failed: {str(e)}"
-                if hasattr(e, 'response') and e.response is not None:
+                if hasattr(e, "response") and e.response is not None:
                     try:
                         error_detail = e.response.json()
                         error_msg += f" - {error_detail}"
@@ -844,26 +834,26 @@ class Client:
                 headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                    "X-SETTLEMENT-TYPE": x402_settlement_mode
+                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
                 }
-                
+
                 payload = {
                     "model": model,
                     "messages": messages,
                     "max_tokens": max_tokens,
                     "temperature": temperature,
                 }
-                
+
                 if stop_sequence:
                     payload["stop"] = stop_sequence
-                
+
                 if tools:
                     payload["tools"] = tools
                     payload["tool_choice"] = tool_choice or "auto"
-                
+
                 try:
                     response = await client.post("/v1/chat/completions", json=payload, headers=headers, timeout=60)
-                    
+
                     # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
@@ -873,29 +863,29 @@ class Client:
                     payment_hash = ""
                     if X402_PROCESSING_HASH_HEADER in response.headers:
                         payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
-                    
+
                     choices = result.get("choices")
                     if not choices:
                         raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
-                    
+
                     return TextGenerationOutput(
                         transaction_hash="external",
                         finish_reason=choices[0].get("finish_reason"),
                         chat_output=choices[0].get("message"),
-                        payment_hash=payment_hash
+                        payment_hash=payment_hash,
                     )
-                    
+
                 except Exception as e:
                     error_msg = f"External LLM chat request failed: {str(e)}"
                     logging.error(error_msg)
                     raise OpenGradientError(error_msg)
-        
+
         try:
             # Run the async function in a sync context
             return asyncio.run(make_request())
         except Exception as e:
             error_msg = f"External LLM chat failed: {str(e)}"
-            if hasattr(e, 'response') and e.response is not None:
+            if hasattr(e, "response") and e.response is not None:
                 try:
                     error_detail = e.response.json()
                     error_msg += f" - {error_detail}"
@@ -1104,12 +1094,12 @@ class Client:
         except ContractLogicError as e:
             try:
                 run_function.call({"from": self._wallet_account.address})
-                
+
             except ContractLogicError as call_err:
                 raise ContractLogicError(f"simulation failed with revert reason: {call_err.args[0]}")
-            
+
             raise ContractLogicError(f"simulation failed with no revert reason. Reason: {e}")
-        
+
         gas_limit = int(estimated_gas * 3)
 
         transaction = run_function.build_transaction(
@@ -1128,10 +1118,10 @@ class Client:
         if tx_receipt["status"] == 0:
             try:
                 run_function.call({"from": self._wallet_account.address})
-                
+
             except ContractLogicError as call_err:
                 raise ContractLogicError(f"Transaction failed with revert reason: {call_err.args[0]}")
-            
+
             raise ContractLogicError(f"Transaction failed with no revert reason. Receipt: {tx_receipt}")
 
         return tx_hash, tx_receipt
@@ -1346,45 +1336,42 @@ class Client:
         results = contract.functions.getLastInferenceResults(num_results).call()
         return [convert_array_to_model_output(result) for result in results]
 
-
     def _get_inference_result_from_node(self, inference_id: str, inference_mode: InferenceMode) -> Dict:
         """
         Get the inference result from node.
-        
+
         Args:
             inference_id (str): Inference id for a inference request
-            
+
         Returns:
             Dict: The inference result as returned by the node
-            
+
         Raises:
             OpenGradientError: If the request fails or returns an error
         """
         try:
-            encoded_id = urllib.parse.quote(inference_id, safe='')
+            encoded_id = urllib.parse.quote(inference_id, safe="")
             url = f"{self._api_url}/artela-network/artela-rollkit/inference/tx/{encoded_id}"
-        
+
             response = requests.get(url)
             if response.status_code == 200:
                 resp = response.json()
                 inference_result = resp.get("inference_results", {})
                 if inference_result:
                     decoded_bytes = base64.b64decode(inference_result[0])
-                    decoded_string = decoded_bytes.decode('utf-8')
-                    output = json.loads(decoded_string).get("InferenceResult",{})
+                    decoded_string = decoded_bytes.decode("utf-8")
+                    output = json.loads(decoded_string).get("InferenceResult", {})
                     if output is None:
                         raise OpenGradientError("Missing InferenceResult in inference output")
-                    
+
                     match inference_mode:
                         case InferenceMode.VANILLA:
                             if "VanillaResult" not in output:
                                 raise OpenGradientError("Missing VanillaResult in inference output")
                             if "model_output" not in output["VanillaResult"]:
                                 raise OpenGradientError("Missing model_output in VanillaResult")
-                            return {
-                                "output": output["VanillaResult"]["model_output"]
-                            }
-                    
+                            return {"output": output["VanillaResult"]["model_output"]}
+
                         case InferenceMode.TEE:
                             if "TeeNodeResult" not in output:
                                 raise OpenGradientError("Missing TeeNodeResult in inference output")
@@ -1393,40 +1380,37 @@ class Client:
                             if "VanillaResponse" in output["TeeNodeResult"]["Response"]:
                                 if "model_output" not in output["TeeNodeResult"]["Response"]["VanillaResponse"]:
                                     raise OpenGradientError("Missing model_output in VanillaResponse")
-                                return {
-                                    "output": output["TeeNodeResult"]["Response"]["VanillaResponse"]["model_output"]
-                                }
-                    
+                                return {"output": output["TeeNodeResult"]["Response"]["VanillaResponse"]["model_output"]}
+
                             else:
                                 raise OpenGradientError("Missing VanillaResponse in TeeNodeResult Response")
-                                
+
                         case InferenceMode.ZKML:
                             if "ZkmlResult" not in output:
                                 raise OpenGradientError("Missing ZkmlResult in inference output")
                             if "model_output" not in output["ZkmlResult"]:
                                 raise OpenGradientError("Missing model_output in ZkmlResult")
-                            return {
-                                "output": output["ZkmlResult"]["model_output"]
-                            }
-                    
+                            return {"output": output["ZkmlResult"]["model_output"]}
+
                         case _:
                             raise OpenGradientError(f"Invalid inference mode: {inference_mode}")
                 else:
                     return None
-                    
+
             else:
                 error_message = f"Failed to get inference result: HTTP {response.status_code}"
                 if response.text:
                     error_message += f" - {response.text}"
                 logging.error(error_message)
                 raise OpenGradientError(error_message)
-                
+
         except requests.RequestException as e:
             logging.error(f"Request exception when getting inference result: {str(e)}")
             raise OpenGradientError(f"Failed to get inference result: {str(e)}")
         except Exception as e:
             logging.error(f"Unexpected error when getting inference result: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Failed to get inference result: {str(e)}")
+
 
 def run_with_retry(txn_function: Callable, max_retries=DEFAULT_MAX_RETRY, retry_delay=DEFAULT_RETRY_DELAY_SEC):
     """
