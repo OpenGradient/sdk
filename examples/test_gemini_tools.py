@@ -3,7 +3,6 @@ Test Gemini models with tool calls.
 
 Usage:
     export OG_PRIVATE_KEY="your_private_key"
-    export GOOGLE_API_KEY="your_google_api_key"
     python examples/test_gemini_tools.py
 """
 
@@ -15,7 +14,6 @@ client = og.new_client(
     email=None,
     password=None,
     private_key=os.environ.get("OG_PRIVATE_KEY"),
-    google_api_key=os.environ.get("GOOGLE_API_KEY"),
 )
 
 # Define a simple tool
