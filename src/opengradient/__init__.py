@@ -180,6 +180,7 @@ def llm_completion(
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
     max_retries: Optional[int] = None,
+    x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
 ) -> TextGenerationOutput:
     """Generate text completion using an LLM.
 
@@ -191,6 +192,7 @@ def llm_completion(
         stop_sequence: Optional list of sequences where generation should stop
         temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
         max_retries: Maximum number of retries for failed transactions
+        x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
     Returns:
         TextGenerationOutput: Transaction hash and generated text
@@ -208,6 +210,7 @@ def llm_completion(
         stop_sequence=stop_sequence,
         temperature=temperature,
         max_retries=max_retries,
+        x402_settlement_mode=x402_settlement_mode
     )
 
 
@@ -221,6 +224,7 @@ def llm_chat(
     tools: Optional[List[Dict]] = None,
     tool_choice: Optional[str] = None,
     max_retries: Optional[int] = None,
+    x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
 ) -> TextGenerationOutput:
     """Have a chat conversation with an LLM.
 
@@ -234,6 +238,7 @@ def llm_chat(
         tools: Optional list of tools the model can use
         tool_choice: Optional specific tool to use
         max_retries: Maximum number of retries for failed transactions
+        x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
     Returns:
         TextGenerationOutput
@@ -253,6 +258,7 @@ def llm_chat(
         tools=tools,
         tool_choice=tool_choice,
         max_retries=max_retries,
+        x402_settlement_mode=x402_settlement_mode
     )
 
 
