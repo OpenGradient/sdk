@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from enum import Enum, IntEnum, StrEnum
-from typing import Dict, List, Optional, Tuple, Union, DefaultDict
+from typing import Dict, List, Optional, Tuple, Union, DefaultDict, Iterator, AsyncIterator
 import numpy as np
 
 
@@ -163,6 +163,196 @@ class InferenceResult:
 
     transaction_hash: str
     model_output: Dict[str, np.ndarray]
+
+
+@dataclass
+class StreamDelta:
+    """
+    Represents a delta (incremental change) in a streaming response.
+    
+    Attributes:
+        content: Incremental text content (if any)
+        role: Message role (appears in first chunk)
+        tool_calls: Tool call information (if function calling is used)
+    """
+    content: Optional[str] = None
+    role: Optional[str] = None
+    tool_calls: Optional[List[Dict]] = None
+
+
+@dataclass
+class StreamChoice:
+    """
+    Represents a choice in a streaming response.
+    
+    Attributes:
+        delta: The incremental changes in this chunk
+        index: Choice index (usually 0)
+        finish_reason: Reason for completion (appears in final chunk)
+    """
+    delta: StreamDelta
+    index: int = 0
+    finish_reason: Optional[str] = None
+
+
+@dataclass
+class StreamUsage:
+    """
+    Token usage information for a streaming response.
+    
+    Attributes:
+        prompt_tokens: Number of tokens in the prompt
+        completion_tokens: Number of tokens in the completion
+        total_tokens: Total tokens used
+    """
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
+@dataclass
+class StreamChunk:
+    """
+    Represents a single chunk in a streaming LLM response.
+    
+    This follows the OpenAI streaming format but is provider-agnostic.
+    Each chunk contains incremental data, with the final chunk including
+    usage information.
+    
+    Attributes:
+        choices: List of streaming choices (usually contains one choice)
+        model: Model identifier
+        usage: Token usage information (only in final chunk)
+        is_final: Whether this is the final chunk (before [DONE])
+    """
+    choices: List[StreamChoice]
+    model: str
+    usage: Optional[StreamUsage] = None
+    is_final: bool = False
+    
+    @classmethod
+    def from_sse_data(cls, data: Dict) -> "StreamChunk":
+        """
+        Parse a StreamChunk from SSE data dictionary.
+        
+        Args:
+            data: Dictionary parsed from SSE data line
+            
+        Returns:
+            StreamChunk instance
+        """
+        choices = []
+        for choice_data in data.get("choices", []):
+            delta_data = choice_data.get("delta", {})
+            delta = StreamDelta(
+                content=delta_data.get("content"),
+                role=delta_data.get("role"),
+                tool_calls=delta_data.get("tool_calls")
+            )
+            choice = StreamChoice(
+                delta=delta,
+                index=choice_data.get("index", 0),
+                finish_reason=choice_data.get("finish_reason")
+            )
+            choices.append(choice)
+        
+        usage = None
+        if "usage" in data:
+            usage_data = data["usage"]
+            usage = StreamUsage(
+                prompt_tokens=usage_data.get("prompt_tokens", 0),
+                completion_tokens=usage_data.get("completion_tokens", 0),
+                total_tokens=usage_data.get("total_tokens", 0)
+            )
+        
+        is_final = any(c.finish_reason is not None for c in choices) or usage is not None
+        
+        return cls(
+            choices=choices,
+            model=data.get("model", "unknown"),
+            usage=usage,
+            is_final=is_final
+        )
+
+
+@dataclass
+class TextGenerationStream:
+    """
+    Iterator wrapper for streaming text generation responses.
+    
+    Provides a clean interface for iterating over stream chunks with
+    automatic parsing of SSE format.
+    
+    Usage:
+        stream = client.llm_chat(..., stream=True)
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                print(chunk.choices[0].delta.content, end="")
+    """
+    _iterator: Union[Iterator[str], AsyncIterator[str]]
+    _is_async: bool = False
+    
+    def __iter__(self):
+        """Iterate over stream chunks."""
+        return self
+    
+    def __next__(self) -> StreamChunk:
+        """Get next stream chunk."""
+        import json
+        
+        while True:
+            try:
+                line = next(self._iterator)
+            except StopIteration:
+                raise
+            
+            if not line or not line.strip():
+                continue
+            
+            if not line.startswith("data: "):
+                continue
+            
+            data_str = line[6:]  # Remove "data: " prefix
+            
+            if data_str.strip() == "[DONE]":
+                raise StopIteration
+            
+            try:
+                data = json.loads(data_str)
+                return StreamChunk.from_sse_data(data)
+            except json.JSONDecodeError:
+                # Skip malformed chunks
+                continue
+    
+    async def __anext__(self) -> StreamChunk:
+        """Get next stream chunk (async version)."""
+        import json
+        
+        if not self._is_async:
+            raise TypeError("Use __next__ for sync iterators")
+        
+        while True:
+            try:
+                line = await self._iterator.__anext__()
+            except StopAsyncIteration:
+                raise
+            
+            if not line or not line.strip():
+                continue
+            
+            if not line.startswith("data: "):
+                continue
+            
+            data_str = line[6:]
+            
+            if data_str.strip() == "[DONE]":
+                raise StopAsyncIteration
+            
+            try:
+                data = json.loads(data_str)
+                return StreamChunk.from_sse_data(data)
+            except json.JSONDecodeError:
+                continue
 
 
 @dataclass

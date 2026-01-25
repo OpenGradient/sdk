@@ -54,6 +54,45 @@ tee_chat:
 	pip install -e .
 	python -m opengradient.cli chat --model $(GPT_4_1_2025_04_14) --mode TEE --messages '[{"role":"user","content":"hello"}]' --max-tokens 150
 
+# Streaming tests
+stream_chat:
+	pip install -e .
+	python -m opengradient.cli chat --model $(GPT_4O) --mode TEE \
+		--messages '[{"role":"user","content":"Describe to me the plot of The Matrix"}]' \
+		--max-tokens 250 \
+		--stream
+
+stream_chat_claude:
+	pip install -e .
+	python -m opengradient.cli chat --model $(CLAUDE_3_7_SONNET) --mode TEE \
+		--messages '[{"role":"user","content":"Write a haiku about streaming"}]' \
+		--max-tokens 100 \
+		--stream
+
+stream_chat_gemini:
+	pip install -e .
+	python -m opengradient.cli chat --model $(GEMINI_2_5_FLASH) --mode TEE \
+		--messages '[{"role":"user","content":"Tell me a short joke"}]' \
+		--max-tokens 50 \
+		--stream
+
+stream_tool:
+	pip install -e .
+	python -m opengradient.cli chat --model $(GPT_4O) --mode TEE \
+		--messages '[{"role":"user","content":"What is the weather in Tokyo?"}]' \
+		--tools '[{"type":"function","function":{"name":"get_weather","description":"Get weather for a location","parameters":{"type":"object","properties":{"location":{"type":"string"},"unit":{"type":"string","enum":["celsius","fahrenheit"]}},"required":["location"]}}}]' \
+		--max-tokens 100 \
+		--stream
+
+# Test all streaming models
+stream_all:
+	@echo "🌊 Testing streaming with GPT-4o..."
+	$(MAKE) stream_chat
+	@echo "\n🌊 Testing streaming with Claude..."
+	$(MAKE) stream_chat_claude
+	@echo "\n🌊 Testing streaming with Gemini..."
+	$(MAKE) stream_chat_gemini
+
 route_chat:
 	pip install -e .
 	python -m opengradient.cli chat --model $(GPT_4_1_2025_04_14) --mode TEE --messages '[{"role":"user", "content":"Name me three random numbers"}]' --max-tokens 50
@@ -62,6 +101,18 @@ batch_route_chat:
 	pip install -e .
 	@for i in $$(seq 1 50); do \
 		python -m opengradient.cli chat --model $(GPT_4_1_2025_04_14) --messages '[{"role":"user", "content":"Who are you?"}]' --max-tokens 50 & \
+	done; \
+	wait
+
+# Batch streaming test (concurrent streams)
+batch_stream:
+	pip install -e .
+	@echo "🌊 Testing concurrent streaming (10 requests)..."
+	@for i in $$(seq 1 10); do \
+		python -m opengradient.cli chat --model $(GPT_4O) --mode TEE \
+			--messages '[{"role":"user","content":"Say hi and tell me a number: '$$i'"}]' \
+			--max-tokens 30 \
+			--stream & \
 	done; \
 	wait
 
@@ -88,7 +139,7 @@ check:
 	mypy src
 	mypy examples
 
-test: integrationtest utils_test infer completion chat tool tee_completion tee_chat
+test: integrationtest utils_test infer completion chat tool tee_completion tee_chat stream_chat
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
@@ -97,4 +148,4 @@ integrationtest:
 utils_test:
 	pytest tests/utils_test.py -v
 
-.PHONY: docs ruff integrationtest
+.PHONY: docs ruff integrationtest stream_chat stream_chat_claude stream_chat_gemini stream_tool stream_all batch_stream
