@@ -702,11 +702,12 @@ class Client:
                     messages=messages,
                     max_tokens=max_tokens,
                     stop_sequence=stop_sequence,
-                        temperature=temperature,
-                        tools=tools,
-                        tool_choice=tool_choice,
-                        x402_settlement_mode=x402_settlement_mode,
-                    )
+                    temperature=temperature,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                    x402_settlement_mode=x402_settlement_mode,
+                    use_tee=True,
+                )
             else:
                 # Non-streaming
                 return self._external_llm_chat(
@@ -719,6 +720,7 @@ class Client:
                     tool_choice=tool_choice,
                     x402_settlement_mode=x402_settlement_mode,
                     stream=False,
+                    use_tee=True,
                 )
 
         # Original local model logic
@@ -800,6 +802,7 @@ class Client:
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
         stream: bool = False,
+        use_tee: bool = False,
     ) -> Union[TextGenerationOutput, TextGenerationStream]:
         """
         Route chat request to external LLM server with x402 payments.
@@ -813,6 +816,7 @@ class Client:
             tools: Function calling tools
             tool_choice: Tool selection strategy
             stream: Whether to stream the response
+            use_tee: Whether to use TEE
 
         Returns:
             Union[TextGenerationOutput, TextGenerationStream]: Chat completion or TextGenerationStream
@@ -820,7 +824,7 @@ class Client:
         Raises:
             OpenGradientError: If request fails
         """
-        api_key = self._get_api_key_for_model(model)
+        api_key = None if use_tee else self._get_api_key_for_model(model)
 
         if api_key:
             logging.debug("External LLM chat using API key")
@@ -956,6 +960,7 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
+        use_tee: bool = False,
     ):
         """
         Sync streaming using threading bridge - TRUE real-time streaming.
@@ -965,16 +970,17 @@ class Client:
         """
         import threading
         from queue import Queue
-        
+
         queue = Queue()
         exception_holder = []
-        
+
         def _run_async():
             """Run async streaming in background thread"""
+            loop = None
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                
+
                 async def _stream():
                     try:
                         async for chunk in self._external_llm_chat_stream_async(
@@ -986,22 +992,32 @@ class Client:
                             tools=tools,
                             tool_choice=tool_choice,
                             x402_settlement_mode=x402_settlement_mode,
+                            use_tee=use_tee,
                         ):
                             queue.put(chunk)  # Put chunk immediately
                     except Exception as e:
                         exception_holder.append(e)
                     finally:
                         queue.put(None)  # Signal completion
-                
+
                 loop.run_until_complete(_stream())
             except Exception as e:
                 exception_holder.append(e)
                 queue.put(None)
-        
+            finally:
+                if loop:
+                    try:
+                        pending = asyncio.all_tasks(loop)
+                        for task in pending:
+                            task.cancel()
+                        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                    finally:
+                        loop.close()
+
         # Start background thread
         thread = threading.Thread(target=_run_async, daemon=True)
         thread.start()
-        
+
         # Yield chunks DIRECTLY as they arrive - NO buffering
         try:
             while True:
@@ -1009,14 +1025,15 @@ class Client:
                 if chunk is None:
                     break
                 yield chunk  # Yield immediately!
-            
-            thread.join()
-            
+
+            thread.join(timeout=5)
+
             if exception_holder:
                 raise exception_holder[0]
         except Exception as e:
             thread.join(timeout=1)
             raise
+
 
     async def _external_llm_chat_stream_async(
         self,
@@ -1028,62 +1045,72 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
+        use_tee: bool = False,
     ):
         """
         Internal async streaming implementation.
         
         Yields StreamChunk objects as they arrive from the server.
         """
-        api_key = self._get_api_key_for_model(model)
-        
+        api_key = None if use_tee else self._get_api_key_for_model(model)
+
         if api_key:
-            # API key path - use httpx for async streaming
-            import httpx
-            
-            url = f"{self._og_llm_streaming_server_url}/v1/chat/completions/stream"
+            # API key path - streaming to local llm-server
+            url = f"{self._og_llm_streaming_server_url}/v1/chat/completions"
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {api_key}"
             }
-            
+
             payload = {
                 "model": model,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
+                "stream": True,
             }
-            
+
             if stop_sequence:
                 payload["stop"] = stop_sequence
             if tools:
                 payload["tools"] = tools
                 payload["tool_choice"] = tool_choice or "auto"
-            
+
             async with httpx.AsyncClient(verify=False, timeout=None) as client:
                 async with client.stream("POST", url, json=payload, headers=headers) as response:
-                    print(f"[{time.time():.3f}] Received {len(chunk)} bytes")   
                     buffer = b""
                     async for chunk in response.aiter_raw():
-                        buffer += chunk
+                        if not chunk:
+                            continue
                         
+                        buffer += chunk
+
+                        # Process all complete lines in buffer
                         while b"\n" in buffer:
                             line_bytes, buffer = buffer.split(b"\n", 1)
-                            line = line_bytes.decode('utf-8').strip()
                             
-                            if not line or not line.startswith("data: "):
+                            if not line_bytes.strip():
                                 continue
                             
+                            try:
+                                line = line_bytes.decode('utf-8').strip()
+                            except UnicodeDecodeError:
+                                continue
+
+                            if not line.startswith("data: "):
+                                continue
+
                             data_str = line[6:]  # Strip "data: " prefix
                             if data_str.strip() == "[DONE]":
                                 return
-                            
+
                             try:
                                 data = json.loads(data_str)
                                 yield StreamChunk.from_sse_data(data)
                             except json.JSONDecodeError:
                                 continue
         else:
-            # x402 path
+            # x402 payment path
             async with x402HttpxClient(
                 account=self._wallet_account,
                 base_url=self._og_llm_streaming_server_url,
@@ -1095,42 +1122,53 @@ class Client:
                     "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
                     "X-SETTLEMENT-TYPE": x402_settlement_mode,
                 }
-                
+
                 payload = {
                     "model": model,
                     "messages": messages,
                     "max_tokens": max_tokens,
                     "temperature": temperature,
+                    "stream": True,
                 }
-                
+
                 if stop_sequence:
                     payload["stop"] = stop_sequence
                 if tools:
                     payload["tools"] = tools
                     payload["tool_choice"] = tool_choice or "auto"
-                
+
                 async with client.stream(
                     "POST",
-                    "/v1/chat/completions/stream",
+                    "/v1/chat/completions",
                     json=payload,
                     headers=headers,
                 ) as response:
                     buffer = b""
                     async for chunk in response.aiter_raw():
-                        buffer += chunk
+                        if not chunk:
+                            continue
                         
+                        buffer += chunk
+
                         # Process complete lines from buffer
                         while b"\n" in buffer:
                             line_bytes, buffer = buffer.split(b"\n", 1)
-                            line = line_bytes.decode('utf-8').strip()
                             
-                            if not line or not line.startswith("data: "):
+                            if not line_bytes.strip():
                                 continue
                             
+                            try:
+                                line = line_bytes.decode('utf-8').strip()
+                            except UnicodeDecodeError:
+                                continue
+
+                            if not line.startswith("data: "):
+                                continue
+
                             data_str = line[6:]
                             if data_str.strip() == "[DONE]":
                                 return
-                            
+
                             try:
                                 data = json.loads(data_str)
                                 yield StreamChunk.from_sse_data(data)
