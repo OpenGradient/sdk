@@ -18,7 +18,9 @@ import urllib.parse
 import asyncio
 from x402.clients.httpx import x402HttpxClient
 from x402.clients.base import decode_x_payment_response, x402Client
+from x402.clients.httpx import x402HttpxClient
 
+from .x402_auth import X402Auth
 from .exceptions import OpenGradientError
 from .proto import infer_pb2, infer_pb2_grpc
 from .types import (
@@ -43,7 +45,8 @@ from .defaults import (
     DEFAULT_SCHEDULER_ADDRESS,
     DEFAULT_LLM_SERVER_URL,
     DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
-    DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL
+    DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
+    DEFAULT_NETWORK_FILTER,
 )
 from .utils import convert_array_to_model_output, convert_to_model_input, convert_to_model_output
 
@@ -70,6 +73,18 @@ PRECOMPILE_CONTRACT_ADDRESS = "0x00000000000000000000000000000000000000F4"
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
+TIMEOUT = httpx.Timeout(
+    timeout=90.0,
+    connect=15.0,
+    read=15.0,
+    write=30.0,
+    pool=10.0,
+)
+LIMITS = httpx.Limits(
+    max_keepalive_connections=100,
+    max_connections=500,
+    keepalive_expiry=60 * 20,  # 20 minutes
+)
 
 class Client:
     _inference_hub_contract_address: str
@@ -427,11 +442,11 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries)
 
-    def _og_payment_selector(self, accepts, network_filter=None, scheme_filter=None, max_value=None):
-        """Custom payment selector for OpenGradient network (og-devnet)."""
+    def _og_payment_selector(self, accepts, network_filter=DEFAULT_NETWORK_FILTER, scheme_filter=None, max_value=None):
+        """Custom payment selector for OpenGradient network."""
         return x402Client.default_payment_requirements_selector(
             accepts,
-            network_filter="og-devnet",
+            network_filter=network_filter,
             scheme_filter=scheme_filter,
             max_value=max_value,
         )
@@ -1111,11 +1126,14 @@ class Client:
                                 continue
         else:
             # x402 payment path
-            async with x402HttpxClient(
-                account=self._wallet_account,
+            async with httpx.AsyncClient(
                 base_url=self._og_llm_streaming_server_url,
-                payment_requirements_selector=self._og_payment_selector,
-                verify=False,
+                headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
+                timeout=TIMEOUT,
+                limits=LIMITS,
+                http2=False,
+                follow_redirects=False,
+                auth=X402Auth(account=self._wallet_account),  # type: ignore
             ) as client:
                 headers = {
                     "Content-Type": "application/json",

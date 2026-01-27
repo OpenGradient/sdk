@@ -29,7 +29,7 @@ dependencies = [
     "langchain>=0.3.7",
     "openai>=1.58.1",
     "pydantic>=2.9.2",
-    "og-test-x402==0.0.1",
+    "og-test-x402==0.0.9",
 ]
 
 [project.scripts]

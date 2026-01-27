@@ -1,0 +1,24 @@
+import opengradient as og
+import os
+
+client = og.new_client(
+    email=None,
+    password=None,
+    private_key=os.environ.get("OG_PRIVATE_KEY"),
+)
+
+messages = [
+    {"role": "user", "content": "Describe to me the 7 network layers?"},
+]
+
+stream = client.llm_chat(
+    model_cid=og.LLM.GPT_4_1_2025_04_14,
+    inference_mode=og.LlmInferenceMode.TEE,
+    messages=messages,
+    x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
+    stream=True,
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)
