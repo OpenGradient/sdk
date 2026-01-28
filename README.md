@@ -7,6 +7,7 @@ A Python SDK for decentralized model management and inference services on the Op
 - Model management and versioning
 - Decentralized model inference
 - Support for LLM inference with various models
+- **Trusted Execution Environment (TEE) inference** with cryptographic attestation
 - End-to-end verified AI execution
 - Command-line interface (CLI) for direct access
 
@@ -18,7 +19,6 @@ Browse and discover AI models on our [Model Hub](https://hub.opengradient.ai/). 
 - Direct integration with the SDK
 
 ## Installation
-
 ```bash
 pip install opengradient
 ```
@@ -34,7 +34,6 @@ You'll need two accounts to use the SDK:
 - **OpenGradient account**: Use an existing Ethereum-compatible wallet or create a new one via SDK
 
 The easiest way to set up your accounts is through our configuration wizard:
-
 ```bash
 opengradient config init
 ```
@@ -45,7 +44,6 @@ This wizard will:
 - Direct you to our Test Faucet for devnet tokens
 
 ### 2. Initialize the SDK
-
 ```python
 import opengradient as og
 og.init(private_key="<private_key>", email="<email>", password="<password>")
@@ -54,8 +52,6 @@ og.init(private_key="<private_key>", email="<email>", password="<password>")
 ### 3. Basic Usage
 
 Browse available models on our [Model Hub](https://hub.opengradient.ai/) or create and upload your own:
-
-
 ```python
 # Create and upload a model
 og.create_model(
@@ -73,20 +69,41 @@ result = og.infer(
 )
 ```
 
-### 4. Examples
+### 4. TEE (Trusted Execution Environment) Inference
+
+OpenGradient supports secure, verifiable inference through TEE for leading LLM providers. Access models from OpenAI, Anthropic, Google, and xAI with cryptographic attestation:
+```python
+from opengradient import TEE_LLM
+
+# Use TEE-enabled models for verifiable AI execution
+result = og.infer(
+    model_cid=TEE_LLM.CLAUDE_3_7_SONNET,  # or any other TEE_LLM model
+    model_inputs={"prompt": "Your prompt here"},
+    inference_mode=og.InferenceMode.TEE
+)
+```
+
+**Available TEE Models:**
+The SDK includes models from multiple providers accessible via the `TEE_LLM` enum:
+- **OpenAI**: GPT-4.1, GPT-4o, o4-mini
+- **Anthropic**: Claude 3.7 Sonnet, Claude 3.5 Haiku, Claude 4.0 Sonnet
+- **Google**: Gemini 2.5 Flash, Gemini 2.5 Pro, and more
+- **xAI**: Grok 3 Beta, Grok 4.1 Fast, and other Grok variants
+
+For the complete list of available models, check the `TEE_LLM` enum in your IDE autocomplete or see the [API documentation](https://docs.opengradient.ai/).
+
+### 5. Examples
 
 See code examples under [examples](./examples).
 
 ## CLI Usage
 
 The SDK includes a command-line interface for quick operations. First, verify your configuration:
-
 ```bash
 opengradient config show
 ```
 
 Run a test inference:
-
 ```bash
 opengradient infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ \
     --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10}'
@@ -96,7 +113,9 @@ opengradient infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ \
 
 1. **Off-chain Applications**: Use OpenGradient as a decentralized alternative to centralized AI providers like HuggingFace and OpenAI.
 
-2. **Model Development**: Manage models on the Model Hub and integrate directly into your development workflow.
+2. **Verifiable AI Execution**: Leverage TEE inference for cryptographically attested AI outputs, enabling trustless AI applications.
+
+3. **Model Development**: Manage models on the Model Hub and integrate directly into your development workflow.
 
 ## Documentation
 
@@ -112,4 +131,4 @@ If you use [Claude Code](https://claude.ai/code), copy [docs/CLAUDE_SDK_USERS.md
 
 - Run `opengradient --help` for CLI command reference
 - Visit our [documentation](https://docs.opengradient.ai/) for detailed guides
-- Join our [community](https://.opengradient.ai/) for support
+- Join our [community](https://opengradient.ai/) for support
