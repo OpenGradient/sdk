@@ -6,6 +6,7 @@ import logging
 import webbrowser
 from pathlib import Path
 from typing import Dict, List, Optional
+import sys
 
 import click
 
@@ -557,6 +558,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output, is_local=True):
     default="settle-batch",
     help="Settlement mode for x402 payments: settle (hashes only), settle-batch (batched, default), settle-metadata (full data)",
 )
+@click.option("--stream", is_flag=True, default=False, help="Stream the output from the LLM")
 @click.pass_context
 def chat(
     ctx,
@@ -572,6 +574,7 @@ def chat(
     tool_choice: Optional[str],
     x402_settlement_mode: Optional[str],
     local: bool,
+    stream: bool,
 ):
     """
     Run chat inference on an LLM model (local or external).
@@ -590,6 +593,9 @@ def chat(
 
     # External Anthropic model
     opengradient chat --model claude-haiku-4-5-20251001 --messages '[{"role":"user","content":"Write a poem"}]' --max-tokens 100
+
+    # Stream output
+    opengradient chat --model anthropic/claude-3.5-haiku --messages '[{"role":"user","content":"How are clouds formed?"}]' --max-tokens 250 --stream
     """
     client: Client = ctx.obj["client"]
 
@@ -656,7 +662,7 @@ def chat(
         if not tools and not tools_file:
             parsed_tools = None
 
-        completion_output = client.llm_chat(
+        result = client.llm_chat(
             model_cid=model_cid,
             inference_mode=LlmInferenceModes[inference_mode],
             messages=messages,
@@ -667,11 +673,16 @@ def chat(
             tool_choice=tool_choice,
             local_model=local,
             x402_settlement_mode=x402_settlement_mode,
+            stream=stream,
         )
 
-        print_llm_chat_result(
-            model_cid, completion_output.transaction_hash, completion_output.finish_reason, completion_output.chat_output, is_local
-        )
+        # Handle response based on streaming flag
+        if stream:
+            print_streaming_chat_result(model_cid, result, is_local)
+        else:
+            print_llm_chat_result(
+                model_cid, result.transaction_hash, result.finish_reason, result.chat_output, is_local
+            )
 
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
@@ -704,6 +715,80 @@ def print_llm_chat_result(model_cid, tx_hash, finish_reason, chat_output, is_loc
         if value != None and value != "" and value != "[]" and value != []:
             click.echo(f"{key}: {value}")
     click.echo()
+
+
+def print_streaming_chat_result(model_cid, stream, is_local=True):
+    """Handle streaming chat response with typed chunks - prints in real-time"""
+    click.secho("🌊 Streaming LLM Chat", fg="green", bold=True)
+    click.echo("──────────────────────────────────────")
+    click.echo("Model: ", nl=False)
+    click.secho(model_cid, fg="cyan", bold=True)
+    
+    if is_local:
+        click.echo("Source: ", nl=False)
+        click.secho("OpenGradient TEE", fg="cyan", bold=True)
+    else:
+        click.echo("Source: ", nl=False)
+        click.secho("External Provider", fg="cyan", bold=True)
+    
+    click.echo("──────────────────────────────────────")
+    click.secho("Response:", fg="yellow", bold=True)
+    click.echo()
+    
+    try:
+        content_parts = []
+        chunk_count = 0
+        
+        for chunk in stream:
+            chunk_count += 1
+            
+            if chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                sys.stdout.write(content)
+                sys.stdout.flush()
+                content_parts.append(content)
+            
+            # Handle tool calls
+            if chunk.choices[0].delta.tool_calls:
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                click.secho("Tool Calls:", fg="yellow", bold=True)
+                for tool_call in chunk.choices[0].delta.tool_calls:
+                    click.echo(f"  Function: {tool_call['function']['name']}")
+                    click.echo(f"  Arguments: {tool_call['function']['arguments']}")
+            
+            # Print final info when stream completes
+            if chunk.is_final:
+                sys.stdout.write("\n\n")
+                sys.stdout.flush()
+                click.echo("──────────────────────────────────────")
+                
+                if chunk.usage:
+                    click.secho("Token Usage:", fg="cyan")
+                    click.echo(f"  Prompt tokens: {chunk.usage.prompt_tokens}")
+                    click.echo(f"  Completion tokens: {chunk.usage.completion_tokens}")
+                    click.echo(f"  Total tokens: {chunk.usage.total_tokens}")
+                    click.echo()
+                
+                if chunk.choices[0].finish_reason:
+                    click.echo("Finish reason: ", nl=False)
+                    click.secho(chunk.choices[0].finish_reason, fg="green")
+                
+                click.echo("──────────────────────────────────────")
+                click.echo(f"Chunks received: {chunk_count}")
+                click.echo(f"Content length: {len(''.join(content_parts))} characters")
+                click.echo()
+        
+    except KeyboardInterrupt:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        click.secho("Stream interrupted by user", fg="yellow")
+        click.echo()
+    except Exception as e:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        click.secho(f"Streaming error: {str(e)}", fg="red", bold=True)
+        click.echo()
 
 
 @cli.command()

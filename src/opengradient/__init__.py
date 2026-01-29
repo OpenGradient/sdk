@@ -17,6 +17,7 @@ from .types import (
     InferenceResult,
     LlmInferenceMode,
     TextGenerationOutput,
+    TextGenerationStream,
     ModelOutput,
     ModelRepository,
     FileUploadResult,
@@ -225,7 +226,8 @@ def llm_chat(
     tool_choice: Optional[str] = None,
     max_retries: Optional[int] = None,
     x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
-) -> TextGenerationOutput:
+    stream: Optional[bool] = False,
+) -> Union[TextGenerationOutput, TextGenerationStream]:
     """Have a chat conversation with an LLM.
 
     Args:
@@ -239,9 +241,10 @@ def llm_chat(
         tool_choice: Optional specific tool to use
         max_retries: Maximum number of retries for failed transactions
         x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
+        stream: Optional boolean to enable streaming
 
     Returns:
-        TextGenerationOutput
+        TextGenerationOutput or TextGenerationStream
 
     Raises:
         RuntimeError: If SDK is not initialized
@@ -258,7 +261,8 @@ def llm_chat(
         tools=tools,
         tool_choice=tool_choice,
         max_retries=max_retries,
-        x402_settlement_mode=x402_settlement_mode
+        x402_settlement_mode=x402_settlement_mode,
+        stream=stream,
     )
 
 
