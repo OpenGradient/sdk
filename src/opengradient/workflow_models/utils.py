@@ -26,7 +26,7 @@ def read_workflow_wrapper(contract_address: str, format_function: Callable[..., 
         format_function (Callable): Function for formatting the result returned by read_workflow
     """
     try:
-        result = og.read_workflow_result(contract_address)
+        result = og.alpha.read_workflow_result(contract_address)
 
         formatted_result = format_function(result)
         block_explorer_link = create_block_explorer_link_smart_contract(contract_address)
