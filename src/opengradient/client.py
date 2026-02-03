@@ -512,8 +512,8 @@ class Client:
         # Check if this is a local model or external
         # TODO (Kyle): separate TEE and Vanilla completion requests
         if inference_mode == LlmInferenceMode.TEE:
-            if model_cid not in TEE_LLM:
-                return OpenGradientError("That model CID is not supported yet for TEE inference")
+            if model_cid not in [llm.value for llm in TEE_LLM]:
+                raise OpenGradientError("That model CID is not supported yet for TEE inference")
 
             return self._external_llm_completion(
                 model=model_cid.split("/")[1],
@@ -726,8 +726,8 @@ class Client:
         # Check if this is a local model or external
         # TODO (Kyle): separate TEE and Vanilla completion requests
         if inference_mode == LlmInferenceMode.TEE:
-            if model_cid not in TEE_LLM:
-                return OpenGradientError("That model CID is not supported yet for TEE inference")
+            if model_cid not in [llm.value for llm in TEE_LLM]:
+                raise OpenGradientError("That model CID is not supported yet for TEE inference")
 
             if stream:
                 # Use threading bridge for true sync streaming
