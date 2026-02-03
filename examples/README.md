@@ -11,7 +11,6 @@ Before running any examples, ensure you have:
    - `OG_PRIVATE_KEY`: Your Ethereum private key for OpenGradient
    - `OG_MODEL_HUB_EMAIL`: (Optional) Your Model Hub email for model uploads
    - `OG_MODEL_HUB_PASSWORD`: (Optional) Your Model Hub password for model uploads
-   - `GOOGLE_API_KEY`: (Optional) Required for third-party LLM examples
 
 You can also use the configuration wizard:
 ```bash
@@ -124,23 +123,7 @@ python examples/use_workflow.py
 
 **Example use case:** Reading automated predictions, monitoring workflow performance.
 
-## Third-Party LLM Examples
-
-These examples show how to use OpenGradient as a router for third-party LLM providers.
-
-#### `run_third_party_llm.py`
-Runs inference through OpenGradient routers for third-party LLMs (Gemini, Anthropic, OpenAI).
-
-```bash
-python examples/run_third_party_llm.py
-```
-
-**What it does:**
-- Demonstrates completion and chat interfaces for third-party models
-- Uses OpenGradient routers to access models like Gemini
-- Requires `GOOGLE_API_KEY` environment variable
-
-**Note:** Requires `opengradient==0.5.0a2` or compatible version.
+## x402 LLM Examples
 
 #### `run_x402_llm.py`
 Runs LLM inference with x402 transaction processing.
