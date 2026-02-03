@@ -1152,7 +1152,7 @@ class Client:
                 limits=LIMITS,
                 http2=False,
                 follow_redirects=False,
-                auth=X402Auth(account=self._wallet_account),  # type: ignore
+                auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
