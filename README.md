@@ -55,9 +55,9 @@ og_client = og.new_client(
 #### LLM Chat
 ```python
 completion = og_client.llm_chat(
-    model_cid=og.LLM.GPT_4O,
+    model_cid=og.TEE_LLM.GPT_4O,
     messages=[{"role": "user", "content": "Hello!"}],
-    inference_mode=og.LlmInferenceMode.VANILLA,
+    inference_mode=og.LlmInferenceMode.TEE,
 )
 print(f"Response: {completion.chat_output['content']}")
 print(f"Tx hash: {completion.transaction_hash}")
