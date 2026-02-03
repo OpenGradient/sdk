@@ -29,68 +29,72 @@ Note: Windows users should temporarily enable WSL when installing `opengradient`
 
 ### 1. Account Setup
 
-You'll need two accounts to use the SDK:
-- **Model Hub account**: Create one at [Hub Sign Up](https://hub.opengradient.ai/signup)
-- **OpenGradient account**: Use an existing Ethereum-compatible wallet or create a new one via SDK
+You'll need:
+- **Private key**: An Ethereum-compatible wallet private key for OpenGradient transactions
+- **Model Hub account** (optional): Only needed for uploading models. Create one at [Hub Sign Up](https://hub.opengradient.ai/signup)
 
-The easiest way to set up your accounts is through our configuration wizard:
+The easiest way to set up your configuration is through our wizard:
 ```bash
 opengradient config init
 ```
 
-This wizard will:
-- Guide you through account creation
-- Help you set up credentials
-- Direct you to our Test Faucet for devnet tokens
-
-### 2. Initialize the SDK
+### 2. Initialize the Client
 ```python
+import os
 import opengradient as og
-og.init(private_key="<private_key>", email="<email>", password="<password>")
+
+og_client = og.new_client(
+    email=None,  # Optional: only needed for model uploads
+    password=None,
+    private_key=os.environ.get("OG_PRIVATE_KEY"),
+)
 ```
 
 ### 3. Basic Usage
 
-Browse available models on our [Model Hub](https://hub.opengradient.ai/) or create and upload your own:
+#### LLM Chat
 ```python
-# Create and upload a model
-og.create_model(
-    model_name="my-model",
-    model_desc="Model description",
-    model_path="/path/to/model"
+completion = og_client.llm_chat(
+    model_cid=og.LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Hello!"}],
+    inference_mode=og.LlmInferenceMode.VANILLA,
 )
+print(f"Response: {completion.chat_output['content']}")
+print(f"Tx hash: {completion.transaction_hash}")
+```
 
-# Run inference
-inference_mode = og.InferenceMode.VANILLA
-result = og.infer(
+#### Custom Model Inference
+Browse models on our [Model Hub](https://hub.opengradient.ai/) or upload your own:
+```python
+result = og_client.infer(
     model_cid="your-model-cid",
-    model_inputs={"input": "value"},
-    inference_mode=inference_mode
+    model_input={"input": [1.0, 2.0, 3.0]},
+    inference_mode=og.InferenceMode.VANILLA,
 )
+print(f"Output: {result.model_output}")
 ```
 
 ### 4. TEE (Trusted Execution Environment) Inference
 
 OpenGradient supports secure, verifiable inference through TEE for leading LLM providers. Access models from OpenAI, Anthropic, Google, and xAI with cryptographic attestation:
 ```python
-from opengradient import TEE_LLM
-
-# Use TEE-enabled models for verifiable AI execution
-result = og.infer(
-    model_cid=TEE_LLM.CLAUDE_3_7_SONNET,  # or any other TEE_LLM model
-    model_inputs={"prompt": "Your prompt here"},
-    inference_mode=og.InferenceMode.TEE
+# Use TEE mode for verifiable AI execution
+completion = og_client.llm_chat(
+    model_cid=og.TEE_LLM.CLAUDE_3_7_SONNET,
+    messages=[{"role": "user", "content": "Your message here"}],
+    inference_mode=og.LlmInferenceMode.TEE,
 )
+print(f"Response: {completion.chat_output['content']}")
 ```
 
 **Available TEE Models:**
-The SDK includes models from multiple providers accessible via the `TEE_LLM` enum:
+The SDK includes models from multiple providers accessible via the `og.TEE_LLM` enum:
 - **OpenAI**: GPT-4.1, GPT-4o, o4-mini
 - **Anthropic**: Claude 3.7 Sonnet, Claude 3.5 Haiku, Claude 4.0 Sonnet
-- **Google**: Gemini 2.5 Flash, Gemini 2.5 Pro, and more
-- **xAI**: Grok 3 Beta, Grok 4.1 Fast, and other Grok variants
+- **Google**: Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash
+- **xAI**: Grok 3 Beta, Grok 3 Mini Beta, Grok 4.1 Fast
 
-For the complete list of available models, check the `TEE_LLM` enum in your IDE autocomplete or see the [API documentation](https://docs.opengradient.ai/).
+For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API documentation](https://docs.opengradient.ai/).
 
 ### 5. Examples
 
