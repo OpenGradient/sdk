@@ -8,7 +8,6 @@ from opengradient.alphasense import create_read_workflow_tool, create_run_model_
 from opengradient.llm import OpenGradientChatModel
 from opengradient import LLM
 from opengradient import init
-from opengradient import read_workflow_result
 from opengradient import InferenceResult
 import opengradient as og
 
@@ -43,7 +42,7 @@ class TestLLM(unittest.TestCase):
 
     def test_read_workflow(self):
         # Read current workflow result
-        workflow_result = read_workflow_result(contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0")
+        workflow_result = og.alpha.read_workflow_result(contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0")
         expected_result = str(workflow_result.numbers["Y"][0])
 
         btc_workflow_tool = create_read_workflow_tool(

@@ -23,8 +23,12 @@ from .types import (
     FileUploadResult,
     x402SettlementMode,
 )
+from .alpha import _AlphaNamespace
 
 from . import llm, alphasense
+
+# Module-level alpha namespace for workflow/ML execution features (Alpha Testnet only)
+alpha = _AlphaNamespace()
 
 _client = None
 
@@ -284,93 +288,6 @@ def list_files(model_name: str, version: str) -> List[Dict]:
     return _client.list_files(model_name, version)
 
 
-def new_workflow(
-    model_cid: str,
-    input_query: HistoricalInputQuery,
-    input_tensor_name: str,
-    scheduler_params: Optional[SchedulerParams] = None,
-) -> str:
-    """
-    Deploy a new workflow contract with the specified parameters.
-
-    This function deploys a new workflow contract and optionally registers it with
-    the scheduler for automated execution. If scheduler_params is not provided,
-    the workflow will be deployed without automated execution scheduling.
-
-    Args:
-        model_cid: IPFS CID of the model
-        input_query: HistoricalInputQuery containing query parameters
-        input_tensor_name: Name of the input tensor
-        scheduler_params: Optional scheduler configuration as SchedulerParams instance
-            If not provided, the workflow will be deployed without scheduling.
-
-    Returns:
-        str: Deployed contract address. If scheduler_params was provided, the workflow
-             will be automatically executed according to the specified schedule.
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
-
-    return _client.new_workflow(
-        model_cid=model_cid, input_query=input_query, input_tensor_name=input_tensor_name, scheduler_params=scheduler_params
-    )
-
-
-def read_workflow_result(contract_address: str) -> ModelOutput:
-    """
-    Reads the latest inference result from a deployed workflow contract.
-
-    This function retrieves the most recent output from a deployed model executor contract.
-    It includes built-in retry logic to handle blockchain state delays.
-
-    Args:
-        contract_address (str): Address of the deployed workflow contract
-
-    Returns:
-        Dict[str, Union[str, Dict]]: A dictionary containing:
-            - status: "success" or "error"
-            - result: The model output data if successful
-            - error: Error message if status is "error"
-
-    Raises:
-        RuntimeError: If OpenGradient client is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.read_workflow_result(contract_address)
-
-
-def run_workflow(contract_address: str) -> ModelOutput:
-    """
-    Executes the workflow by calling run() on the contract to pull latest data and perform inference.
-
-    Args:
-        contract_address (str): Address of the deployed workflow contract
-
-    Returns:
-        Dict[str, Union[str, Dict]]: Status of the run operation
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.run_workflow(contract_address)
-
-
-def read_workflow_history(contract_address: str, num_results: int) -> List[ModelOutput]:
-    """
-    Gets historical inference results from a workflow contract.
-
-    Args:
-        contract_address (str): Address of the deployed workflow contract
-        num_results (int): Number of historical results to retrieve
-
-    Returns:
-        List[Dict]: List of historical inference results
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.read_workflow_history(contract_address, num_results)
-
-
 __all__ = [
     "list_files",
     "login",
@@ -383,10 +300,7 @@ __all__ = [
     "init",
     "LLM",
     "TEE_LLM",
-    "new_workflow",
-    "read_workflow_result",
-    "run_workflow",
-    "read_workflow_history",
+    "alpha",
     "InferenceMode",
     "LlmInferenceMode",
     "HistoricalInputQuery",

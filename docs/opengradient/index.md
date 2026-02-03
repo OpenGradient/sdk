@@ -10,9 +10,11 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 ## Submodules
 
+* [**alpha**](./alpha): Alpha Testnet features for OpenGradient SDK.
 * [**alphasense**](./alphasense): OpenGradient AlphaSense Tools
 * [**llm**](./llm): OpenGradient LLM Adapters
 * [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
+* [**x402_auth**](./x402_auth): X402 Authentication handler for httpx streaming requests.
 
 ## Functions
 
@@ -114,7 +116,7 @@ InferenceResult (InferenceResult): A dataclass object containing the transaction
 ### Init 
 
 ```python
-def init(email: str, password: str, private_key: str, rpc_url='https://eth-devnet.opengradient.ai', api_url='https://sdk-devnet.opengradient.ai', contract_address='0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE')
+def init(email: str, password: str, private_key: str, rpc_url='https://ogevmdevnet.opengradient.ai', api_url='https://sdk-devnet.opengradient.ai', contract_address='0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE')
 ```
 
   
@@ -167,7 +169,7 @@ List[Dict]: List of file metadata dictionaries
 ### Llm chat 
 
 ```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
+def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
 ```
 
   
@@ -187,11 +189,13 @@ Have a chat conversation with an LLM.
 * **`tools`**: Optional list of tools the model can use
 * **`tool_choice`**: Optional specific tool to use
 * **`max_retries`**: Maximum number of retries for failed transactions
+* **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
+* **`stream`**: Optional boolean to enable streaming
 
   
 **Returns**
 
-TextGenerationOutput
+TextGenerationOutput or TextGenerationStream
 
 **Raises**
 
@@ -203,7 +207,7 @@ TextGenerationOutput
 ### Llm completion 
 
 ```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None) ‑> opengradient.types.TextGenerationOutput
+def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
@@ -221,6 +225,7 @@ Generate text completion using an LLM.
 * **`stop_sequence`**: Optional list of sequences where generation should stop
 * **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
 * **`max_retries`**: Maximum number of retries for failed transactions
+* **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
   
 **Returns**
@@ -260,103 +265,6 @@ List[Dict]: List of file metadata dictionaries
 
 * **`RuntimeError`**: If SDK is not initialized
   
-
-  
-
-### New workflow 
-
-```python
-def new_workflow(model_cid: str, input_query: opengradient.types.HistoricalInputQuery, input_tensor_name: str, scheduler_params: Optional[opengradient.types.SchedulerParams] = None) ‑> str
-```
-
-  
-
-  
-Deploy a new workflow contract with the specified parameters.
-
-This function deploys a new workflow contract and optionally registers it with
-the scheduler for automated execution. If scheduler_params is not provided,
-the workflow will be deployed without automated execution scheduling.
-  
-
-**Arguments**
-
-* **`model_cid`**: IPFS CID of the model
-* **`input_query`**: HistoricalInputQuery containing query parameters
-* **`input_tensor_name`**: Name of the input tensor
-* **`scheduler_params`**: Optional scheduler configuration as SchedulerParams instance
-        If not provided, the workflow will be deployed without scheduling.
-
-  
-**Returns**
-
-str: Deployed contract address. If scheduler_params was provided, the workflow
-     will be automatically executed according to the specified schedule.
-
-  
-
-### Read workflow history 
-
-```python
-def read_workflow_history(contract_address: str, num_results: int) ‑> List[opengradient.types.ModelOutput]
-```
-
-  
-
-  
-Gets historical inference results from a workflow contract.
-  
-
-**Returns**
-
-List[Dict]: List of historical inference results
-
-  
-
-### Read workflow result 
-
-```python
-def read_workflow_result(contract_address: str) ‑> opengradient.types.ModelOutput
-```
-
-  
-
-  
-Reads the latest inference result from a deployed workflow contract.
-
-This function retrieves the most recent output from a deployed model executor contract.
-It includes built-in retry logic to handle blockchain state delays.
-  
-
-**Returns**
-
-Dict[str, Union[str, Dict]]: A dictionary containing:
-    - status: "success" or "error"
-    - result: The model output data if successful
-    - error: Error message if status is "error"
-
-**Raises**
-
-* **`RuntimeError`**: If OpenGradient client is not initialized
-  
-
-  
-
-### Run workflow 
-
-```python
-def run_workflow(contract_address: str) ‑> opengradient.types.ModelOutput
-```
-
-  
-
-  
-Executes the workflow by calling run() on the contract to pull latest data and perform inference.
-  
-
-**Returns**
-
-Dict[str, Union[str, Dict]]: Status of the run operation
 
   
 
