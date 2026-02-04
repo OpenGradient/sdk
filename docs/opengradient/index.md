@@ -130,8 +130,8 @@ Initialize the OpenGradient SDK with authentication and network settings.
 * **`email`**: User's email address for authentication
 * **`password`**: User's password for authentication
 * **`private_key`**: Ethereum private key for blockchain transactions
-* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to mainnet
-* **`api_url`**: Optional API URL for the OpenGradient API, defaults to mainnet
+* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to devnet
+* **`api_url`**: Optional API URL for the OpenGradient API, defaults to devnet
 * **`contract_address`**: Optional inference contract address
   
 
