@@ -18,7 +18,6 @@ import urllib.parse
 import asyncio
 from x402.clients.httpx import x402HttpxClient
 from x402.clients.base import decode_x_payment_response, x402Client
-from x402.clients.httpx import x402HttpxClient
 
 from .x402_auth import X402Auth
 from .exceptions import OpenGradientError
@@ -50,13 +49,14 @@ from .defaults import (
 )
 from .utils import convert_to_model_input, convert_to_model_output
 
+# Security Update: Credentials moved to environment variables
 _FIREBASE_CONFIG = {
-    "apiKey": "AIzaSyDUVckVtfl-hiteBzPopy1pDD8Uvfncs7w",
-    "authDomain": "vanna-portal-418018.firebaseapp.com",
-    "projectId": "vanna-portal-418018",
-    "storageBucket": "vanna-portal-418018.appspot.com",
-    "appId": "1:487761246229:web:259af6423a504d2316361c",
-    "databaseURL": "",
+    "apiKey": os.getenv("FIREBASE_API_KEY"),
+    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+    "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+    "appId": os.getenv("FIREBASE_APP_ID"),
+    "databaseURL": os.getenv("FIREBASE_DATABASE_URL", ""),
 }
 
 # How much time we wait for txn to be included in chain
@@ -228,6 +228,10 @@ class Client:
 
     def _login_to_hub(self, email, password):
         try:
+            # Check if API Key is present in environment
+            if not _FIREBASE_CONFIG.get("apiKey"):
+                logging.warning("Firebase API Key is missing in environment variables. Authentication may fail.")
+            
             firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
             return firebase_app.auth().sign_in_with_email_and_password(email, password)
         except Exception as e:
@@ -624,10 +628,12 @@ class Client:
                 raise OpenGradientError(error_msg)
 
         async def make_request():
+            # Security Fix: verify=True enabled
             async with x402HttpxClient(
                 account=self._wallet_account,
                 base_url=self._og_llm_server_url,
                 payment_requirements_selector=self._og_payment_selector,
+                verify=True,
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -916,10 +922,12 @@ class Client:
 
         # x402 payment path - non-streaming only here
         async def make_request():
+            # Security Fix: verify=True enabled
             async with x402HttpxClient(
                 account=self._wallet_account,
                 base_url=self._og_llm_server_url,
                 payment_requirements_selector=self._og_payment_selector,
+                verify=True,
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -1110,7 +1118,8 @@ class Client:
                 payload["tools"] = tools
                 payload["tool_choice"] = tool_choice or "auto"
 
-            async with httpx.AsyncClient(verify=False, timeout=None) as client:
+            # Security Fix: verify=True enabled
+            async with httpx.AsyncClient(verify=True, timeout=None) as client:
                 async with client.stream("POST", url, json=payload, headers=headers) as response:
                     buffer = b""
                     async for chunk in response.aiter_raw():
@@ -1145,6 +1154,7 @@ class Client:
                                 continue
         else:
             # x402 payment path
+            # Security Fix: verify=True enabled (default for httpx, ensuring correct auth)
             async with httpx.AsyncClient(
                 base_url=self._og_llm_streaming_server_url,
                 headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
@@ -1153,6 +1163,7 @@ class Client:
                 http2=False,
                 follow_redirects=False,
                 auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
+                verify=True, 
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -1255,122 +1266,122 @@ class Client:
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
     # def generate_image(
-    #     self,
-    #     model_cid: str,
-    #     prompt: str,
-    #     host: str = DEFAULT_IMAGE_GEN_HOST,
-    #     port: int = DEFAULT_IMAGE_GEN_PORT,
-    #     width: int = 1024,
-    #     height: int = 1024,
-    #     timeout: int = 300,  # 5 minute timeout
-    #     max_retries: int = 3,
+    #      self,
+    #      model_cid: str,
+    #      prompt: str,
+    #      host: str = DEFAULT_IMAGE_GEN_HOST,
+    #      port: int = DEFAULT_IMAGE_GEN_PORT,
+    #      width: int = 1024,
+    #      height: int = 1024,
+    #      timeout: int = 300,  # 5 minute timeout
+    #      max_retries: int = 3,
     # ) -> bytes:
-    #     """
-    #     Generate an image using a diffusion model through gRPC.
+    #      """
+    #      Generate an image using a diffusion model through gRPC.
 
-    #     Args:
-    #         model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-    #         prompt (str): The text prompt to generate the image from
-    #         host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
-    #         port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
-    #         width (int, optional): Output image width. Defaults to 1024.
-    #         height (int, optional): Output image height. Defaults to 1024.
-    #         timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
-    #         max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
+    #      Args:
+    #          model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
+    #          prompt (str): The text prompt to generate the image from
+    #          host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
+    #          port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
+    #          width (int, optional): Output image width. Defaults to 1024.
+    #          height (int, optional): Output image height. Defaults to 1024.
+    #          timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
+    #          max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
 
-    #     Returns:
-    #         bytes: The raw image data bytes
+    #      Returns:
+    #          bytes: The raw image data bytes
 
-    #     Raises:
-    #         OpenGradientError: If the image generation fails
-    #         TimeoutError: If the generation exceeds the timeout period
-    #     """
+    #      Raises:
+    #          OpenGradientError: If the image generation fails
+    #          TimeoutError: If the generation exceeds the timeout period
+    #      """
 
-    #     def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
-    #         """Calculate and sleep for exponential backoff duration"""
-    #         delay = min(0.1 * (2**attempt), max_delay)
-    #         time.sleep(delay)
+    #      def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
+    #          """Calculate and sleep for exponential backoff duration"""
+    #          delay = min(0.1 * (2**attempt), max_delay)
+    #          time.sleep(delay)
 
-    #     channel = None
-    #     start_time = time.time()
-    #     retry_count = 0
+    #      channel = None
+    #      start_time = time.time()
+    #      retry_count = 0
 
-    #     try:
-    #         while retry_count < max_retries:
-    #             try:
-    #                 # Initialize gRPC channel and stub
-    #                 channel = grpc.insecure_channel(f"{host}:{port}")
-    #                 stub = infer_pb2_grpc.InferenceServiceStub(channel)
+    #      try:
+    #          while retry_count < max_retries:
+    #              try:
+    #                  # Initialize gRPC channel and stub
+    #                  channel = grpc.insecure_channel(f"{host}:{port}")
+    #                  stub = infer_pb2_grpc.InferenceServiceStub(channel)
 
-    #                 # Create image generation request
-    #                 image_request = infer_pb2.ImageGenerationRequest(model=model_cid, prompt=prompt, height=height, width=width)
+    #                  # Create image generation request
+    #                  image_request = infer_pb2.ImageGenerationRequest(model=model_cid, prompt=prompt, height=height, width=width)
 
-    #                 # Create inference request with random transaction ID
-    #                 tx_id = str(uuid.uuid4())
-    #                 request = infer_pb2.InferenceRequest(tx=tx_id, image_generation=image_request)
+    #                  # Create inference request with random transaction ID
+    #                  tx_id = str(uuid.uuid4())
+    #                  request = infer_pb2.InferenceRequest(tx=tx_id, image_generation=image_request)
 
-    #                 # Send request with timeout
-    #                 response_id = stub.RunInferenceAsync(
-    #                     request,
-    #                     timeout=min(30, timeout),  # Initial request timeout
-    #                 )
+    #                  # Send request with timeout
+    #                  response_id = stub.RunInferenceAsync(
+    #                      request,
+    #                      timeout=min(30, timeout),  # Initial request timeout
+    #                  )
 
-    #                 # Poll for completion
-    #                 attempt = 0
-    #                 while True:
-    #                     # Check timeout
-    #                     if time.time() - start_time > timeout:
-    #                         raise TimeoutError(f"Image generation timed out after {timeout} seconds")
+    #                  # Poll for completion
+    #                  attempt = 0
+    #                  while True:
+    #                      # Check timeout
+    #                      if time.time() - start_time > timeout:
+    #                          raise TimeoutError(f"Image generation timed out after {timeout} seconds")
 
-    #                     status_request = infer_pb2.InferenceTxId(id=response_id.id)
-    #                     try:
-    #                         status = stub.GetInferenceStatus(
-    #                             status_request,
-    #                             timeout=min(5, timeout),  # Status check timeout
-    #                         ).status
-    #                     except grpc.RpcError as e:
-    #                         logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
-    #                         exponential_backoff(attempt)
-    #                         attempt += 1
-    #                         continue
+    #                      status_request = infer_pb2.InferenceTxId(id=response_id.id)
+    #                      try:
+    #                          status = stub.GetInferenceStatus(
+    #                              status_request,
+    #                              timeout=min(5, timeout),  # Status check timeout
+    #                          ).status
+    #                      except grpc.RpcError as e:
+    #                          logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
+    #                          exponential_backoff(attempt)
+    #                          attempt += 1
+    #                          continue
 
-    #                     if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
-    #                         break
-    #                     elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
-    #                         raise OpenGradientError("Image generation failed on server")
-    #                     elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
-    #                         raise OpenGradientError(f"Unexpected status: {status}")
+    #                      if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
+    #                          break
+    #                      elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
+    #                          raise OpenGradientError("Image generation failed on server")
+    #                      elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
+    #                          raise OpenGradientError(f"Unexpected status: {status}")
 
-    #                     exponential_backoff(attempt)
-    #                     attempt += 1
+    #                      exponential_backoff(attempt)
+    #                      attempt += 1
 
-    #                 # Get result
-    #                 result = stub.GetInferenceResult(
-    #                     response_id,
-    #                     timeout=min(30, timeout),  # Result fetch timeout
-    #                 )
-    #                 return result.image_generation_result.image_data
+    #                  # Get result
+    #                  result = stub.GetInferenceResult(
+    #                      response_id,
+    #                      timeout=min(30, timeout),  # Result fetch timeout
+    #                  )
+    #                  return result.image_generation_result.image_data
 
-    #             except (grpc.RpcError, TimeoutError) as e:
-    #                 retry_count += 1
-    #                 if retry_count >= max_retries:
-    #                     raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
+    #              except (grpc.RpcError, TimeoutError) as e:
+    #                  retry_count += 1
+    #                  if retry_count >= max_retries:
+    #                      raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
 
-    #                 logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
-    #                 exponential_backoff(retry_count)
+    #                  logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
+    #                  exponential_backoff(retry_count)
 
-    #     except grpc.RpcError as e:
-    #         logging.error(f"gRPC error: {str(e)}")
-    #         raise OpenGradientError(f"Image generation failed: {str(e)}")
-    #     except TimeoutError as e:
-    #         logging.error(f"Timeout error: {str(e)}")
-    #         raise
-    #     except Exception as e:
-    #         logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
-    #         raise OpenGradientError(f"Image generation failed: {str(e)}")
-    #     finally:
-    #         if channel:
-    #             channel.close()
+    #      except grpc.RpcError as e:
+    #          logging.error(f"gRPC error: {str(e)}")
+    #          raise OpenGradientError(f"Image generation failed: {str(e)}")
+    #      except TimeoutError as e:
+    #          logging.error(f"Timeout error: {str(e)}")
+    #          raise
+    #      except Exception as e:
+    #          logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
+    #          raise OpenGradientError(f"Image generation failed: {str(e)}")
+    #      finally:
+    #          if channel:
+    #              channel.close()
 
     def _get_abi(self, abi_name) -> str:
         """
