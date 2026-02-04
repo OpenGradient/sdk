@@ -49,7 +49,7 @@ def new_client(
         email: User's email address for authentication with Model Hub
         password: User's password for authentication with Model Hub
         private_key: Private key for OpenGradient transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
+        rpc_url: Optional RPC URL for the blockchain network, defaults to devnet
         contract_address: Optional inference contract address
     """
 
@@ -78,8 +78,8 @@ def init(
         email: User's email address for authentication
         password: User's password for authentication
         private_key: Ethereum private key for blockchain transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
-        api_url: Optional API URL for the OpenGradient API, defaults to mainnet
+        rpc_url: Optional RPC URL for the blockchain network, defaults to devnet
+        api_url: Optional API URL for the OpenGradient API, defaults to devnet
         contract_address: Optional inference contract address
     """
     global _client
@@ -290,7 +290,6 @@ def list_files(model_name: str, version: str) -> List[Dict]:
 
 __all__ = [
     "list_files",
-    "login",
     "llm_chat",
     "llm_completion",
     "infer",
