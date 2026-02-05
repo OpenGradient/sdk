@@ -15,27 +15,41 @@ class x402SettlementMode(StrEnum):
 
     Attributes:
         SETTLE: Individual settlement with input/output hashes only.
+            Also known as SETTLE_INDIVIDUAL in some documentation.
             Records cryptographic hashes of the inference input and output.
             Most privacy-preserving option - actual data is not stored on-chain.
             Suitable for applications where only proof of execution is needed.
+            CLI usage: --settlement-mode settle
 
         SETTLE_METADATA: Individual settlement with full metadata.
+            Also known as SETTLE_INDIVIDUAL_WITH_METADATA in some documentation.
             Records complete model information, full input and output data,
             and all inference metadata on-chain.
             Provides maximum transparency and auditability.
             Higher gas costs due to larger data storage.
+            CLI usage: --settlement-mode settle-metadata
 
         SETTLE_BATCH: Batch settlement for multiple inferences.
             Aggregates multiple inference requests into a single settlement transaction
             using batch hashes.
             Most cost-efficient for high-volume applications.
             Reduced per-inference transaction overhead.
+            CLI usage: --settlement-mode settle-batch
+
+    Examples:
+        >>> from opengradient import x402SettlementMode
+        >>> mode = x402SettlementMode.SETTLE
+        >>> print(mode.value)
+        'settle'
     """
 
     SETTLE = "settle"
     SETTLE_METADATA = "settle-metadata"
     SETTLE_BATCH = "settle-batch"
 
+    # Aliases for backward compatibility with glossary naming
+    SETTLE_INDIVIDUAL = SETTLE
+    SETTLE_INDIVIDUAL_WITH_METADATA = SETTLE_METADATA
 
 class CandleOrder(IntEnum):
     ASCENDING = 0
