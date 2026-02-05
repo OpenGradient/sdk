@@ -130,8 +130,8 @@ Initialize the OpenGradient SDK with authentication and network settings.
 * **`email`**: User's email address for authentication
 * **`password`**: User's password for authentication
 * **`private_key`**: Ethereum private key for blockchain transactions
-* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to devnet
-* **`api_url`**: Optional API URL for the OpenGradient API, defaults to devnet
+* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to testnet
+* **`api_url`**: Optional API URL for the OpenGradient API, defaults to testnet
 * **`contract_address`**: Optional inference contract address
   
 
@@ -231,35 +231,6 @@ Generate text completion using an LLM.
 **Returns**
 
 TextGenerationOutput: Transaction hash and generated text
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Login 
-
-```python
-def login(model_name: str, version: str) ‑> List[Dict]
-```
-
-  
-
-  
-List files in a model repository version.
-  
-
-**Arguments**
-
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string to list files from
-
-  
-**Returns**
-
-List[Dict]: List of file metadata dictionaries
 
 **Raises**
 
@@ -420,8 +391,16 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
   
 
   
-Enum for available LLM models
+Enum for available LLM models in OpenGradient.
+
+These models can be used with llm_chat() and llm_completion() methods.
+You can use either the enum value or the string identifier directly.
   
+
+**Note**
+
+TEE_LLM enum contains the same models but is specifically for
+Trusted Execution Environment (TEE) verified inference.
 
 #### Variables
 
@@ -529,8 +508,17 @@ def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.type
   
 
   
-Enum for LLM models available for TEE execution
+Enum for LLM models available for TEE (Trusted Execution Environment) execution.
+
+TEE mode provides cryptographic verification that inference was performed
+correctly in a secure enclave. Use this for applications requiring
+auditability and tamper-proof AI inference.
   
+
+**Note**
+
+The models in TEE_LLM are the same as LLM, but this enum explicitly
+indicates support for TEE execution.
 
 #### Variables
 

@@ -16,7 +16,7 @@ authentication for streaming responses.
 
 ###  X402Auth
 
-<code>class <b>X402Auth</b>(account: [local](docs/signers.md#local), max_value: Optional[int] = None, network_filter: Optional[str] = None, scheme_filter: Optional[str] = None)</code>
+<code>class <b>X402Auth</b>(account: Any, max_value: Optional[int] = None, payment_requirements_selector: Optional[Callable[[list[[PaymentRequirements](docs/types.md#PaymentRequirements)], Optional[str], Optional[str], Optional[int]], [PaymentRequirements](docs/types.md#PaymentRequirements)]] = None, network_filter: Optional[str] = None)</code>
 
   
 
@@ -37,24 +37,21 @@ responses by automatically creating and attaching payment headers.
 
   
 
-### Auth flow 
+### Async auth flow 
 
 ```python
-def auth_flow(self, request: httpx.Request) ‑> Generator[httpx.Request, httpx.Response, None]
+async def async_auth_flow(self, request: httpx.Request) ‑> AsyncGenerator[httpx.Request, httpx.Response]
 ```
 
   
 
   
-Implement the auth flow for x402 payment handling.
-
-This method yields the initial request, and if a 402 response is received,
-it creates a payment header and retries the request.
+Handle authentication flow for x402 payment protocol.
   
 
 **Arguments**
 
-* **`request`**: The initial httpx Request
+* **`request`**: httpx Request object to be authenticated
 
   
 
