@@ -169,26 +169,24 @@ List[Dict]: List of file metadata dictionaries
 ### Llm chat 
 
 ```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
+def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
 ```
 
   
 
   
-Have a chat conversation with an LLM.
+Have a chat conversation with an LLM via TEE.
   
 
 **Arguments**
 
-* **`model_cid`**: CID of the LLM model to use
+* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
 * **`messages`**: List of chat messages, each with 'role' and 'content'
-* **`inference_mode`**: Mode of inference, defaults to VANILLA
 * **`max_tokens`**: Maximum tokens to generate
 * **`stop_sequence`**: Optional list of sequences where generation should stop
 * **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
 * **`tools`**: Optional list of tools the model can use
 * **`tool_choice`**: Optional specific tool to use
-* **`max_retries`**: Maximum number of retries for failed transactions
 * **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 * **`stream`**: Optional boolean to enable streaming
 
@@ -207,24 +205,22 @@ TextGenerationOutput or TextGenerationStream
 ### Llm completion 
 
 ```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
+def llm_completion(model_cid: opengradient.types.LLM, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
 
   
-Generate text completion using an LLM.
+Generate text completion using an LLM via TEE.
   
 
 **Arguments**
 
-* **`model_cid`**: CID of the LLM model to use
+* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
 * **`prompt`**: Text prompt for completion
-* **`inference_mode`**: Mode of inference, defaults to VANILLA
 * **`max_tokens`**: Maximum tokens to generate
 * **`stop_sequence`**: Optional list of sequences where generation should stop
 * **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-* **`max_retries`**: Maximum number of retries for failed transactions
 * **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
   
@@ -437,27 +433,6 @@ Trusted Execution Environment (TEE) verified inference.
 * static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
     
 * static `O4_MINI` - The type of the None singleton.
-
-      
-    
-
-###  LlmInferenceMode
-
-<code>class <b>LlmInferenceMode</b>(*args, **kwds)</code>
-
-  
-
-  
-Enum for different inference modes available for LLM inference (VANILLA, TEE)
-  
-
-#### Variables
-
-  
-    
-* static `TEE` - The type of the None singleton.
-    
-* static `VANILLA` - The type of the None singleton.
 
       
     
