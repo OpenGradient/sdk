@@ -828,7 +828,7 @@ def create_account_impl() -> EthAccount:
     click.echo("=" * 50)
     click.echo("\nYour OpenGradient account has been successfully created and funded.")
     click.secho(f"Address: {eth_account.address}", fg="green")
-    click.secho(f"Private Key: {eth_account.private_key}", fg="green")
+    click.secho("Private key generated. Store it securely; it will not be shown.", fg="yellow")
     click.secho("\nPlease save this information for your records.\n", fg="cyan")
 
     return eth_account
