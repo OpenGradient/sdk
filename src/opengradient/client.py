@@ -42,7 +42,6 @@ from .defaults import (
     DEFAULT_IMAGE_GEN_HOST,
     DEFAULT_IMAGE_GEN_PORT,
     DEFAULT_SCHEDULER_ADDRESS,
-    DEFAULT_LLM_SERVER_URL,
     DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
     DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
     DEFAULT_NETWORK_FILTER,
@@ -86,6 +85,7 @@ LIMITS = httpx.Limits(
     keepalive_expiry=60 * 20,  # 20 minutes
 )
 
+
 class Client:
     _inference_hub_contract_address: str
     _blockchain: Web3
@@ -95,8 +95,6 @@ class Client:
     _api_url: str
     _inference_abi: Dict
     _precompile_abi: Dict
-    _llm_server_url: str
-    _external_api_keys: Dict[str, str]
 
     def __init__(
         self,
@@ -106,12 +104,8 @@ class Client:
         contract_address: str,
         email: Optional[str] = None,
         password: Optional[str] = None,
-        llm_server_url: Optional[str] = DEFAULT_LLM_SERVER_URL,
         og_llm_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
         og_llm_streaming_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
-        openai_api_key: Optional[str] = None,
-        anthropic_api_key: Optional[str] = None,
-        google_api_key: Optional[str] = None,
     ):
         """
         Initialize the Client with private key, RPC URL, and contract address.
@@ -141,17 +135,8 @@ class Client:
         else:
             self._hub_user = None
 
-        self._llm_server_url = llm_server_url
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
-
-        self._external_api_keys = {}
-        if openai_api_key or os.getenv("OPENAI_API_KEY"):
-            self._external_api_keys["openai"] = openai_api_key or os.getenv("OPENAI_API_KEY")
-        if anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"):
-            self._external_api_keys["anthropic"] = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
-        if google_api_key or os.getenv("GOOGLE_API_KEY"):
-            self._external_api_keys["google"] = google_api_key or os.getenv("GOOGLE_API_KEY")
 
         self._alpha = None  # Lazy initialization for alpha namespace
 
@@ -169,69 +154,16 @@ class Client:
         """
         if self._alpha is None:
             from .alpha import Alpha
+
             self._alpha = Alpha(self)
         return self._alpha
-
-    def set_api_key(self, provider: str, api_key: str):
-        """
-        Set or update API key for an external provider.
-
-        Args:
-            provider: Provider name (e.g., 'openai', 'anthropic', 'google')
-            api_key: The API key for the provider
-        """
-        self._external_api_keys[provider] = api_key
-
-    def _is_local_model(self, model_cid: str) -> bool:
-        """
-        Check if a model is hosted locally on OpenGradient.
-
-        Args:
-            model_cid: Model identifier
-
-        Returns:
-            True if model is local, False if it should use external provider
-        """
-        # Check if it's in our local LLM enum
-        try:
-            return model_cid in [llm.value for llm in LLM]
-        except:
-            return False
-
-    def _get_provider_from_model(self, model: str) -> str:
-        """Infer provider from model name."""
-        model_lower = model.lower()
-
-        if "gpt" in model_lower or model.startswith("openai/"):
-            return "openai"
-        elif "claude" in model_lower or model.startswith("anthropic/"):
-            return "anthropic"
-        elif "gemini" in model_lower or "palm" in model_lower or model.startswith("google/"):
-            return "google"
-        elif "command" in model_lower or model.startswith("cohere/"):
-            return "cohere"
-        else:
-            return "openai"
-
-    def _get_api_key_for_model(self, model: str) -> Optional[str]:
-        """
-        Get the appropriate API key for a model.
-
-        Args:
-            model: Model identifier
-
-        Returns:
-            API key string or None
-        """
-        provider = self._get_provider_from_model(model)
-        return self._external_api_keys.get(provider)
 
     def _login_to_hub(self, email, password):
         try:
             # Check if API Key is present in environment
             if not _FIREBASE_CONFIG.get("apiKey"):
                 logging.warning("Firebase API Key is missing in environment variables. Authentication may fail.")
-            
+
             firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
             return firebase_app.auth().sign_in_with_email_and_password(email, password)
         except Exception as e:
@@ -519,7 +451,7 @@ class Client:
             if model_cid not in TEE_LLM:
                 return OpenGradientError("That model CID is not supported yet for TEE inference")
 
-            return self._external_llm_completion(
+            return self._tee_llm_completion(
                 model=model_cid.split("/")[1],
                 prompt=prompt,
                 max_tokens=max_tokens,
@@ -565,7 +497,7 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries)
 
-    def _external_llm_completion(
+    def _tee_llm_completion(
         self,
         model: str,
         prompt: str,
@@ -575,7 +507,7 @@ class Client:
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
-        Route completion request to external LLM server with x402 payments.
+        Route completion request to OpenGradient TEE LLM server with x402 payments.
 
         Args:
             model: Model identifier
@@ -583,6 +515,7 @@ class Client:
             max_tokens: Maximum tokens to generate
             stop_sequence: Stop sequences
             temperature: Sampling temperature
+            x402_settlement_mode: Settlement mode for x402 payments
 
         Returns:
             TextGenerationOutput with completion
@@ -590,42 +523,6 @@ class Client:
         Raises:
             OpenGradientError: If request fails
         """
-        api_key = self._get_api_key_for_model(model)
-
-        if api_key:
-            logging.debug("External LLM completions using API key")
-            url = f"{self._llm_server_url}/v1/completions"
-
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-
-            payload = {
-                "model": model,
-                "prompt": prompt,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-
-            if stop_sequence:
-                payload["stop"] = stop_sequence
-
-            try:
-                response = requests.post(url, json=payload, headers=headers, timeout=60)
-                response.raise_for_status()
-
-                result = response.json()
-
-                return TextGenerationOutput(transaction_hash="external", completion_output=result.get("completion"))
-
-            except requests.RequestException as e:
-                error_msg = f"External LLM completion failed: {str(e)}"
-                if hasattr(e, "response") and e.response is not None:
-                    try:
-                        error_detail = e.response.json()
-                        error_msg += f" - {error_detail}"
-                    except:
-                        error_msg += f" - {e.response.text}"
-                logging.error(error_msg)
-                raise OpenGradientError(error_msg)
 
         async def make_request():
             # Security Fix: verify=True enabled
@@ -667,7 +564,7 @@ class Client:
                     )
 
                 except Exception as e:
-                    error_msg = f"External LLM completion request failed: {str(e)}"
+                    error_msg = f"TEE LLM completion request failed: {str(e)}"
                     logging.error(error_msg)
                     raise OpenGradientError(error_msg)
 
@@ -675,7 +572,7 @@ class Client:
             # Run the async function in a sync context
             return asyncio.run(make_request())
         except Exception as e:
-            error_msg = f"External LLM completion failed: {str(e)}"
+            error_msg = f"TEE LLM completion failed: {str(e)}"
             if hasattr(e, "response") and e.response is not None:
                 try:
                     error_detail = e.response.json()
@@ -722,7 +619,7 @@ class Client:
             stream (bool, optional): Whether to stream the response. Default is False.
 
         Returns:
-            Union[TextGenerationOutput, TextGenerationStream]: 
+            Union[TextGenerationOutput, TextGenerationStream]:
                 - If stream=False: TextGenerationOutput with chat_output, transaction_hash, finish_reason, and payment_hash
                 - If stream=True: TextGenerationStream yielding StreamChunk objects with typed deltas (true streaming via threading)
 
@@ -737,7 +634,7 @@ class Client:
 
             if stream:
                 # Use threading bridge for true sync streaming
-                return self._external_llm_chat_stream_sync(
+                return self._tee_llm_chat_stream_sync(
                     model=model_cid.split("/")[1],
                     messages=messages,
                     max_tokens=max_tokens,
@@ -746,11 +643,10 @@ class Client:
                     tools=tools,
                     tool_choice=tool_choice,
                     x402_settlement_mode=x402_settlement_mode,
-                    use_tee=True,
                 )
             else:
                 # Non-streaming
-                return self._external_llm_chat(
+                return self._tee_llm_chat(
                     model=model_cid.split("/")[1],
                     messages=messages,
                     max_tokens=max_tokens,
@@ -759,8 +655,6 @@ class Client:
                     tools=tools,
                     tool_choice=tool_choice,
                     x402_settlement_mode=x402_settlement_mode,
-                    stream=False,
-                    use_tee=True,
                 )
 
         # Original local model logic
@@ -831,7 +725,7 @@ class Client:
 
         return run_with_retry(execute_transaction, max_retries)
 
-    def _external_llm_chat(
+    def _tee_llm_chat(
         self,
         model: str,
         messages: List[Dict],
@@ -841,11 +735,9 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
-        stream: bool = False,
-        use_tee: bool = False,
-    ) -> Union[TextGenerationOutput, TextGenerationStream]:
+    ) -> TextGenerationOutput:
         """
-        Route chat request to external LLM server with x402 payments.
+        Route chat request to OpenGradient TEE LLM server with x402 payments.
 
         Args:
             model: Model identifier
@@ -855,72 +747,15 @@ class Client:
             temperature: Sampling temperature
             tools: Function calling tools
             tool_choice: Tool selection strategy
-            stream: Whether to stream the response
-            use_tee: Whether to use TEE
+            x402_settlement_mode: Settlement mode for x402 payments
 
         Returns:
-            Union[TextGenerationOutput, TextGenerationStream]: Chat completion or TextGenerationStream
+            TextGenerationOutput: Chat completion
 
         Raises:
             OpenGradientError: If request fails
         """
-        api_key = None if use_tee else self._get_api_key_for_model(model)
 
-        if api_key:
-            logging.debug("External LLM chat using API key")
-            
-            if stream:
-                url = f"{self._llm_server_url}/v1/chat/completions/stream"
-            else:
-                url = f"{self._llm_server_url}/v1/chat/completions"
-
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-
-            payload = {
-                "model": model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-
-            if stop_sequence:
-                payload["stop"] = stop_sequence
-
-            if tools:
-                payload["tools"] = tools
-                payload["tool_choice"] = tool_choice or "auto"
-
-            try:
-                if stream:
-                    # Return streaming response wrapped in TextGenerationStream
-                    response = requests.post(url, json=payload, headers=headers, timeout=60, stream=True)
-                    response.raise_for_status()
-                    return TextGenerationStream(_iterator=response.iter_lines(decode_unicode=True), _is_async=False)
-                else:
-                    # Non-streaming response
-                    response = requests.post(url, json=payload, headers=headers, timeout=60)
-                    response.raise_for_status()
-
-                    result = response.json()
-
-                    return TextGenerationOutput(
-                        transaction_hash="external", 
-                        finish_reason=result.get("finish_reason"), 
-                        chat_output=result.get("message")
-                    )
-
-            except requests.RequestException as e:
-                error_msg = f"External LLM chat failed: {str(e)}"
-                if hasattr(e, "response") and e.response is not None:
-                    try:
-                        error_detail = e.response.json()
-                        error_msg += f" - {error_detail}"
-                    except:
-                        error_msg += f" - {e.response.text}"
-                logging.error(error_msg)
-                raise OpenGradientError(error_msg)
-
-        # x402 payment path - non-streaming only here
         async def make_request():
             # Security Fix: verify=True enabled
             async with x402HttpxClient(
@@ -974,7 +809,7 @@ class Client:
                     )
 
                 except Exception as e:
-                    error_msg = f"External LLM chat request failed: {str(e)}"
+                    error_msg = f"TEE LLM chat request failed: {str(e)}"
                     logging.error(error_msg)
                     raise OpenGradientError(error_msg)
 
@@ -982,7 +817,7 @@ class Client:
             # Run the async function in a sync context
             return asyncio.run(make_request())
         except Exception as e:
-            error_msg = f"External LLM chat failed: {str(e)}"
+            error_msg = f"TEE LLM chat failed: {str(e)}"
             if hasattr(e, "response") and e.response is not None:
                 try:
                     error_detail = e.response.json()
@@ -992,7 +827,7 @@ class Client:
             logging.error(error_msg)
             raise OpenGradientError(error_msg)
 
-    def _external_llm_chat_stream_sync(
+    def _tee_llm_chat_stream_sync(
         self,
         model: str,
         messages: List[Dict],
@@ -1002,11 +837,10 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
-        use_tee: bool = False,
     ):
         """
         Sync streaming using threading bridge - TRUE real-time streaming.
-        
+
         Yields StreamChunk objects as they arrive from the background thread.
         NO buffering, NO conversion, just direct pass-through.
         """
@@ -1025,7 +859,7 @@ class Client:
 
                 async def _stream():
                     try:
-                        async for chunk in self._external_llm_chat_stream_async(
+                        async for chunk in self._tee_llm_chat_stream_async(
                             model=model,
                             messages=messages,
                             max_tokens=max_tokens,
@@ -1034,7 +868,6 @@ class Client:
                             tools=tools,
                             tool_choice=tool_choice,
                             x402_settlement_mode=x402_settlement_mode,
-                            use_tee=use_tee,
                         ):
                             queue.put(chunk)  # Put chunk immediately
                     except Exception as e:
@@ -1078,8 +911,7 @@ class Client:
             thread.join(timeout=1)
             raise
 
-
-    async def _external_llm_chat_stream_async(
+    async def _tee_llm_chat_stream_async(
         self,
         model: str,
         messages: List[Dict],
@@ -1089,21 +921,26 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
-        use_tee: bool = False,
     ):
         """
-        Internal async streaming implementation.
-        
+        Internal async streaming implementation for TEE LLM with x402 payments.
+
         Yields StreamChunk objects as they arrive from the server.
         """
-        api_key = None if use_tee else self._get_api_key_for_model(model)
-
-        if api_key:
-            # API key path - streaming to local llm-server
-            url = f"{self._og_llm_streaming_server_url}/v1/chat/completions"
+        async with httpx.AsyncClient(
+            base_url=self._og_llm_streaming_server_url,
+            headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
+            timeout=TIMEOUT,
+            limits=LIMITS,
+            http2=False,
+            follow_redirects=False,
+            auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
+            verify=True,
+        ) as client:
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
+                "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                "X-SETTLEMENT-TYPE": x402_settlement_mode,
             }
 
             payload = {
@@ -1120,110 +957,43 @@ class Client:
                 payload["tools"] = tools
                 payload["tool_choice"] = tool_choice or "auto"
 
-            # Security Fix: verify=True enabled
-            async with httpx.AsyncClient(verify=True, timeout=None) as client:
-                async with client.stream("POST", url, json=payload, headers=headers) as response:
-                    buffer = b""
-                    async for chunk in response.aiter_raw():
-                        if not chunk:
+            async with client.stream(
+                "POST",
+                "/v1/chat/completions",
+                json=payload,
+                headers=headers,
+            ) as response:
+                buffer = b""
+                async for chunk in response.aiter_raw():
+                    if not chunk:
+                        continue
+
+                    buffer += chunk
+
+                    # Process complete lines from buffer
+                    while b"\n" in buffer:
+                        line_bytes, buffer = buffer.split(b"\n", 1)
+
+                        if not line_bytes.strip():
                             continue
-                        
-                        buffer += chunk
 
-                        # Process all complete lines in buffer
-                        while b"\n" in buffer:
-                            line_bytes, buffer = buffer.split(b"\n", 1)
-                            
-                            if not line_bytes.strip():
-                                continue
-                            
-                            try:
-                                line = line_bytes.decode('utf-8').strip()
-                            except UnicodeDecodeError:
-                                continue
-
-                            if not line.startswith("data: "):
-                                continue
-
-                            data_str = line[6:]  # Strip "data: " prefix
-                            if data_str.strip() == "[DONE]":
-                                return
-
-                            try:
-                                data = json.loads(data_str)
-                                yield StreamChunk.from_sse_data(data)
-                            except json.JSONDecodeError:
-                                continue
-        else:
-            # x402 payment path
-            # Security Fix: verify=True enabled (default for httpx, ensuring correct auth)
-            async with httpx.AsyncClient(
-                base_url=self._og_llm_streaming_server_url,
-                headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
-                timeout=TIMEOUT,
-                limits=LIMITS,
-                http2=False,
-                follow_redirects=False,
-                auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
-                verify=True, 
-            ) as client:
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
-                }
-
-                payload = {
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                    "stream": True,
-                }
-
-                if stop_sequence:
-                    payload["stop"] = stop_sequence
-                if tools:
-                    payload["tools"] = tools
-                    payload["tool_choice"] = tool_choice or "auto"
-
-                async with client.stream(
-                    "POST",
-                    "/v1/chat/completions",
-                    json=payload,
-                    headers=headers,
-                ) as response:
-                    buffer = b""
-                    async for chunk in response.aiter_raw():
-                        if not chunk:
+                        try:
+                            line = line_bytes.decode("utf-8").strip()
+                        except UnicodeDecodeError:
                             continue
-                        
-                        buffer += chunk
 
-                        # Process complete lines from buffer
-                        while b"\n" in buffer:
-                            line_bytes, buffer = buffer.split(b"\n", 1)
-                            
-                            if not line_bytes.strip():
-                                continue
-                            
-                            try:
-                                line = line_bytes.decode('utf-8').strip()
-                            except UnicodeDecodeError:
-                                continue
+                        if not line.startswith("data: "):
+                            continue
 
-                            if not line.startswith("data: "):
-                                continue
+                        data_str = line[6:]
+                        if data_str.strip() == "[DONE]":
+                            return
 
-                            data_str = line[6:]
-                            if data_str.strip() == "[DONE]":
-                                return
-
-                            try:
-                                data = json.loads(data_str)
-                                yield StreamChunk.from_sse_data(data)
-                            except json.JSONDecodeError:
-                                continue
+                        try:
+                            data = json.loads(data_str)
+                            yield StreamChunk.from_sse_data(data)
+                        except json.JSONDecodeError:
+                            continue
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """

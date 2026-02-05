@@ -8,7 +8,6 @@ DEFAULT_SCHEDULER_ADDRESS = "0x7179724De4e7FF9271FA40C0337c7f90C0508eF6"
 DEFAULT_BLOCKCHAIN_EXPLORER = "https://explorer.opengradient.ai/tx/"
 DEFAULT_IMAGE_GEN_HOST = "imagegen.opengradient.ai"
 DEFAULT_IMAGE_GEN_PORT = 5125
-DEFAULT_LLM_SERVER_URL = "https://llm.opengradient.ai"
 DEFAULT_OPENGRADIENT_LLM_SERVER_URL = "https://llmogevm.opengradient.ai"
 DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL = "https://llmogevm.opengradient.ai"
 DEFAULT_NETWORK_FILTER = "og-evm"
