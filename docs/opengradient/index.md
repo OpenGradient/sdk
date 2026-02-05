@@ -10,258 +10,9 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 ## Submodules
 
-* [**alpha**](./alpha): Alpha Testnet features for OpenGradient SDK.
 * [**alphasense**](./alphasense): OpenGradient AlphaSense Tools
 * [**llm**](./llm): OpenGradient LLM Adapters
 * [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
-* [**x402_auth**](./x402_auth): X402 Authentication handler for httpx streaming requests.
-
-## Functions
-
-  
-
-### Create model 
-
-```python
-def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None) ‑> opengradient.types.ModelRepository
-```
-
-  
-
-  
-Create a new model repository.
-  
-
-**Arguments**
-
-* **`model_name`**: Name for the new model repository
-* **`model_desc`**: Description of the model
-* **`model_path`**: Optional path to model file to upload immediately
-
-  
-**Returns**
-
-ModelRepository: Creation response with model metadata and optional upload results
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Create version 
-
-```python
-def create_version(model_name, notes=None, is_major=False)
-```
-
-  
-
-  
-Create a new version for an existing model.
-  
-
-**Arguments**
-
-* **`model_name`**: Name of the model repository
-* **`notes`**: Optional release notes for this version
-* **`is_major`**: If True, creates a major version bump instead of minor
-
-  
-**Returns**
-
-dict: Version creation response with version metadata
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Infer 
-
-```python
-def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None) ‑> opengradient.types.InferenceResult
-```
-
-  
-
-  
-Run inference on a model.
-  
-
-**Arguments**
-
-* **`model_cid`**: CID of the model to use
-* **`inference_mode`**: Mode of inference (e.g. VANILLA)
-* **`model_input`**: Input data for the model
-* **`max_retries`**: Maximum number of retries for failed transactions
-
-  
-**Returns**
-
-InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
-    * transaction_hash (str): Blockchain hash for the transaction
-    * model_output (Dict[str, np.ndarray]): Output of the ONNX model
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Init 
-
-```python
-def init(email: str, password: str, private_key: str, rpc_url='https://ogevmdevnet.opengradient.ai', api_url='https://sdk-devnet.opengradient.ai', contract_address='0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE')
-```
-
-  
-
-  
-Initialize the OpenGradient SDK with authentication and network settings.
-  
-
-**Arguments**
-
-* **`email`**: User's email address for authentication
-* **`password`**: User's password for authentication
-* **`private_key`**: Ethereum private key for blockchain transactions
-* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to testnet
-* **`api_url`**: Optional API URL for the OpenGradient API, defaults to testnet
-* **`contract_address`**: Optional inference contract address
-  
-
-  
-
-### List files 
-
-```python
-def list_files(model_name: str, version: str) ‑> List[Dict]
-```
-
-  
-
-  
-List files in a model repository version.
-  
-
-**Arguments**
-
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string to list files from
-
-  
-**Returns**
-
-List[Dict]: List of file metadata dictionaries
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Llm chat 
-
-```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
-```
-
-  
-
-  
-Have a chat conversation with an LLM via TEE.
-  
-
-**Arguments**
-
-* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
-* **`messages`**: List of chat messages, each with 'role' and 'content'
-* **`max_tokens`**: Maximum tokens to generate
-* **`stop_sequence`**: Optional list of sequences where generation should stop
-* **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-* **`tools`**: Optional list of tools the model can use
-* **`tool_choice`**: Optional specific tool to use
-* **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
-* **`stream`**: Optional boolean to enable streaming
-
-  
-**Returns**
-
-TextGenerationOutput or TextGenerationStream
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Llm completion 
-
-```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
-```
-
-  
-
-  
-Generate text completion using an LLM via TEE.
-  
-
-**Arguments**
-
-* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
-* **`prompt`**: Text prompt for completion
-* **`max_tokens`**: Maximum tokens to generate
-* **`stop_sequence`**: Optional list of sequences where generation should stop
-* **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-* **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
-
-  
-**Returns**
-
-TextGenerationOutput: Transaction hash and generated text
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Upload 
-
-```python
-def upload(model_path, model_name, version) ‑> opengradient.types.FileUploadResult
-```
-
-  
-
-  
-Upload a model file to OpenGradient.
-  
-
-**Arguments**
-
-* **`model_path`**: Path to the model file on local filesystem
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string for this model upload
-
-  
-**Returns**
-
-FileUploadResult: Upload response containing file metadata
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
 
 ## Classes
     
@@ -310,6 +61,52 @@ Enum where members are also (and must be) ints
 * static `OPEN` - The type of the None singleton.
     
 * static `VOLUME` - The type of the None singleton.
+
+      
+    
+
+###  Client
+
+<code>class <b>Client</b>(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')</code>
+
+  
+
+  
+Initialize the OpenGradient client.
+  
+
+**Arguments**
+
+* **`private_key`**: Private key for OpenGradient transactions.
+* **`email`**: Email for Model Hub authentication. Optional.
+* **`password`**: Password for Model Hub authentication. Optional.
+* **`rpc_url`**: RPC URL for the blockchain network.
+* **`api_url`**: API URL for the OpenGradient API.
+* **`contract_address`**: Inference contract address.
+* **`og_llm_server_url`**: OpenGradient LLM server URL.
+* **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
+  
+
+#### Variables
+
+  
+    
+* static `inference  : opengradient.client.onchain_inference.Inference` - The type of the None singleton.
+    
+* static `llm  : opengradient.client.llm.LLM` - The type of the None singleton.
+    
+* static `model_hub  : opengradient.client.model_hub.ModelHub` - The type of the None singleton.
+
+  
+    
+* `alpha` - Access Alpha Testnet features.
+
+  Returns:
+    Alpha: Alpha namespace with workflow and ML model execution methods.
+
+  Example:
+    client = og.Client(...)
+    result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
 
       
     
