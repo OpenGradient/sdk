@@ -31,18 +31,9 @@ class X402Auth(httpx.Auth):
         self,
         account: typing.Any,
         max_value: typing.Optional[int] = None,
-        payment_requirements_selector: typing.Optional[
-            typing.Callable[
-                [
-                    list[PaymentRequirements],
-                    typing.Optional[str],
-                    typing.Optional[str],
-                    typing.Optional[int],
-                ],
-                PaymentRequirements,
-            ]
-        ] = None,
+        payment_requirements_selector: typing.Optional[typing.Callable] = None,
         network_filter: typing.Optional[str] = None,
+        scheme_filter: typing.Optional[str] = None,
     ):
         """
         Initialize X402Auth with an Ethereum account for signing payments.
@@ -56,22 +47,18 @@ class X402Auth(httpx.Auth):
         self.x402_client = x402Client(
             account,
             max_value=max_value,
-            payment_requirements_selector=payment_requirements_selector,  # type: ignore
+            payment_requirements_selector=payment_requirements_selector,
         )
         self.network_filter = network_filter
+        self.scheme_filter = scheme_filter
 
     async def async_auth_flow(
         self, request: httpx.Request
     ) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
         """
         Handle authentication flow for x402 payment protocol.
-
-        Args:
-            request: httpx Request object to be authenticated
-
-        Yields:
-            httpx Request object with authentication headers attached
         """
+        request.read()
         response = yield request
 
         if response.status_code == 402:
@@ -85,6 +72,10 @@ class X402Auth(httpx.Auth):
                     payment_response.accepts,
                     self.network_filter,
                 )
+                
+                if not selected_requirements:
+                    logging.error("X402Auth: No compatible payment requirements found")
+                    return
 
                 payment_header = self.x402_client.create_payment_header(
                     selected_requirements, payment_response.x402_version
@@ -95,5 +86,5 @@ class X402Auth(httpx.Auth):
                 yield request
 
             except Exception as e:
-                logging.error(f"X402Auth: Error handling payment: {e}")
+                logging.error(f"X402Auth: Error handling payment: {str(e)}")
                 return
