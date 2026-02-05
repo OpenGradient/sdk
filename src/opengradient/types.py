@@ -1,12 +1,12 @@
 import time
 from dataclasses import dataclass
-from enum import Enum, IntEnum
+from enum import Enum, IntEnum, StrEnum
 from typing import AsyncIterator, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 
 
-class x402SettlementMode(str, Enum):
+class x402SettlementMode(StrEnum):
     """
     Settlement modes for x402 payment protocol transactions.
 
