@@ -46,83 +46,6 @@ python examples/upload_model.py
 
 **Note:** Requires Model Hub credentials (`OG_MODEL_HUB_EMAIL` and `OG_MODEL_HUB_PASSWORD`).
 
-### Inference Examples
-
-#### `run_inference.py`
-Runs inference on a custom model using the OpenGradient network.
-
-```bash
-python examples/run_inference.py
-```
-
-**What it does:**
-- Executes inference on a model using its CID
-- Demonstrates passing structured input data (e.g., OHLC price data)
-- Returns model predictions along with the transaction hash
-
-**Example use case:** Running predictions on financial models, forecasting models, etc.
-
-#### `run_llm.py`
-Runs inference on a hosted LLM model.
-
-```bash
-python examples/run_llm.py
-```
-
-**What it does:**
-- Sends a chat message to a hosted LLM (e.g., Claude 3.5 Haiku)
-- Demonstrates the chat completion interface
-- Returns the LLM response and transaction hash
-
-**Example use case:** Chatbots, text generation, conversational AI.
-
-#### `run_embeddings_model.py`
-Runs inference on an embeddings model for semantic search.
-
-```bash
-python examples/run_embeddings_model.py
-```
-
-**What it does:**
-- Generates embeddings for queries and passages
-- Demonstrates multilingual embeddings models
-- Useful for semantic search, retrieval-augmented generation (RAG), etc.
-
-**Example use case:** Building search systems, RAG applications, similarity matching.
-
-## Workflow Examples
-
-Workflows enable scheduled, automated model inference with historical data integration.
-
-#### `create_workflow.py`
-Creates a new scheduled workflow for automated model inference.
-
-```bash
-python examples/create_workflow.py
-```
-
-**What it does:**
-- Defines a workflow that runs a model on a schedule
-- Configures historical data queries (e.g., cryptocurrency price data)
-- Deploys the workflow as a smart contract
-- Returns the contract address for the workflow
-
-**Example use case:** Automated trading signals, scheduled forecasting, monitoring systems.
-
-#### `use_workflow.py`
-Reads results from a deployed workflow.
-
-```bash
-python examples/use_workflow.py
-```
-
-**What it does:**
-- Retrieves the latest prediction from a workflow contract
-- Fetches historical predictions from the workflow
-- Demonstrates how to consume workflow outputs
-
-**Example use case:** Reading automated predictions, monitoring workflow performance.
-
 ## x402 LLM Examples
 
 #### `run_x402_llm.py`
@@ -137,7 +60,38 @@ python examples/run_x402_llm.py
 - Currently supports `gpt-4.1-2025-04-14` model
 - Returns payment hash instead of transaction hash
 
-**Note:** Requires `opengradient==0.5.0a3` or compatible version.
+#### `run_x402_llm_stream.py`
+Runs streaming LLM inference with x402 transaction processing.
+
+```bash
+python examples/run_x402_llm_stream.py
+```
+
+**What it does:**
+- Uses x402 protocol for payment processing with streaming responses
+- Demonstrates real-time token streaming
+- Returns chunks as they arrive from the model
+
+#### `run_x402_gemini_tools.py`
+Runs Gemini model inference with tool calling via x402.
+
+```bash
+python examples/run_x402_gemini_tools.py
+```
+
+**What it does:**
+- Demonstrates tool/function calling with Gemini models
+- Uses x402 protocol for payment processing
+
+## Alpha Testnet Examples
+
+Examples for features only available on the **Alpha Testnet** are located in the [`alpha/`](./alpha/) folder. These include:
+
+- Model inference (`run_inference.py`)
+- Embeddings models (`run_embeddings_model.py`)
+- Workflow creation and usage (`create_workflow.py`, `use_workflow.py`)
+
+See [`alpha/README.md`](./alpha/README.md) for details.
 
 ## LangChain Agent Examples
 

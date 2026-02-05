@@ -304,7 +304,7 @@ class Client:
             logging.debug(f"Headers: {headers}")
             logging.debug(f"Payload: {payload}")
 
-            response = requests.post(url, json=payload, headers=headers, allow_redirects=True)
+            response = requests.post(url, json=payload, headers=headers, allow_redirects=False)
             response.raise_for_status()
 
             json_response = response.json()
@@ -1053,6 +1053,8 @@ class Client:
                         for task in pending:
                             task.cancel()
                         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                        # Properly close async generators to avoid RuntimeWarning
+                        loop.run_until_complete(loop.shutdown_asyncgens())
                     finally:
                         loop.close()
 
