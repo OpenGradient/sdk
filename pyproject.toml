@@ -23,7 +23,6 @@ dependencies = [
     "web3>=7.3.0",
     "click>=8.1.7",
     "firebase-rest-api>=1.11.0",
-    "grpcio>=1.66.2",
     "numpy>=1.26.4",
     "requests>=2.32.3",
     "langchain>=0.3.7",
@@ -54,7 +53,6 @@ exclude = ["tests*", "stresstest*"]
 "opengradient" = [
     "abi/*.abi",
     "bin/*.bin",
-    "proto/*.proto",
     "**/*.py"
 ]
 
