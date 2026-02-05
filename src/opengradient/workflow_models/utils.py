@@ -1,9 +1,11 @@
 """Utility functions for the models module."""
 
-from .constants import BLOCK_EXPLORER_URL
-from typing import Callable, Any
-from .types import WorkflowModelOutput
+from typing import Callable
+
 import opengradient as og
+
+from .constants import BLOCK_EXPLORER_URL
+from .types import WorkflowModelOutput
 
 
 def create_block_explorer_link_smart_contract(transaction_hash: str) -> str:

@@ -9,8 +9,9 @@
 # - SETTLE_BATCH: Batch settlement for multiple inferences (most cost-efficient, default)
 # - SETTLE_METADATA: Full model info, complete input/output data, and all inference metadata
 
-import opengradient as og
 import os
+
+import opengradient as og
 
 client = og.new_client(
     email=None,

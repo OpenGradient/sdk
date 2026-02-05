@@ -4,28 +4,27 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from . import alphasense, llm
+from .alpha import _AlphaNamespace
 from .client import Client
-from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL, DEFAULT_API_URL
+from .defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import (
     LLM,
     TEE_LLM,
-    HistoricalInputQuery,
-    SchedulerParams,
-    CandleType,
     CandleOrder,
+    CandleType,
+    FileUploadResult,
+    HistoricalInputQuery,
     InferenceMode,
     InferenceResult,
     LlmInferenceMode,
-    TextGenerationOutput,
-    TextGenerationStream,
     ModelOutput,
     ModelRepository,
-    FileUploadResult,
+    SchedulerParams,
+    TextGenerationOutput,
+    TextGenerationStream,
     x402SettlementMode,
 )
-from .alpha import _AlphaNamespace
-
-from . import llm, alphasense
 
 # Module-level alpha namespace for workflow/ML execution features (Alpha Testnet only)
 alpha = _AlphaNamespace()

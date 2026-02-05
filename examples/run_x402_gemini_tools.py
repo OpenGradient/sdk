@@ -7,6 +7,7 @@ Usage:
 """
 
 import os
+
 import opengradient as og
 
 # Initialize client with Google API key

@@ -1,18 +1,15 @@
 import os
 import unittest
+from enum import Enum
 
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
-
-from opengradient.alphasense import create_read_workflow_tool, create_run_model_tool, ToolType
-from opengradient.llm import OpenGradientChatModel
-from opengradient import LLM
-from opengradient import init
-from opengradient import InferenceResult
-import opengradient as og
-
 from pydantic import BaseModel, Field
-from enum import Enum
+
+import opengradient as og
+from opengradient import LLM, InferenceResult, init
+from opengradient.alphasense import ToolType, create_read_workflow_tool, create_run_model_tool
+from opengradient.llm import OpenGradientChatModel
 
 
 class TestLLM(unittest.TestCase):

@@ -1,13 +1,13 @@
-from enum import Enum
-from typing import Any, Callable, List, Dict, Type, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
+import numpy as np
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
 import opengradient as og
-from .types import ToolType
 from opengradient import InferenceResult
-import numpy as np
+
+from .types import ToolType
 
 
 def create_run_model_tool(

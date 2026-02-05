@@ -3,24 +3,24 @@
 import ast
 import json
 import logging
+import sys
 import webbrowser
 from pathlib import Path
 from typing import Dict, List, Optional
-import sys
 
 import click
 
 from .account import EthAccount, generate_eth_account
 from .client import Client
 from .defaults import (
+    DEFAULT_API_URL,
     DEFAULT_BLOCKCHAIN_EXPLORER,
     DEFAULT_HUB_SIGNUP_URL,
     DEFAULT_INFERENCE_CONTRACT_ADDRESS,
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
-    DEFAULT_API_URL,
 )
-from .types import InferenceMode, LlmInferenceMode, LLM, TEE_LLM, x402SettlementMode
+from .types import InferenceMode, LlmInferenceMode, x402SettlementMode
 
 OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 

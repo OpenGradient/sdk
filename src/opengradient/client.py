@@ -1,49 +1,45 @@
+import asyncio
+import base64
 import json
 import logging
 import os
 import time
-import base64
+import urllib.parse
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Callable, Dict, List, Optional, Union
 
 import firebase
+import httpx
 import numpy as np
 import requests
-import httpx
 from eth_account.account import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
-import urllib.parse
-import asyncio
+from x402.clients.base import x402Client
 from x402.clients.httpx import x402HttpxClient
-from x402.clients.base import decode_x_payment_response, x402Client
 
-from .x402_auth import X402Auth
+from .defaults import (
+    DEFAULT_NETWORK_FILTER,
+    DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
+    DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
+)
 from .exceptions import OpenGradientError
 from .types import (
     LLM,
     TEE_LLM,
-    x402SettlementMode,
-    HistoricalInputQuery,
+    FileUploadResult,
     InferenceMode,
+    InferenceResult,
     LlmInferenceMode,
-    ModelOutput,
+    ModelRepository,
+    StreamChunk,
     TextGenerationOutput,
     TextGenerationStream,
-    SchedulerParams,
-    InferenceResult,
-    ModelRepository,
-    FileUploadResult,
-    StreamChunk,
-)
-from .defaults import (
-    DEFAULT_SCHEDULER_ADDRESS,
-    DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
-    DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
-    DEFAULT_NETWORK_FILTER,
+    x402SettlementMode,
 )
 from .utils import convert_to_model_input, convert_to_model_output
+from .x402_auth import X402Auth
 
 # Security Update: Credentials moved to environment variables
 _FIREBASE_CONFIG = {
@@ -904,7 +900,7 @@ class Client:
 
             if exception_holder:
                 raise exception_holder[0]
-        except Exception as e:
+        except Exception:
             thread.join(timeout=1)
             raise
 

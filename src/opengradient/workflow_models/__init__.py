@@ -2,8 +2,8 @@
 OpenGradient Hardcoded Models
 """
 
-from .workflow_models import *
 from .types import WorkflowModelOutput
+from .workflow_models import *
 
 __all__ = [
     "read_eth_usdt_one_hour_volatility_forecast",

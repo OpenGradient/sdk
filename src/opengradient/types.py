@@ -1,7 +1,8 @@
 import time
 from dataclasses import dataclass
 from enum import Enum, IntEnum, StrEnum
-from typing import Dict, List, Optional, Tuple, Union, DefaultDict, Iterator, AsyncIterator
+from typing import AsyncIterator, Dict, Iterator, List, Optional, Tuple, Union
+
 import numpy as np
 
 

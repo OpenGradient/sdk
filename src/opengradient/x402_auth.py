@@ -5,12 +5,12 @@ This module provides an httpx Auth class that handles x402 payment protocol
 authentication for streaming responses.
 """
 
-import httpx
-import typing
 import logging
+import typing
 
+import httpx
 from x402.clients.base import x402Client
-from x402.types import x402PaymentRequiredResponse, PaymentRequirements
+from x402.types import PaymentRequirements, x402PaymentRequiredResponse
 
 
 class X402Auth(httpx.Auth):

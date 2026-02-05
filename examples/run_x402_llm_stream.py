@@ -1,5 +1,6 @@
-import opengradient as og
 import os
+
+import opengradient as og
 
 client = og.new_client(
     email=None,
