@@ -49,7 +49,7 @@ def new_client(
         email: User's email address for authentication with Model Hub
         password: User's password for authentication with Model Hub
         private_key: Private key for OpenGradient transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to devnet
+        rpc_url: Optional RPC URL for the blockchain network, defaults to testnet
         contract_address: Optional inference contract address
     """
 
@@ -78,8 +78,8 @@ def init(
         email: User's email address for authentication
         password: User's password for authentication
         private_key: Ethereum private key for blockchain transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to devnet
-        api_url: Optional API URL for the OpenGradient API, defaults to devnet
+        rpc_url: Optional RPC URL for the blockchain network, defaults to testnet
+        api_url: Optional API URL for the OpenGradient API, defaults to testnet
         contract_address: Optional inference contract address
     """
     global _client
