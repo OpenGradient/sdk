@@ -17,6 +17,7 @@ stream = client.llm_chat(
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
     stream=True,
+    max_tokens=1000,
 )
 
 for chunk in stream:

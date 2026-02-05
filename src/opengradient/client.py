@@ -1053,6 +1053,8 @@ class Client:
                         for task in pending:
                             task.cancel()
                         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                        # Properly close async generators to avoid RuntimeWarning
+                        loop.run_until_complete(loop.shutdown_asyncgens())
                     finally:
                         loop.close()
 
