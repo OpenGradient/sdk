@@ -31,10 +31,13 @@ docs:
 # Testing
 # ============================================================================
 
-test: utils_test integrationtest
+test: utils_test client_test 
 
 utils_test:
 	pytest tests/utils_test.py -v
+
+client_test:
+	pytest tests/client_test.py -v
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
@@ -83,5 +86,5 @@ chat-tool:
 		--max-tokens 100 \
 		--stream
 
-.PHONY: install build publish check docs test utils_test integrationtest examples \
+.PHONY: install build publish check docs test utils_test client_test integrationtest examples \
 	infer completion chat chat-stream chat-tool
