@@ -176,7 +176,7 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
 
 
 def llm_completion(
-    model_cid: LLM,
+    model: TEE_LLM,
     prompt: str,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
@@ -202,7 +202,7 @@ def llm_completion(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_completion(
-        model_cid=model_cid,
+        model=model,
         prompt=prompt,
         max_tokens=max_tokens,
         stop_sequence=stop_sequence,
@@ -212,7 +212,7 @@ def llm_completion(
 
 
 def llm_chat(
-    model_cid: LLM,
+    model: TEE_LLM,
     messages: List[Dict],
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
@@ -244,7 +244,7 @@ def llm_chat(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_chat(
-        model_cid=model_cid,
+        model=model,
         messages=messages,
         max_tokens=max_tokens,
         stop_sequence=stop_sequence,
