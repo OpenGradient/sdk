@@ -26,7 +26,6 @@ from .defaults import (
 )
 from .exceptions import OpenGradientError
 from .types import (
-    LLM,
     TEE_LLM,
     FileUploadResult,
     InferenceMode,
