@@ -5,7 +5,6 @@ from typing import List
 from openai.types.chat import ChatCompletion
 
 from opengradient.client import Client
-from opengradient.defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from opengradient.types import LLM
 
 

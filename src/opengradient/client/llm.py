@@ -3,13 +3,13 @@ import json
 from typing import Dict, List, Optional, Union
 
 import httpx
+from eth_account.account import LocalAccount
 from x402.clients.base import x402Client
 from x402.clients.httpx import x402HttpxClient
 
 from ..defaults import (
     DEFAULT_NETWORK_FILTER,
 )
-from .exceptions import OpenGradientError
 from ..types import (
     TEE_LLM,
     StreamChunk,
@@ -17,9 +17,8 @@ from ..types import (
     TextGenerationStream,
     x402SettlementMode,
 )
+from .exceptions import OpenGradientError
 from .x402_auth import X402Auth
-
-from eth_account.account import LocalAccount
 
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"

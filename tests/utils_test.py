@@ -9,8 +9,8 @@ import pytest
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 # Import from src/opengradient
-import src.opengradient.types as types
 import src.opengradient.client._conversions as utils
+import src.opengradient.types as types
 
 
 @pytest.fixture

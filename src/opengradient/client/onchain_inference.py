@@ -10,10 +10,10 @@ from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
-from .exceptions import OpenGradientError
 from ..types import InferenceMode, InferenceResult
 from ._conversions import convert_to_model_input, convert_to_model_output
 from ._utils import get_abi, run_with_retry
+from .exceptions import OpenGradientError
 
 # How much time we wait for inference txn to be included in chain
 INFERENCE_TX_TIMEOUT = 120
