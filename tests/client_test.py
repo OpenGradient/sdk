@@ -8,14 +8,12 @@ import pytest
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.opengradient.client import Client
-from src.opengradient.exceptions import OpenGradientError
 from src.opengradient.types import (
-    StreamChunk,
     TEE_LLM,
+    StreamChunk,
     TextGenerationOutput,
     x402SettlementMode,
 )
-
 
 # --- Fixtures ---
 
@@ -23,7 +21,7 @@ from src.opengradient.types import (
 @pytest.fixture
 def mock_web3():
     """Create a mock Web3 instance."""
-    with patch("src.opengradient.client.Web3") as mock:
+    with patch("src.opengradient.client.client.Web3") as mock:
         mock_instance = MagicMock()
         mock.return_value = mock_instance
         mock.HTTPProvider.return_value = MagicMock()
@@ -83,7 +81,8 @@ class TestClientInitialization:
 
     def test_client_initialization_with_auth(self, mock_web3, mock_abi_files):
         """Test client initialization with email/password authentication."""
-        with patch("src.opengradient.client.firebase") as mock_firebase:
+        with patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}), \
+             patch("src.opengradient.client.model_hub.firebase") as mock_firebase:
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.return_value = {
                 "idToken": "test_token",
@@ -154,7 +153,8 @@ class TestAlphaProperty:
 class TestAuthentication:
     def test_login_to_hub_success(self, mock_web3, mock_abi_files):
         """Test successful login to hub."""
-        with patch("src.opengradient.client.firebase") as mock_firebase:
+        with patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}), \
+             patch("src.opengradient.client.model_hub.firebase") as mock_firebase:
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.return_value = {
                 "idToken": "success_token",
@@ -176,7 +176,8 @@ class TestAuthentication:
 
     def test_login_to_hub_failure(self, mock_web3, mock_abi_files):
         """Test login failure raises exception."""
-        with patch("src.opengradient.client.firebase") as mock_firebase:
+        with patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}), \
+             patch("src.opengradient.client.model_hub.firebase") as mock_firebase:
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.side_effect = Exception("Invalid credentials")
             mock_firebase.initialize_app.return_value.auth.return_value = mock_auth
