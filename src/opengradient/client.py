@@ -304,7 +304,7 @@ class Client:
             logging.debug(f"Headers: {headers}")
             logging.debug(f"Payload: {payload}")
 
-            response = requests.post(url, json=payload, headers=headers, allow_redirects=True)
+            response = requests.post(url, json=payload, headers=headers, allow_redirects=False)
             response.raise_for_status()
 
             json_response = response.json()
