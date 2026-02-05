@@ -185,17 +185,11 @@ class Client:
     def _is_local_model(self, model_cid: str) -> bool:
         """
         Check if a model is hosted locally on OpenGradient.
-
-        Args:
-            model_cid: Model identifier
-
-        Returns:
-            True if model is local, False if it should use external provider
         """
         # Check if it's in our local LLM enum
         try:
             return model_cid in [llm.value for llm in LLM]
-        except:
+        except (AttributeError, TypeError, ValueError):
             return False
 
     def _get_provider_from_model(self, model: str) -> str:
@@ -672,8 +666,18 @@ class Client:
                     raise OpenGradientError(error_msg)
 
         try:
-            # Run the async function in a sync context
-            return asyncio.run(make_request())
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            if loop.is_running():
+                logging.debug("Existing event loop detected. Applying nest_asyncio.")
+                import nest_asyncio
+                nest_asyncio.apply()
+            
+            return loop.run_until_complete(make_request())
         except Exception as e:
             error_msg = f"External LLM completion failed: {str(e)}"
             if hasattr(e, "response") and e.response is not None:
