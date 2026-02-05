@@ -11,6 +11,7 @@ from src.opengradient.client import Client
 from src.opengradient.exceptions import OpenGradientError
 from src.opengradient.types import (
     StreamChunk,
+    TEE_LLM,
     TextGenerationOutput,
     x402SettlementMode,
 )
@@ -201,14 +202,6 @@ class TestAuthentication:
 
 
 class TestLLMCompletion:
-    def test_llm_completion_unsupported_model(self, client):
-        """Test that unsupported models raise error."""
-        with pytest.raises(OpenGradientError, match="not supported"):
-            client.llm_completion(
-                model_cid="unsupported/model",
-                prompt="Hello",
-            )
-
     def test_llm_completion_success(self, client):
         """Test successful LLM completion."""
         with patch.object(client, "_tee_llm_completion") as mock_tee:
@@ -219,7 +212,7 @@ class TestLLMCompletion:
             )
 
             result = client.llm_completion(
-                model_cid="openai/gpt-4o",
+                model=TEE_LLM.GPT_4O,
                 prompt="Hello",
                 max_tokens=100,
             )
@@ -229,14 +222,6 @@ class TestLLMCompletion:
 
 
 class TestLLMChat:
-    def test_llm_chat_unsupported_model(self, client):
-        """Test that unsupported models raise error."""
-        with pytest.raises(OpenGradientError, match="not supported"):
-            client.llm_chat(
-                model_cid="unsupported/model",
-                messages=[{"role": "user", "content": "Hello"}],
-            )
-
     def test_llm_chat_success_non_streaming(self, client):
         """Test successful non-streaming LLM chat."""
         with patch.object(client, "_tee_llm_chat") as mock_tee:
@@ -248,7 +233,7 @@ class TestLLMChat:
             )
 
             result = client.llm_chat(
-                model_cid="openai/gpt-4o",
+                model=TEE_LLM.GPT_4O,
                 messages=[{"role": "user", "content": "Hello"}],
                 stream=False,
             )
@@ -266,7 +251,7 @@ class TestLLMChat:
             mock_stream.return_value = iter(mock_chunks)
 
             result = client.llm_chat(
-                model_cid="openai/gpt-4o",
+                model=TEE_LLM.GPT_4O,
                 messages=[{"role": "user", "content": "Hello"}],
                 stream=True,
             )

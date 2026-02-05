@@ -399,7 +399,7 @@ class Client:
 
     def llm_completion(
         self,
-        model_cid: str,
+        model: TEE_LLM,
         prompt: str,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
@@ -410,7 +410,7 @@ class Client:
         Perform inference on an LLM model using completions via TEE.
 
         Args:
-            model_cid (str): The unique content identifier for the model (e.g., 'anthropic/claude-3.5-haiku').
+            model (TEE_LLM): The model to use (e.g., TEE_LLM.CLAUDE_3_5_HAIKU).
             prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
@@ -430,11 +430,8 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        if model_cid not in TEE_LLM:
-            raise OpenGradientError("That model CID is not supported yet for TEE inference")
-
         return self._tee_llm_completion(
-            model=model_cid.split("/")[1],
+            model=model.split("/")[1],
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=stop_sequence,
@@ -529,7 +526,7 @@ class Client:
 
     def llm_chat(
         self,
-        model_cid: str,
+        model: TEE_LLM,
         messages: List[Dict],
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
@@ -543,7 +540,7 @@ class Client:
         Perform inference on an LLM model using chat via TEE.
 
         Args:
-            model_cid (str): The unique content identifier for the model (e.g., 'anthropic/claude-3.5-haiku').
+            model (TEE_LLM): The model to use (e.g., TEE_LLM.CLAUDE_3_5_HAIKU).
             messages (List[Dict]): The messages that will be passed into the chat.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM.
@@ -565,13 +562,10 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        if model_cid not in TEE_LLM:
-            raise OpenGradientError("That model CID is not supported yet for TEE inference")
-
         if stream:
             # Use threading bridge for true sync streaming
             return self._tee_llm_chat_stream_sync(
-                model=model_cid.split("/")[1],
+                model=model.split("/")[1],
                 messages=messages,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
@@ -583,7 +577,7 @@ class Client:
         else:
             # Non-streaming
             return self._tee_llm_chat(
-                model=model_cid.split("/")[1],
+                model=model.split("/")[1],
                 messages=messages,
                 max_tokens=max_tokens,
                 stop_sequence=stop_sequence,
