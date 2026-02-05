@@ -5,7 +5,7 @@ from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
 import opengradient as og
-from opengradient import InferenceResult
+from opengradient.types import InferenceMode, InferenceResult
 
 from .types import ToolType
 
@@ -18,7 +18,7 @@ def create_run_model_tool(
     model_output_formatter: Callable[[InferenceResult], str],
     tool_input_schema: Optional[Type[BaseModel]] = None,
     tool_description: str = "Executes the given ML model",
-    inference_mode: og.InferenceMode = og.InferenceMode.VANILLA,
+    inference_mode: InferenceMode = InferenceMode.VANILLA,
 ) -> BaseTool | Callable:
     """
     Creates a tool that wraps an OpenGradient model for inference.

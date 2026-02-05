@@ -20,8 +20,9 @@ from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from typing_extensions import override
 
-from opengradient import LLM, Client, LlmInferenceMode
+from opengradient.client import Client
 from opengradient.defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
+from opengradient.types import LLM, LlmInferenceMode
 
 
 class OpenGradientChatModel(BaseChatModel):

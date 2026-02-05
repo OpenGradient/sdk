@@ -4,19 +4,20 @@ from typing import List
 
 from openai.types.chat import ChatCompletion
 
-import opengradient as og
+from opengradient.client import Client
 from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
+from opengradient.types import LLM, LlmInferenceMode
 
 
 class OGCompletions(object):
-    client: og.Client
+    client: Client
 
-    def __init__(self, client: og.Client):
+    def __init__(self, client: Client):
         self.client = client
 
     def create(
         self,
-        model: og.LLM,
+        model: LLM,
         messages: List[object],
         tools: List[object],
         tool_choice: str,
@@ -33,7 +34,7 @@ class OGCompletions(object):
             tools=tools,
             tool_choice=tool_choice,
             temperature=0.25,
-            inference_mode=og.LlmInferenceMode.VANILLA,
+            inference_mode=LlmInferenceMode.VANILLA,
         )
         finish_reason = chat_output.finish_reason
         chat_completion = chat_output.chat_output
@@ -98,18 +99,18 @@ class OGCompletions(object):
 class OGChat(object):
     completions: OGCompletions
 
-    def __init__(self, client: og.Client):
+    def __init__(self, client: Client):
         self.completions = OGCompletions(client)
 
 
 class OpenGradientOpenAIClient(object):
     """OpenAI client implementation"""
 
-    client: og.Client
+    client: Client
     chat: OGChat
 
     def __init__(self, private_key: str):
-        self.client = og.Client(
+        self.client = Client(
             private_key=private_key, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
         )
         self.chat = OGChat(self.client)
