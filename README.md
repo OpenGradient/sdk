@@ -63,9 +63,8 @@ og_client = og.new_client(
 #### LLM Chat
 ```python
 completion = og_client.llm_chat(
-    model_cid=og.TEE_LLM.GPT_4O,
+    model=og.TEE_LLM.GPT_4O,
     messages=[{"role": "user", "content": "Hello!"}],
-    inference_mode=og.LlmInferenceMode.TEE,
 )
 print(f"Response: {completion.chat_output['content']}")
 print(f"Tx hash: {completion.transaction_hash}")
@@ -88,9 +87,8 @@ OpenGradient supports secure, verifiable inference through TEE for leading LLM p
 ```python
 # Use TEE mode for verifiable AI execution
 completion = og_client.llm_chat(
-    model_cid=og.TEE_LLM.CLAUDE_3_7_SONNET,
+    model=og.TEE_LLM.CLAUDE_3_7_SONNET,
     messages=[{"role": "user", "content": "Your message here"}],
-    inference_mode=og.LlmInferenceMode.TEE,
 )
 print(f"Response: {completion.chat_output['content']}")
 ```
