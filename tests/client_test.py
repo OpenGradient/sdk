@@ -28,9 +28,7 @@ def mock_web3():
         mock.return_value = mock_instance
         mock.HTTPProvider.return_value = MagicMock()
 
-        mock_instance.eth.account.from_key.return_value = MagicMock(
-            address="0x1234567890abcdef1234567890abcdef12345678"
-        )
+        mock_instance.eth.account.from_key.return_value = MagicMock(address="0x1234567890abcdef1234567890abcdef12345678")
         mock_instance.eth.get_transaction_count.return_value = 0
         mock_instance.eth.gas_price = 1000000000
         mock_instance.eth.contract.return_value = MagicMock()
@@ -173,18 +171,14 @@ class TestAuthentication:
                 password="password123",
             )
 
-            mock_auth.sign_in_with_email_and_password.assert_called_once_with(
-                "user@test.com", "password123"
-            )
+            mock_auth.sign_in_with_email_and_password.assert_called_once_with("user@test.com", "password123")
             assert client._hub_user["idToken"] == "success_token"
 
     def test_login_to_hub_failure(self, mock_web3, mock_abi_files):
         """Test login failure raises exception."""
         with patch("src.opengradient.client.firebase") as mock_firebase:
             mock_auth = MagicMock()
-            mock_auth.sign_in_with_email_and_password.side_effect = Exception(
-                "Invalid credentials"
-            )
+            mock_auth.sign_in_with_email_and_password.side_effect = Exception("Invalid credentials")
             mock_firebase.initialize_app.return_value.auth.return_value = mock_auth
 
             with pytest.raises(Exception, match="Invalid credentials"):
@@ -336,7 +330,4 @@ class TestX402SettlementMode:
     def test_settlement_mode_aliases(self):
         """Test settlement mode aliases."""
         assert x402SettlementMode.SETTLE_INDIVIDUAL == x402SettlementMode.SETTLE
-        assert (
-            x402SettlementMode.SETTLE_INDIVIDUAL_WITH_METADATA
-            == x402SettlementMode.SETTLE_METADATA
-        )
+        assert x402SettlementMode.SETTLE_INDIVIDUAL_WITH_METADATA == x402SettlementMode.SETTLE_METADATA

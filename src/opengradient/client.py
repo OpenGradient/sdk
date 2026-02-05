@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import json
-import logging
 import os
 import time
 import urllib.parse
@@ -150,16 +149,11 @@ class Client:
         return self._alpha
 
     def _login_to_hub(self, email, password):
-        try:
-            # Check if API Key is present in environment
-            if not _FIREBASE_CONFIG.get("apiKey"):
-                logging.warning("Firebase API Key is missing in environment variables. Authentication may fail.")
+        if not _FIREBASE_CONFIG.get("apiKey"):
+            raise ValueError("Firebase API Key is missing in environment variables")
 
-            firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
-            return firebase_app.auth().sign_in_with_email_and_password(email, password)
-        except Exception as e:
-            logging.error(f"Authentication failed: {str(e)}")
-            raise
+        firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
+        return firebase_app.auth().sign_in_with_email_and_password(email, password)
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> ModelRepository:
         """
@@ -223,40 +217,24 @@ class Client:
         payload = {"notes": notes, "is_major": is_major}
 
         try:
-            logging.debug(f"Create Version URL: {url}")
-            logging.debug(f"Headers: {headers}")
-            logging.debug(f"Payload: {payload}")
-
             response = requests.post(url, json=payload, headers=headers, allow_redirects=False)
             response.raise_for_status()
 
             json_response = response.json()
 
-            logging.debug(f"Full server response: {json_response}")
-
             if isinstance(json_response, list) and not json_response:
-                logging.info("Server returned an empty list. Assuming version was created successfully.")
                 return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
                 version_string = json_response.get("versionString")
                 if not version_string:
-                    logging.warning(f"'versionString' not found in response. Response: {json_response}")
                     return {"versionString": "Unknown", "note": "Version ID not provided in response"}
-                logging.info(f"Version creation successful. Version ID: {version_string}")
                 return {"versionString": version_string}
             else:
-                logging.error(f"Unexpected response type: {type(json_response)}. Content: {json_response}")
                 raise Exception(f"Unexpected response type: {type(json_response)}")
 
         except requests.RequestException as e:
-            logging.error(f"Version creation failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response headers: {e.response.headers}")
-                logging.error(f"Response content: {e.response.text}")
             raise Exception(f"Version creation failed: {str(e)}")
-        except Exception as e:
-            logging.error(f"Unexpected error during version creation: {str(e)}")
+        except Exception:
             raise
 
     def upload(self, model_path: str, model_name: str, version: str) -> FileUploadResult:
@@ -274,7 +252,7 @@ class Client:
         Raises:
             OpenGradientError: If the upload fails.
         """
-        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
+        from requests_toolbelt import MultipartEncoder
 
         if not self._hub_user:
             raise ValueError("User not authenticated")
@@ -285,55 +263,30 @@ class Client:
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
         headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
-        logging.info(f"Starting upload for file: {model_path}")
-        logging.info(f"File size: {os.path.getsize(model_path)} bytes")
-        logging.debug(f"Upload URL: {url}")
-        logging.debug(f"Headers: {headers}")
-
-        def create_callback(encoder):
-            encoder_len = encoder.len
-
-            def callback(monitor):
-                progress = (monitor.bytes_read / encoder_len) * 100
-                logging.info(f"Upload progress: {progress:.2f}%")
-
-            return callback
-
         try:
             with open(model_path, "rb") as file:
                 encoder = MultipartEncoder(fields={"file": (os.path.basename(model_path), file, "application/octet-stream")})
-                monitor = MultipartEncoderMonitor(encoder, create_callback(encoder))
-                headers["Content-Type"] = monitor.content_type
+                headers["Content-Type"] = encoder.content_type
 
-                logging.info("Sending POST request...")
-                response = requests.post(url, data=monitor, headers=headers, timeout=3600)  # 1 hour timeout
-
-                logging.info(f"Response received. Status code: {response.status_code}")
-                logging.info(f"Full response content: {response.text}")  # Log the full response content
+                response = requests.post(url, data=encoder, headers=headers, timeout=3600)
 
                 if response.status_code == 201:
                     if response.content and response.content != b"null":
                         json_response = response.json()
                         return FileUploadResult(json_response.get("ipfsCid"), json_response.get("size"))
                     else:
-                        raise RuntimeError("Empty or null response content received. Assuming upload was successful.")
+                        raise RuntimeError("Empty or null response content received")
                 elif response.status_code == 500:
-                    error_message = "Internal server error occurred. Please try again later or contact support."
-                    logging.error(error_message)
-                    raise OpenGradientError(error_message, status_code=500)
+                    raise OpenGradientError("Internal server error occurred", status_code=500)
                 else:
                     error_message = response.json().get("detail", "Unknown error occurred")
-                    logging.error(f"Upload failed with status code {response.status_code}: {error_message}")
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
         except requests.RequestException as e:
-            logging.error(f"Request exception during upload: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}")
+            raise OpenGradientError(f"Upload failed: {str(e)}")
+        except OpenGradientError:
+            raise
         except Exception as e:
-            logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
 
     def infer(
@@ -506,23 +459,14 @@ class Client:
                     )
 
                 except Exception as e:
-                    error_msg = f"TEE LLM completion request failed: {str(e)}"
-                    logging.error(error_msg)
-                    raise OpenGradientError(error_msg)
+                    raise OpenGradientError(f"TEE LLM completion request failed: {str(e)}")
 
         try:
-            # Run the async function in a sync context
             return asyncio.run(make_request())
+        except OpenGradientError:
+            raise
         except Exception as e:
-            error_msg = f"TEE LLM completion failed: {str(e)}"
-            if hasattr(e, "response") and e.response is not None:
-                try:
-                    error_detail = e.response.json()
-                    error_msg += f" - {error_detail}"
-                except:
-                    error_msg += f" - {e.response.text}"
-            logging.error(error_msg)
-            raise OpenGradientError(error_msg)
+            raise OpenGradientError(f"TEE LLM completion failed: {str(e)}")
 
     def llm_chat(
         self,
@@ -671,23 +615,14 @@ class Client:
                     )
 
                 except Exception as e:
-                    error_msg = f"TEE LLM chat request failed: {str(e)}"
-                    logging.error(error_msg)
-                    raise OpenGradientError(error_msg)
+                    raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
 
         try:
-            # Run the async function in a sync context
             return asyncio.run(make_request())
+        except OpenGradientError:
+            raise
         except Exception as e:
-            error_msg = f"TEE LLM chat failed: {str(e)}"
-            if hasattr(e, "response") and e.response is not None:
-                try:
-                    error_detail = e.response.json()
-                    error_msg += f" - {error_detail}"
-                except:
-                    error_msg += f" - {e.response.text}"
-            logging.error(error_msg)
-            raise OpenGradientError(error_msg)
+            raise OpenGradientError(f"TEE LLM chat failed: {str(e)}")
 
     def _tee_llm_chat_stream_sync(
         self,
@@ -877,26 +812,14 @@ class Client:
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
         headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
-        logging.debug(f"List Files URL: {url}")
-        logging.debug(f"Headers: {headers}")
-
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
-
-            json_response = response.json()
-            logging.info(f"File listing successful. Number of files: {len(json_response)}")
-
-            return json_response
+            return response.json()
 
         except requests.RequestException as e:
-            logging.error(f"File listing failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
             raise OpenGradientError(f"File listing failed: {str(e)}")
         except Exception as e:
-            logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
 
     def _get_abi(self, abi_name) -> str:
@@ -1033,17 +956,13 @@ class Client:
                     return None
 
             else:
-                error_message = f"Failed to get inference result: HTTP {response.status_code}"
-                if response.text:
-                    error_message += f" - {response.text}"
-                logging.error(error_message)
-                raise OpenGradientError(error_message)
+                raise OpenGradientError(f"Failed to get inference result: HTTP {response.status_code}")
 
         except requests.RequestException as e:
-            logging.error(f"Request exception when getting inference result: {str(e)}")
             raise OpenGradientError(f"Failed to get inference result: {str(e)}")
+        except OpenGradientError:
+            raise
         except Exception as e:
-            logging.error(f"Unexpected error when getting inference result: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Failed to get inference result: {str(e)}")
 
 
