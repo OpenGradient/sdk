@@ -163,10 +163,10 @@ All examples use a similar pattern to initialize the OpenGradient client:
 import os
 import opengradient as og
 
-og_client = og.new_client(
+og_client = og.Client(
+    private_key=os.environ.get("OG_PRIVATE_KEY"),
     email=os.environ.get("OG_MODEL_HUB_EMAIL"),
     password=os.environ.get("OG_MODEL_HUB_PASSWORD"),
-    private_key=os.environ.get("OG_PRIVATE_KEY")
 )
 ```
 
@@ -175,7 +175,7 @@ og_client = og.new_client(
 Basic inference pattern:
 
 ```python
-result = og_client.infer(
+result = og_client.inference.infer(
     model_cid="your-model-cid",
     model_input={"input_key": "input_value"},
     inference_mode=og.InferenceMode.VANILLA
@@ -189,7 +189,7 @@ print(f"Tx hash: {result.transaction_hash}")
 LLM chat pattern:
 
 ```python
-completion = og_client.llm_chat(
+completion = og_client.llm.chat(
     model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
     messages=[{"role": "user", "content": "Your message"}],
 )

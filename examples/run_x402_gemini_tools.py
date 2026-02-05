@@ -11,9 +11,7 @@ import os
 import opengradient as og
 
 # Initialize client with Google API key
-client = og.new_client(
-    email=None,
-    password=None,
+client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
@@ -58,7 +56,7 @@ print(f"Messages: {messages}")
 print(f"Tools: {tools}")
 print("-" * 50)
 
-result = client.llm_chat(
+result = client.llm.chat(
     model=og.TEE_LLM.GEMINI_2_5_FLASH_LITE,
     messages=messages,
     tools=tools,

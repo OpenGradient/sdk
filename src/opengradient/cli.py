@@ -324,7 +324,9 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
                 model_input = json.load(file)
 
         click.echo(f'Running {inference_mode} inference for model "{model_cid}"')
-        inference_result = client.infer(model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input)
+        inference_result = client.inference.infer(
+            model_cid=model_cid, inference_mode=InferenceModes[inference_mode], model_input=model_input
+        )
 
         click.echo()  # Add a newline for better spacing
         click.secho("✅ Transaction successful", fg="green", bold=True)
@@ -394,8 +396,8 @@ def completion(
     try:
         click.echo(f'Running TEE LLM completion for model "{model_cid}"\n')
 
-        completion_output = client.llm_completion(
-            model_cid=model_cid,
+        completion_output = client.llm.completion(
+            model=model_cid,
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
@@ -552,8 +554,8 @@ def chat(
         if not tools and not tools_file:
             parsed_tools = None
 
-        result = client.llm_chat(
-            model_cid=model_cid,
+        result = client.llm.chat(
+            model=model_cid,
             messages=messages,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),

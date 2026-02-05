@@ -81,8 +81,10 @@ class TestClientInitialization:
 
     def test_client_initialization_with_auth(self, mock_web3, mock_abi_files):
         """Test client initialization with email/password authentication."""
-        with patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}), \
-             patch("src.opengradient.client.model_hub.firebase") as mock_firebase:
+        with (
+            patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}),
+            patch("src.opengradient.client.model_hub.firebase") as mock_firebase,
+        ):
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.return_value = {
                 "idToken": "test_token",
@@ -153,8 +155,10 @@ class TestAlphaProperty:
 class TestAuthentication:
     def test_login_to_hub_success(self, mock_web3, mock_abi_files):
         """Test successful login to hub."""
-        with patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}), \
-             patch("src.opengradient.client.model_hub.firebase") as mock_firebase:
+        with (
+            patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}),
+            patch("src.opengradient.client.model_hub.firebase") as mock_firebase,
+        ):
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.return_value = {
                 "idToken": "success_token",
@@ -176,8 +180,10 @@ class TestAuthentication:
 
     def test_login_to_hub_failure(self, mock_web3, mock_abi_files):
         """Test login failure raises exception."""
-        with patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}), \
-             patch("src.opengradient.client.model_hub.firebase") as mock_firebase:
+        with (
+            patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}),
+            patch("src.opengradient.client.model_hub.firebase") as mock_firebase,
+        ):
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.side_effect = Exception("Invalid credentials")
             mock_firebase.initialize_app.return_value.auth.return_value = mock_auth

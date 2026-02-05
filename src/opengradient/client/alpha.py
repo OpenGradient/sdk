@@ -7,17 +7,15 @@ including workflow management and ML model execution.
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
+from eth_account.account import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 
-from .defaults import DEFAULT_SCHEDULER_ADDRESS
-from .types import HistoricalInputQuery, ModelOutput, SchedulerParams
-from .utils import convert_array_to_model_output
-
-if TYPE_CHECKING:
-    from .client import Client
+from ..defaults import DEFAULT_SCHEDULER_ADDRESS
+from ..types import HistoricalInputQuery, ModelOutput, SchedulerParams
+from ..utils import convert_array_to_model_output
 
 # How much time we wait for txn to be included in chain
 INFERENCE_TX_TIMEOUT = 120
@@ -32,12 +30,13 @@ class Alpha:
     including workflow deployment and execution.
 
     Usage:
-        client = og.new_client(...)
+        client = og.Client(...)
         result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
     """
 
-    def __init__(self, client: "Client"):
-        self._client = client
+    def __init__(self, blockchain: Web3, wallet_account: LocalAccount):
+        self._blockchain = blockchain
+        self._wallet_account = wallet_account
 
     def _get_abi(self, abi_name: str) -> dict:
         """Returns the ABI for the requested contract."""
@@ -86,43 +85,43 @@ class Alpha:
         Raises:
             Exception: If transaction fails or gas estimation fails
         """
-        from .client import run_with_retry
+        from .model_hub_inference import run_with_retry
 
         # Get contract ABI and bytecode
         abi = self._get_abi("PriceHistoryInference.abi")
         bytecode = self._get_bin("PriceHistoryInference.bin")
 
         def deploy_transaction():
-            contract = self._client._blockchain.eth.contract(abi=abi, bytecode=bytecode)
+            contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
             query_tuple = input_query.to_abi_format()
             constructor_args = [model_cid, input_tensor_name, query_tuple]
 
             try:
                 # Estimate gas needed
-                estimated_gas = contract.constructor(*constructor_args).estimate_gas({"from": self._client._wallet_account.address})
+                estimated_gas = contract.constructor(*constructor_args).estimate_gas({"from": self._wallet_account.address})
                 gas_limit = int(estimated_gas * 1.2)
             except Exception as e:
-                print(f"⚠️ Gas estimation failed: {str(e)}")
+                print(f"Gas estimation failed: {str(e)}")
                 gas_limit = 5000000  # Conservative fallback
-                print(f"📊 Using fallback gas limit: {gas_limit}")
+                print(f"Using fallback gas limit: {gas_limit}")
 
             transaction = contract.constructor(*constructor_args).build_transaction(
                 {
-                    "from": self._client._wallet_account.address,
-                    "nonce": self._client._blockchain.eth.get_transaction_count(self._client._wallet_account.address, "pending"),
+                    "from": self._wallet_account.address,
+                    "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
                     "gas": gas_limit,
-                    "gasPrice": self._client._blockchain.eth.gas_price,
-                    "chainId": self._client._blockchain.eth.chain_id,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                    "chainId": self._blockchain.eth.chain_id,
                 }
             )
 
-            signed_txn = self._client._wallet_account.sign_transaction(transaction)
-            tx_hash = self._client._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+            signed_txn = self._wallet_account.sign_transaction(transaction)
+            tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
 
-            tx_receipt = self._client._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+            tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
 
             if tx_receipt["status"] == 0:
-                raise Exception(f"❌ Contract deployment failed, transaction hash: {tx_hash.hex()}")
+                raise Exception(f"Contract deployment failed, transaction hash: {tx_hash.hex()}")
 
             return tx_receipt.contractAddress
 
@@ -152,7 +151,7 @@ class Alpha:
 
         # Scheduler contract address
         scheduler_address = DEFAULT_SCHEDULER_ADDRESS
-        scheduler_contract = self._client._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
+        scheduler_contract = self._blockchain.eth.contract(address=scheduler_address, abi=scheduler_abi)
 
         try:
             # Register the workflow with the scheduler
@@ -160,19 +159,19 @@ class Alpha:
                 contract_address, scheduler_params.end_time, scheduler_params.frequency
             ).build_transaction(
                 {
-                    "from": self._client._wallet_account.address,
+                    "from": self._wallet_account.address,
                     "gas": 300000,
-                    "gasPrice": self._client._blockchain.eth.gas_price,
-                    "nonce": self._client._blockchain.eth.get_transaction_count(self._client._wallet_account.address, "pending"),
-                    "chainId": self._client._blockchain.eth.chain_id,
+                    "gasPrice": self._blockchain.eth.gas_price,
+                    "nonce": self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending"),
+                    "chainId": self._blockchain.eth.chain_id,
                 }
             )
 
-            signed_scheduler_tx = self._client._wallet_account.sign_transaction(scheduler_tx)
-            scheduler_tx_hash = self._client._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
-            self._client._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
+            signed_scheduler_tx = self._wallet_account.sign_transaction(scheduler_tx)
+            scheduler_tx_hash = self._blockchain.eth.send_raw_transaction(signed_scheduler_tx.raw_transaction)
+            self._blockchain.eth.wait_for_transaction_receipt(scheduler_tx_hash, timeout=REGULAR_TX_TIMEOUT)
         except Exception as e:
-            print(f"❌ Error registering contract with scheduler: {str(e)}")
+            print(f"Error registering contract with scheduler: {str(e)}")
             print("  The workflow contract is still deployed and can be executed manually.")
 
     def read_workflow_result(self, contract_address: str) -> ModelOutput:
@@ -190,7 +189,7 @@ class Alpha:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._client._blockchain.eth.contract(
+        contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
         )
 
@@ -214,27 +213,27 @@ class Alpha:
             Web3Error: If there are issues with the web3 connection or contract interaction
         """
         # Get the contract interface
-        contract = self._client._blockchain.eth.contract(
+        contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
         )
 
         # Call run() function
-        nonce = self._client._blockchain.eth.get_transaction_count(self._client._wallet_account.address, "pending")
+        nonce = self._blockchain.eth.get_transaction_count(self._wallet_account.address, "pending")
 
         run_function = contract.functions.run()
         transaction = run_function.build_transaction(
             {
-                "from": self._client._wallet_account.address,
+                "from": self._wallet_account.address,
                 "nonce": nonce,
                 "gas": 30000000,
-                "gasPrice": self._client._blockchain.eth.gas_price,
-                "chainId": self._client._blockchain.eth.chain_id,
+                "gasPrice": self._blockchain.eth.gas_price,
+                "chainId": self._blockchain.eth.chain_id,
             }
         )
 
-        signed_txn = self._client._wallet_account.sign_transaction(transaction)
-        tx_hash = self._client._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
-        tx_receipt = self._client._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
+        signed_txn = self._wallet_account.sign_transaction(transaction)
+        tx_hash = self._blockchain.eth.send_raw_transaction(signed_txn.raw_transaction)
+        tx_receipt = self._blockchain.eth.wait_for_transaction_receipt(tx_hash, timeout=INFERENCE_TX_TIMEOUT)
 
         if tx_receipt.status == 0:
             raise ContractLogicError(f"Run transaction failed. Receipt: {tx_receipt}")
@@ -258,111 +257,9 @@ class Alpha:
         Returns:
             List[ModelOutput]: List of historical inference results
         """
-        contract = self._client._blockchain.eth.contract(
+        contract = self._blockchain.eth.contract(
             address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
         )
 
         results = contract.functions.getLastInferenceResults(num_results).call()
         return [convert_array_to_model_output(result) for result in results]
-
-
-class _AlphaNamespace:
-    """
-    Module-level alpha namespace for use with og.init().
-
-    Usage:
-        og.init(...)
-        result = og.alpha.new_workflow(model_cid, input_query, input_tensor_name)
-    """
-
-    def new_workflow(
-        self,
-        model_cid: str,
-        input_query: HistoricalInputQuery,
-        input_tensor_name: str,
-        scheduler_params: Optional[SchedulerParams] = None,
-    ) -> str:
-        """
-        Deploy a new workflow contract with the specified parameters.
-
-        This function deploys a new workflow contract and optionally registers it with
-        the scheduler for automated execution. If scheduler_params is not provided,
-        the workflow will be deployed without automated execution scheduling.
-
-        Args:
-            model_cid: IPFS CID of the model
-            input_query: HistoricalInputQuery containing query parameters
-            input_tensor_name: Name of the input tensor
-            scheduler_params: Optional scheduler configuration as SchedulerParams instance
-                If not provided, the workflow will be deployed without scheduling.
-
-        Returns:
-            str: Deployed contract address. If scheduler_params was provided, the workflow
-                 will be automatically executed according to the specified schedule.
-        """
-        from . import _client
-
-        if _client is None:
-            raise RuntimeError("OpenGradient client not initialized. Call og.init(...) first.")
-
-        return _client.alpha.new_workflow(
-            model_cid=model_cid,
-            input_query=input_query,
-            input_tensor_name=input_tensor_name,
-            scheduler_params=scheduler_params,
-        )
-
-    def read_workflow_result(self, contract_address: str) -> ModelOutput:
-        """
-        Reads the latest inference result from a deployed workflow contract.
-
-        This function retrieves the most recent output from a deployed model executor contract.
-        It includes built-in retry logic to handle blockchain state delays.
-
-        Args:
-            contract_address (str): Address of the deployed workflow contract
-
-        Returns:
-            ModelOutput: The inference result from the contract
-
-        Raises:
-            RuntimeError: If OpenGradient client is not initialized
-        """
-        from . import _client
-
-        if _client is None:
-            raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-        return _client.alpha.read_workflow_result(contract_address)
-
-    def run_workflow(self, contract_address: str) -> ModelOutput:
-        """
-        Executes the workflow by calling run() on the contract to pull latest data and perform inference.
-
-        Args:
-            contract_address (str): Address of the deployed workflow contract
-
-        Returns:
-            ModelOutput: The inference result from the contract
-        """
-        from . import _client
-
-        if _client is None:
-            raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-        return _client.alpha.run_workflow(contract_address)
-
-    def read_workflow_history(self, contract_address: str, num_results: int) -> List[ModelOutput]:
-        """
-        Gets historical inference results from a workflow contract.
-
-        Args:
-            contract_address (str): Address of the deployed workflow contract
-            num_results (int): Number of historical results to retrieve
-
-        Returns:
-            List[ModelOutput]: List of historical inference results
-        """
-        from . import _client
-
-        if _client is None:
-            raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-        return _client.alpha.read_workflow_history(contract_address, num_results)

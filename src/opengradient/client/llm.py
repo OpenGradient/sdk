@@ -19,6 +19,8 @@ from ..types import (
 )
 from .x402_auth import X402Auth
 
+from eth_account.account import LocalAccount
+
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
@@ -36,7 +38,12 @@ LIMITS = httpx.Limits(
 )
 
 
-class LLMMixin:
+class LLM:
+    def __init__(self, wallet_account: LocalAccount, og_llm_server_url: str, og_llm_streaming_server_url: str):
+        self._wallet_account = wallet_account
+        self._og_llm_server_url = og_llm_server_url
+        self._og_llm_streaming_server_url = og_llm_streaming_server_url
+
     def _og_payment_selector(self, accepts, network_filter=DEFAULT_NETWORK_FILTER, scheme_filter=None, max_value=None):
         """Custom payment selector for OpenGradient network."""
         return x402Client.default_payment_requirements_selector(
@@ -46,7 +53,7 @@ class LLMMixin:
             max_value=max_value,
         )
 
-    def llm_completion(
+    def completion(
         self,
         model: TEE_LLM,
         prompt: str,
@@ -99,20 +106,6 @@ class LLMMixin:
     ) -> TextGenerationOutput:
         """
         Route completion request to OpenGradient TEE LLM server with x402 payments.
-
-        Args:
-            model: Model identifier
-            prompt: Input prompt
-            max_tokens: Maximum tokens to generate
-            stop_sequence: Stop sequences
-            temperature: Sampling temperature
-            x402_settlement_mode: Settlement mode for x402 payments
-
-        Returns:
-            TextGenerationOutput with completion
-
-        Raises:
-            OpenGradientError: If request fails
         """
 
         async def make_request():
@@ -164,7 +157,7 @@ class LLMMixin:
         except Exception as e:
             raise OpenGradientError(f"TEE LLM completion failed: {str(e)}")
 
-    def llm_chat(
+    def chat(
         self,
         model: TEE_LLM,
         messages: List[Dict],
@@ -240,22 +233,6 @@ class LLMMixin:
     ) -> TextGenerationOutput:
         """
         Route chat request to OpenGradient TEE LLM server with x402 payments.
-
-        Args:
-            model: Model identifier
-            messages: List of chat messages
-            max_tokens: Maximum tokens to generate
-            stop_sequence: Stop sequences
-            temperature: Sampling temperature
-            tools: Function calling tools
-            tool_choice: Tool selection strategy
-            x402_settlement_mode: Settlement mode for x402 payments
-
-        Returns:
-            TextGenerationOutput: Chat completion
-
-        Raises:
-            OpenGradientError: If request fails
         """
 
         async def make_request():

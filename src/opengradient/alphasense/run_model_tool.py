@@ -4,7 +4,7 @@ import numpy as np
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
-import opengradient as og
+from opengradient.client.model_hub_inference import Inference
 from opengradient.types import InferenceMode, InferenceResult
 
 from .types import ToolType
@@ -16,6 +16,7 @@ def create_run_model_tool(
     tool_name: str,
     model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, np.ndarray]]],
     model_output_formatter: Callable[[InferenceResult], str],
+    inference: Inference,
     tool_input_schema: Optional[Type[BaseModel]] = None,
     tool_description: str = "Executes the given ML model",
     inference_mode: InferenceMode = InferenceMode.VANILLA,
@@ -49,6 +50,7 @@ def create_run_model_tool(
             InferenceResult has attributes:
                 * transaction_hash (str): Blockchain hash for the transaction
                 * model_output (Dict[str, np.ndarray]): Output of the ONNX model
+        inference (Inference): The inference namespace from an initialized OpenGradient client (client.inference).
         tool_input_schema (Type[BaseModel], optional): A Pydantic BaseModel class defining the
             input schema.
 
@@ -61,7 +63,7 @@ def create_run_model_tool(
             Default is None -- an empty schema will be provided for LangChain.
         tool_description (str, optional): A description of what the tool does. Defaults to
             "Executes the given ML model".
-        inference_mode (og.InferenceMode, optional): The inference mode to use when running
+        inference_mode (InferenceMode, optional): The inference mode to use when running
             the model. Defaults to VANILLA.
 
     Returns:
@@ -102,6 +104,7 @@ def create_run_model_tool(
         ...     tool_name="Return_volatility_tool",
         ...     model_input_provider=model_input_provider,
         ...     model_output_formatter=output_formatter,
+        ...     inference=client.inference,
         ...     tool_input_schema=InputSchema,
         ...     tool_description="This tool takes a token and measures the return volatility (standard deviation of returns).",
         ...     inference_mode=og.InferenceMode.VANILLA,
@@ -112,7 +115,7 @@ def create_run_model_tool(
         # Pass LLM input arguments (formatted based on tool_input_schema) as parameters into model_input_provider
         model_input = model_input_provider(**llm_input)
 
-        inference_result = og.infer(model_cid=model_cid, inference_mode=inference_mode, model_input=model_input)
+        inference_result = inference.infer(model_cid=model_cid, inference_mode=inference_mode, model_input=model_input)
 
         return model_output_formatter(inference_result)
 

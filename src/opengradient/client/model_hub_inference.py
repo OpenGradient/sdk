@@ -7,6 +7,8 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import requests
+from eth_account.account import LocalAccount
+from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
 
@@ -55,7 +57,23 @@ def run_with_retry(txn_function: Callable, max_retries=DEFAULT_MAX_RETRY, retry_
             raise
 
 
-class InferenceMixin:
+class Inference:
+    def __init__(
+        self,
+        blockchain: Web3,
+        wallet_account: LocalAccount,
+        inference_hub_contract_address: str,
+        inference_abi: Dict,
+        precompile_abi: Dict,
+        api_url: str,
+    ):
+        self._blockchain = blockchain
+        self._wallet_account = wallet_account
+        self._inference_hub_contract_address = inference_hub_contract_address
+        self._inference_abi = inference_abi
+        self._precompile_abi = precompile_abi
+        self._api_url = api_url
+
     def infer(
         self,
         model_cid: str,
@@ -80,6 +98,7 @@ class InferenceMixin:
         Raises:
             OpenGradientError: If the inference fails.
         """
+
         def execute_transaction():
             contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
             precompile_contract = self._blockchain.eth.contract(address=PRECOMPILE_CONTRACT_ADDRESS, abi=self._precompile_abi)

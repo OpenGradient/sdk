@@ -6,65 +6,82 @@ from eth_account.account import LocalAccount
 from web3 import Web3
 
 from ..defaults import (
+    DEFAULT_API_URL,
+    DEFAULT_INFERENCE_CONTRACT_ADDRESS,
     DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
     DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
+    DEFAULT_RPC_URL,
 )
-from .llm import LLMMixin
-from .model_hub import ModelHubMixin
-from .model_hub_inference import InferenceMixin
+from .llm import LLM
+from .model_hub import ModelHub
+from .model_hub_inference import Inference
 
 
-class Client(ModelHubMixin, LLMMixin, InferenceMixin):
-    _inference_hub_contract_address: str
-    _blockchain: Web3
-    _wallet_account: LocalAccount
-
-    _hub_user: Optional[Dict]
-    _api_url: str
-    _inference_abi: Dict
-    _precompile_abi: Dict
+class Client:
+    model_hub: ModelHub
+    llm: LLM
+    inference: Inference
 
     def __init__(
         self,
         private_key: str,
-        rpc_url: str,
-        api_url: str,
-        contract_address: str,
         email: Optional[str] = None,
         password: Optional[str] = None,
+        rpc_url: str = DEFAULT_RPC_URL,
+        api_url: str = DEFAULT_API_URL,
+        contract_address: str = DEFAULT_INFERENCE_CONTRACT_ADDRESS,
         og_llm_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
         og_llm_streaming_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
     ):
         """
-        Initialize the Client with private key, RPC URL, and contract address.
+        Initialize the OpenGradient client.
 
         Args:
-            private_key (str): The private key for the wallet.
-            rpc_url (str): The RPC URL for the Ethereum node.
-            contract_address (str): The contract address for the smart contract.
-            email (str, optional): Email for authentication. Defaults to "test@test.com".
-            password (str, optional): Password for authentication. Defaults to "Test-123".
+            private_key: Private key for OpenGradient transactions.
+            email: Email for Model Hub authentication. Optional.
+            password: Password for Model Hub authentication. Optional.
+            rpc_url: RPC URL for the blockchain network.
+            api_url: API URL for the OpenGradient API.
+            contract_address: Inference contract address.
+            og_llm_server_url: OpenGradient LLM server URL.
+            og_llm_streaming_server_url: OpenGradient LLM streaming server URL.
         """
-        self._inference_hub_contract_address = contract_address
-        self._blockchain = Web3(Web3.HTTPProvider(rpc_url))
-        self._api_url = api_url
-        self._wallet_account = self._blockchain.eth.account.from_key(private_key)
+        blockchain = Web3(Web3.HTTPProvider(rpc_url))
+        wallet_account = blockchain.eth.account.from_key(private_key)
 
         abi_path = Path(__file__).parent.parent / "abi" / "inference.abi"
         with open(abi_path, "r") as abi_file:
-            self._inference_abi = json.load(abi_file)
+            inference_abi = json.load(abi_file)
 
         abi_path = Path(__file__).parent.parent / "abi" / "InferencePrecompile.abi"
         with open(abi_path, "r") as abi_file:
-            self._precompile_abi = json.load(abi_file)
+            precompile_abi = json.load(abi_file)
 
+        hub_user = None
         if email is not None:
-            self._hub_user = self._login_to_hub(email, password)
-        else:
-            self._hub_user = None
+            hub_user = ModelHub._login_to_hub(email, password)
 
-        self._og_llm_server_url = og_llm_server_url
-        self._og_llm_streaming_server_url = og_llm_streaming_server_url
+        # Store shared state needed by alpha namespace
+        self._blockchain = blockchain
+        self._wallet_account = wallet_account
+
+        # Create namespaces
+        self.model_hub = ModelHub(hub_user=hub_user)
+
+        self.llm = LLM(
+            wallet_account=wallet_account,
+            og_llm_server_url=og_llm_server_url,
+            og_llm_streaming_server_url=og_llm_streaming_server_url,
+        )
+
+        self.inference = Inference(
+            blockchain=blockchain,
+            wallet_account=wallet_account,
+            inference_hub_contract_address=contract_address,
+            inference_abi=inference_abi,
+            precompile_abi=precompile_abi,
+            api_url=api_url,
+        )
 
         self._alpha = None  # Lazy initialization for alpha namespace
 
@@ -77,11 +94,11 @@ class Client(ModelHubMixin, LLMMixin, InferenceMixin):
             Alpha: Alpha namespace with workflow and ML model execution methods.
 
         Example:
-            client = og.new_client(...)
+            client = og.Client(...)
             result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
         """
         if self._alpha is None:
-            from ..alpha import Alpha
+            from .alpha import Alpha
 
-            self._alpha = Alpha(self)
+            self._alpha = Alpha(self._blockchain, self._wallet_account)
         return self._alpha

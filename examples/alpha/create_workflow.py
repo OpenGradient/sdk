@@ -2,7 +2,7 @@ import os
 
 import opengradient as og
 
-og_client = og.new_client(email=None, password=None, private_key=os.environ.get("OG_PRIVATE_KEY"))
+og_client = og.Client(private_key=os.environ.get("OG_PRIVATE_KEY"))
 
 # Define model input
 input_query = og.HistoricalInputQuery(

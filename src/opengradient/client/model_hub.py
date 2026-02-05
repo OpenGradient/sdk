@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import firebase
 import requests
@@ -18,8 +18,12 @@ _FIREBASE_CONFIG = {
 }
 
 
-class ModelHubMixin:
-    def _login_to_hub(self, email, password):
+class ModelHub:
+    def __init__(self, hub_user: Optional[Dict] = None):
+        self._hub_user = hub_user
+
+    @staticmethod
+    def _login_to_hub(email, password):
         if not _FIREBASE_CONFIG.get("apiKey"):
             raise ValueError("Firebase API Key is missing in environment variables")
 

@@ -21,7 +21,6 @@ from langchain_core.tools import BaseTool
 from typing_extensions import override
 
 from opengradient.client import Client
-from opengradient.defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from opengradient.types import LLM
 
 
@@ -36,14 +35,7 @@ class OpenGradientChatModel(BaseChatModel):
     def __init__(self, private_key: str, model_cid: LLM, max_tokens: int = 300):
         super().__init__()
 
-        self._client = Client(
-            private_key=private_key,
-            rpc_url=DEFAULT_RPC_URL,
-            api_url=DEFAULT_API_URL,
-            contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
-            email=None,
-            password=None,
-        )
+        self._client = Client(private_key=private_key)
         self._model_cid = model_cid
         self._max_tokens = max_tokens
 
@@ -112,8 +104,8 @@ class OpenGradientChatModel(BaseChatModel):
             else:
                 raise ValueError(f"Unexpected message type: {message}")
 
-        chat_output = self._client.llm_chat(
-            model_cid=self._model_cid,
+        chat_output = self._client.llm.chat(
+            model=self._model_cid,
             messages=sdk_messages,
             stop_sequence=stop,
             max_tokens=self._max_tokens,
