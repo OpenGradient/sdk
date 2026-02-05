@@ -21,15 +21,14 @@ import os
 # Initialize client
 client = og.new_client(
     private_key=os.environ["OG_PRIVATE_KEY"],  # Required: Ethereum private key
-    openai_api_key=os.environ.get("OPENAI_API_KEY"),  # Optional: for OpenAI models
-    anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY"),  # Optional: for Claude
 )
 
-# LLM Chat
+# LLM Chat (TEE mode with x402 payments)
 result = client.llm_chat(
-    model_cid="gpt-4o",  # or og.LLM.CLAUDE_3_5_HAIKU
+    model_cid=og.TEE_LLM.CLAUDE_3_5_HAIKU,  # TEE-verified model
     messages=[{"role": "user", "content": "Hello!"}],
     max_tokens=100,
+    inference_mode=og.LlmInferenceMode.TEE,
 )
 print(result.chat_output["content"])
 ```
@@ -44,9 +43,6 @@ client = og.new_client(
     private_key="0x...",           # Required: Ethereum private key
     email=None,                    # Optional: Model Hub auth
     password=None,                 # Optional: Model Hub auth
-    openai_api_key=None,           # Optional: OpenAI access
-    anthropic_api_key=None,        # Optional: Anthropic access
-    google_api_key=None,           # Optional: Google access
 )
 
 # Option 2: Global initialization
@@ -126,12 +122,17 @@ og.TEE_LLM.GROK_3_BETA
 og.TEE_LLM.GROK_3_MINI_BETA
 ```
 
-### External Providers (by string)
+### Using Models with TEE Mode
+
+All TEE models are accessed through the OpenGradient infrastructure with x402 payments:
 
 ```python
-"gpt-4o", "gpt-4-turbo"        # OpenAI
-"claude-3-sonnet"              # Anthropic
-"gemini-2-5-pro"               # Google
+# Use TEE mode for cryptographic proof of execution
+result = client.llm_chat(
+    model_cid=og.TEE_LLM.GPT_4O,  # or og.TEE_LLM.CLAUDE_3_5_HAIKU, etc.
+    messages=[{"role": "user", "content": "Hello"}],
+    inference_mode=og.LlmInferenceMode.TEE,
+)
 ```
 
 ## Common Patterns
@@ -293,9 +294,6 @@ except OpenGradientError as e:
 
 ```bash
 OG_PRIVATE_KEY=0x...          # Required: Ethereum private key
-OPENAI_API_KEY=sk-...         # Optional: for OpenAI models
-ANTHROPIC_API_KEY=sk-ant-...  # Optional: for Anthropic models
-GOOGLE_API_KEY=AIza...        # Optional: for Google models
 ```
 
 ## Resources
