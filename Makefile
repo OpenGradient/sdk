@@ -40,6 +40,13 @@ integrationtest:
 	python integrationtest/agent/test_agent.py
 	python integrationtest/workflow_models/test_workflow_models.py
 
+examples:
+	@for f in $$(find examples -name '*.py' | sort); do \
+		echo "Running $$f..."; \
+		python "$$f" || exit 1; \
+	done
+	@echo "All examples passed."
+
 # ============================================================================
 # CLI Examples (use MODEL=provider/model to change model)
 # ============================================================================
@@ -76,5 +83,5 @@ chat-tool:
 		--max-tokens 100 \
 		--stream
 
-.PHONY: install build publish check docs test utils_test integrationtest \
+.PHONY: install build publish check docs test utils_test integrationtest examples \
 	infer completion chat chat-stream chat-tool
