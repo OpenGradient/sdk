@@ -1,8 +1,9 @@
 import os
 from typing import Dict, List, Optional
 
-import firebase
+import firebase  # type: ignore[import-untyped]
 import requests
+from requests_toolbelt import MultipartEncoder  # type: ignore[import-untyped]
 
 from ..types import FileUploadResult, ModelRepository
 from .exceptions import OpenGradientError
@@ -127,7 +128,6 @@ class ModelHub:
         Raises:
             OpenGradientError: If the upload fails.
         """
-        from requests_toolbelt import MultipartEncoder
 
         if not self._hub_user:
             raise ValueError("User not authenticated")
