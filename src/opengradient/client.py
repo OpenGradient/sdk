@@ -31,7 +31,6 @@ from .types import (
     FileUploadResult,
     InferenceMode,
     InferenceResult,
-    LlmInferenceMode,
     ModelRepository,
     StreamChunk,
     TextGenerationOutput,
@@ -401,28 +400,22 @@ class Client:
 
     def llm_completion(
         self,
-        model_cid: str,  # Changed from LLM to str to accept any model
+        model_cid: str,
         prompt: str,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
-        inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
-        max_retries: Optional[int] = None,
-        local_model: Optional[bool] = False,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
-        Perform inference on an LLM model using completions.
+        Perform inference on an LLM model using completions via TEE.
 
         Args:
-            model_cid (str): The unique content identifier for the model.
-            inference_mode (LlmInferenceMode): The inference mode (only used for local models).
+            model_cid (str): The unique content identifier for the model (e.g., 'anthropic/claude-3.5-haiku').
             prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-            max_retries (int, optional): Maximum number of retry attempts for blockchain transactions.
-            local_model (bool, optional): Force use of local model even if not in LLM enum.
             x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
                 - SETTLE: Records input/output hashes only (most privacy-preserving).
                 - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
@@ -431,64 +424,24 @@ class Client:
 
         Returns:
             TextGenerationOutput: Generated text results including:
-                - Transaction hash (or "external" for external providers)
+                - Transaction hash ("external" for TEE providers)
                 - String of completion output
-                - Payment hash for x402 transactions (when using x402 settlement)
+                - Payment hash for x402 transactions
 
         Raises:
             OpenGradientError: If the inference fails.
         """
-        # Check if this is a local model or external
-        # TODO (Kyle): separate TEE and Vanilla completion requests
-        if inference_mode == LlmInferenceMode.TEE:
-            if model_cid not in TEE_LLM:
-                return OpenGradientError("That model CID is not supported yet for TEE inference")
+        if model_cid not in TEE_LLM:
+            raise OpenGradientError("That model CID is not supported yet for TEE inference")
 
-            return self._tee_llm_completion(
-                model=model_cid.split("/")[1],
-                prompt=prompt,
-                max_tokens=max_tokens,
-                stop_sequence=stop_sequence,
-                temperature=temperature,
-                x402_settlement_mode=x402_settlement_mode,
-            )
-
-        # Original local model logic
-        def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA:
-                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-
-            if model_cid not in [llm.value for llm in LLM]:
-                raise OpenGradientError("That model CID is not yet supported for inference")
-
-            model_name = model_cid
-            if model_cid in [llm.value for llm in TEE_LLM]:
-                model_name = model_cid.split("/")[1]
-
-            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
-
-            llm_request = {
-                "mode": inference_mode.value,
-                "modelCID": model_name,
-                "prompt": prompt,
-                "max_tokens": max_tokens,
-                "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100),
-            }
-            logging.debug(f"Prepared LLM request: {llm_request}")
-
-            run_function = contract.functions.runLLMCompletion(llm_request)
-
-            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
-            parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
-            if len(parsed_logs) < 1:
-                raise OpenGradientError("LLM completion result event not found in transaction logs")
-
-            llm_answer = parsed_logs[0]["args"]["response"]["answer"]
-
-            return TextGenerationOutput(transaction_hash=tx_hash.hex(), completion_output=llm_answer)
-
-        return run_with_retry(execute_transaction, max_retries)
+        return self._tee_llm_completion(
+            model=model_cid.split("/")[1],
+            prompt=prompt,
+            max_tokens=max_tokens,
+            stop_sequence=stop_sequence,
+            temperature=temperature,
+            x402_settlement_mode=x402_settlement_mode,
+        )
 
     def _tee_llm_completion(
         self,
@@ -579,31 +532,25 @@ class Client:
         self,
         model_cid: str,
         messages: List[Dict],
-        inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = [],
         tool_choice: Optional[str] = None,
-        max_retries: Optional[int] = None,
-        local_model: Optional[bool] = False,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
         stream: bool = False,
     ) -> Union[TextGenerationOutput, TextGenerationStream]:
         """
-        Perform inference on an LLM model using chat.
+        Perform inference on an LLM model using chat via TEE.
 
         Args:
-            model_cid (str): The unique content identifier for the model.
-            inference_mode (LlmInferenceMode): The inference mode (only used for local models).
+            model_cid (str): The unique content identifier for the model (e.g., 'anthropic/claude-3.5-haiku').
             messages (List[Dict]): The messages that will be passed into the chat.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM.
             temperature (float): Temperature for LLM inference, between 0 and 1.
             tools (List[dict], optional): Set of tools for function calling.
             tool_choice (str, optional): Sets a specific tool to choose.
-            max_retries (int, optional): Maximum number of retry attempts.
-            local_model (bool, optional): Force use of local model.
             x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
                 - SETTLE: Records input/output hashes only (most privacy-preserving).
                 - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
@@ -619,104 +566,33 @@ class Client:
         Raises:
             OpenGradientError: If the inference fails.
         """
-        # Check if this is a local model or external
-        # TODO (Kyle): separate TEE and Vanilla completion requests
-        if inference_mode == LlmInferenceMode.TEE:
-            if model_cid not in TEE_LLM:
-                return OpenGradientError("That model CID is not supported yet for TEE inference")
+        if model_cid not in TEE_LLM:
+            raise OpenGradientError("That model CID is not supported yet for TEE inference")
 
-            if stream:
-                # Use threading bridge for true sync streaming
-                return self._tee_llm_chat_stream_sync(
-                    model=model_cid.split("/")[1],
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    stop_sequence=stop_sequence,
-                    temperature=temperature,
-                    tools=tools,
-                    tool_choice=tool_choice,
-                    x402_settlement_mode=x402_settlement_mode,
-                )
-            else:
-                # Non-streaming
-                return self._tee_llm_chat(
-                    model=model_cid.split("/")[1],
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    stop_sequence=stop_sequence,
-                    temperature=temperature,
-                    tools=tools,
-                    tool_choice=tool_choice,
-                    x402_settlement_mode=x402_settlement_mode,
-                )
-
-        # Original local model logic
-        def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA:
-                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-
-            if model_cid not in [llm.value for llm in LLM]:
-                raise OpenGradientError("That model CID is not yet supported for inference")
-
-            model_name = model_cid
-            if model_cid in [llm.value for llm in TEE_LLM]:
-                model_name = model_cid.split("/")[1]
-
-            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
-
-            for message in messages:
-                if "tool_calls" not in message:
-                    message["tool_calls"] = []
-                if "tool_call_id" not in message:
-                    message["tool_call_id"] = ""
-                if "name" not in message:
-                    message["name"] = ""
-
-            converted_tools = []
-            if tools is not None:
-                for tool in tools:
-                    function = tool["function"]
-                    converted_tool = {}
-                    converted_tool["name"] = function["name"]
-                    converted_tool["description"] = function["description"]
-                    if (parameters := function.get("parameters")) is not None:
-                        try:
-                            converted_tool["parameters"] = json.dumps(parameters)
-                        except Exception as e:
-                            raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
-                    converted_tools.append(converted_tool)
-
-            llm_request = {
-                "mode": inference_mode.value,
-                "modelCID": model_name,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100),
-                "tools": converted_tools or [],
-                "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto"),
-            }
-            logging.debug(f"Prepared LLM request: {llm_request}")
-
-            run_function = contract.functions.runLLMChat(llm_request)
-
-            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
-            parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
-            if len(parsed_logs) < 1:
-                raise OpenGradientError("LLM chat result event not found in transaction logs")
-
-            llm_result = parsed_logs[0]["args"]["response"]
-            message = dict(llm_result["message"])
-            if (tool_calls := message.get("tool_calls")) is not None:
-                message["tool_calls"] = [dict(tool_call) for tool_call in tool_calls]
-
-            return TextGenerationOutput(
-                transaction_hash=tx_hash.hex(),
-                finish_reason=llm_result["finish_reason"],
-                chat_output=message,
+        if stream:
+            # Use threading bridge for true sync streaming
+            return self._tee_llm_chat_stream_sync(
+                model=model_cid.split("/")[1],
+                messages=messages,
+                max_tokens=max_tokens,
+                stop_sequence=stop_sequence,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+                x402_settlement_mode=x402_settlement_mode,
             )
-
-        return run_with_retry(execute_transaction, max_retries)
+        else:
+            # Non-streaming
+            return self._tee_llm_chat(
+                model=model_cid.split("/")[1],
+                messages=messages,
+                max_tokens=max_tokens,
+                stop_sequence=stop_sequence,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+                x402_settlement_mode=x402_settlement_mode,
+            )
 
     def _tee_llm_chat(
         self,

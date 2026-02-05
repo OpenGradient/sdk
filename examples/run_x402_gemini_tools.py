@@ -63,7 +63,6 @@ result = client.llm_chat(
     messages=messages,
     tools=tools,
     max_tokens=200,
-    inference_mode=og.LlmInferenceMode.VANILLA,
 )
 
 print(f"Finish reason: {result.finish_reason}")

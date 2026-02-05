@@ -99,9 +99,7 @@ class Alpha:
 
             try:
                 # Estimate gas needed
-                estimated_gas = contract.constructor(*constructor_args).estimate_gas(
-                    {"from": self._client._wallet_account.address}
-                )
+                estimated_gas = contract.constructor(*constructor_args).estimate_gas({"from": self._client._wallet_account.address})
                 gas_limit = int(estimated_gas * 1.2)
             except Exception as e:
                 print(f"⚠️ Gas estimation failed: {str(e)}")
@@ -111,9 +109,7 @@ class Alpha:
             transaction = contract.constructor(*constructor_args).build_transaction(
                 {
                     "from": self._client._wallet_account.address,
-                    "nonce": self._client._blockchain.eth.get_transaction_count(
-                        self._client._wallet_account.address, "pending"
-                    ),
+                    "nonce": self._client._blockchain.eth.get_transaction_count(self._client._wallet_account.address, "pending"),
                     "gas": gas_limit,
                     "gasPrice": self._client._blockchain.eth.gas_price,
                     "chainId": self._client._blockchain.eth.chain_id,
@@ -167,9 +163,7 @@ class Alpha:
                     "from": self._client._wallet_account.address,
                     "gas": 300000,
                     "gasPrice": self._client._blockchain.eth.gas_price,
-                    "nonce": self._client._blockchain.eth.get_transaction_count(
-                        self._client._wallet_account.address, "pending"
-                    ),
+                    "nonce": self._client._blockchain.eth.get_transaction_count(self._client._wallet_account.address, "pending"),
                     "chainId": self._client._blockchain.eth.chain_id,
                 }
             )

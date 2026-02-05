@@ -17,7 +17,6 @@ from .types import (
     HistoricalInputQuery,
     InferenceMode,
     InferenceResult,
-    LlmInferenceMode,
     ModelOutput,
     ModelRepository,
     SchedulerParams,
@@ -179,23 +178,19 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
 def llm_completion(
     model_cid: LLM,
     prompt: str,
-    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
-    max_retries: Optional[int] = None,
     x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
 ) -> TextGenerationOutput:
-    """Generate text completion using an LLM.
+    """Generate text completion using an LLM via TEE.
 
     Args:
-        model_cid: CID of the LLM model to use
+        model_cid: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
         prompt: Text prompt for completion
-        inference_mode: Mode of inference, defaults to VANILLA
         max_tokens: Maximum tokens to generate
         stop_sequence: Optional list of sequences where generation should stop
         temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-        max_retries: Maximum number of retries for failed transactions
         x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
     Returns:
@@ -208,41 +203,35 @@ def llm_completion(
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_completion(
         model_cid=model_cid,
-        inference_mode=inference_mode,
         prompt=prompt,
         max_tokens=max_tokens,
         stop_sequence=stop_sequence,
         temperature=temperature,
-        max_retries=max_retries,
-        x402_settlement_mode=x402_settlement_mode
+        x402_settlement_mode=x402_settlement_mode,
     )
 
 
 def llm_chat(
     model_cid: LLM,
     messages: List[Dict],
-    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
     tools: Optional[List[Dict]] = None,
     tool_choice: Optional[str] = None,
-    max_retries: Optional[int] = None,
     x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     stream: Optional[bool] = False,
 ) -> Union[TextGenerationOutput, TextGenerationStream]:
-    """Have a chat conversation with an LLM.
+    """Have a chat conversation with an LLM via TEE.
 
     Args:
-        model_cid: CID of the LLM model to use
+        model_cid: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
         messages: List of chat messages, each with 'role' and 'content'
-        inference_mode: Mode of inference, defaults to VANILLA
         max_tokens: Maximum tokens to generate
         stop_sequence: Optional list of sequences where generation should stop
         temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
         tools: Optional list of tools the model can use
         tool_choice: Optional specific tool to use
-        max_retries: Maximum number of retries for failed transactions
         x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
         stream: Optional boolean to enable streaming
 
@@ -256,14 +245,12 @@ def llm_chat(
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_chat(
         model_cid=model_cid,
-        inference_mode=inference_mode,
         messages=messages,
         max_tokens=max_tokens,
         stop_sequence=stop_sequence,
         temperature=temperature,
         tools=tools,
         tool_choice=tool_choice,
-        max_retries=max_retries,
         x402_settlement_mode=x402_settlement_mode,
         stream=stream,
     )
@@ -300,12 +287,10 @@ __all__ = [
     "TEE_LLM",
     "alpha",
     "InferenceMode",
-    "LlmInferenceMode",
     "HistoricalInputQuery",
     "SchedulerParams",
     "CandleType",
     "CandleOrder",
-    "InferenceMode",
     "llm",
     "alphasense",
 ]

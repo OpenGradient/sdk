@@ -6,7 +6,7 @@ from openai.types.chat import ChatCompletion
 
 from opengradient.client import Client
 from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from opengradient.types import LLM, LlmInferenceMode
+from opengradient.types import LLM
 
 
 class OGCompletions(object):
@@ -34,7 +34,6 @@ class OGCompletions(object):
             tools=tools,
             tool_choice=tool_choice,
             temperature=0.25,
-            inference_mode=LlmInferenceMode.VANILLA,
         )
         finish_reason = chat_output.finish_reason
         chat_completion = chat_output.chat_output

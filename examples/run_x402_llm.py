@@ -27,7 +27,6 @@ messages = [
 
 result = client.llm_chat(
     model_cid=og.LLM.GPT_4_1_2025_04_14,
-    inference_mode=og.LlmInferenceMode.TEE,
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
 )

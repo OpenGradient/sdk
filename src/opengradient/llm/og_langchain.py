@@ -22,7 +22,7 @@ from typing_extensions import override
 
 from opengradient.client import Client
 from opengradient.defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from opengradient.types import LLM, LlmInferenceMode
+from opengradient.types import LLM
 
 
 class OpenGradientChatModel(BaseChatModel):
@@ -118,7 +118,6 @@ class OpenGradientChatModel(BaseChatModel):
             stop_sequence=stop,
             max_tokens=self._max_tokens,
             tools=self._tools,
-            inference_mode=LlmInferenceMode.VANILLA,
         )
 
         finish_reason = chat_output.finish_reason or ""

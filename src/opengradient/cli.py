@@ -20,7 +20,7 @@ from .defaults import (
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
 )
-from .types import InferenceMode, LlmInferenceMode, x402SettlementMode
+from .types import InferenceMode, x402SettlementMode
 
 OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 
@@ -67,12 +67,6 @@ InferenceModes = {
     "ZKML": InferenceMode.ZKML,
     "TEE": InferenceMode.TEE,
 }
-
-LlmInferenceModes = {
-    "VANILLA": LlmInferenceMode.VANILLA,
-    "TEE": LlmInferenceMode.TEE,
-}
-
 
 x402SettlementModes = {
     "settle-batch": x402SettlementMode.SETTLE_BATCH,
@@ -361,77 +355,55 @@ def infer(ctx, model_cid: str, inference_mode: str, input_data, input_file: Path
     "-m",
     "model_cid",
     required=True,
-    help="Model identifier (VANILLA model from LLM enum or TEE model like 'anthropic/claude-3.5-haiku')",
-)
-@click.option(
-    "--mode",
-    "inference_mode",
-    type=click.Choice(LlmInferenceModes.keys()),
-    default="VANILLA",
-    help="Inference mode: VANILLA (on-chain) or TEE (verified execution with x402 payments)",
+    help="Model identifier (e.g., 'anthropic/claude-3.5-haiku', 'openai/gpt-4o')",
 )
 @click.option("--prompt", "-p", required=True, help="Input prompt for the LLM completion")
 @click.option("--max-tokens", type=int, default=100, help="Maximum number of tokens for LLM completion output")
 @click.option("--stop-sequence", multiple=True, help="Stop sequences for LLM")
 @click.option("--temperature", type=float, default=0.0, help="Temperature for LLM inference (0.0 to 1.0)")
-@click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
 @click.option(
     "--x402-settlement-mode",
     "x402_settlement_mode",
     type=click.Choice(x402SettlementModes.keys()),
     default="settle-batch",
-    help="Settlement mode for x402 payments (TEE mode): settle (hashes only), settle-batch (batched, default), settle-metadata (full data)",
+    help="Settlement mode for x402 payments: settle (hashes only), settle-batch (batched, default), settle-metadata (full data)",
 )
 @click.pass_context
 def completion(
     ctx,
     model_cid: str,
-    inference_mode: str,
     x402_settlement_mode: str,
     prompt: str,
     max_tokens: int,
     stop_sequence: List[str],
     temperature: float,
-    local: bool,
 ):
     """
-    Run completion inference on an LLM model.
+    Run completion inference on an LLM model via TEE.
 
-    Supports two inference modes:
-    - VANILLA: On-chain inference with transaction settlement
-    - TEE: Verified execution in Trusted Execution Environment with x402 payments
+    Uses verified execution in Trusted Execution Environment with x402 payments.
 
     Example usage:
 
     \b
-    # VANILLA mode (on-chain)
-    opengradient completion --model meta-llama/Llama-3.2-3B-Instruct --prompt "Hello" --max-tokens 50
-
-    # TEE mode (verified execution)
-    opengradient completion --model anthropic/claude-3.5-haiku --mode TEE --prompt "Hello, how are you?" --max-tokens 50
+    opengradient completion --model anthropic/claude-3.5-haiku --prompt "Hello, how are you?" --max-tokens 50
+    opengradient completion --model openai/gpt-4o --prompt "Write a haiku" --max-tokens 100
     """
     client: Client = ctx.obj["client"]
 
     try:
-        is_tee = inference_mode == "TEE"
-
-        if is_tee:
-            click.echo(f'Running TEE LLM completion for model "{model_cid}"\n')
-        else:
-            click.echo(f'Running VANILLA LLM completion for model "{model_cid}"\n')
+        click.echo(f'Running TEE LLM completion for model "{model_cid}"\n')
 
         completion_output = client.llm_completion(
             model_cid=model_cid,
-            inference_mode=LlmInferenceModes[inference_mode],
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
             temperature=temperature,
-            local_model=local,
-            x402_settlement_mode=x402_settlement_mode,
+            x402_settlement_mode=x402SettlementModes[x402_settlement_mode],
         )
 
-        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.completion_output, not is_tee)
+        print_llm_completion_result(model_cid, completion_output.transaction_hash, completion_output.completion_output, is_vanilla=False)
 
     except Exception as e:
         click.echo(f"Error running LLM completion: {str(e)}")
@@ -466,14 +438,7 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output, is_vanilla=True)
     "-m",
     "model_cid",
     required=True,
-    help="Model identifier (VANILLA model from LLM enum or TEE model like 'anthropic/claude-3.5-haiku')",
-)
-@click.option(
-    "--mode",
-    "inference_mode",
-    type=click.Choice(LlmInferenceModes.keys()),
-    default="VANILLA",
-    help="Inference mode: VANILLA (on-chain) or TEE (verified execution with x402 payments)",
+    help="Model identifier (e.g., 'anthropic/claude-3.5-haiku', 'openai/gpt-4o')",
 )
 @click.option("--messages", type=str, required=False, help="Input messages for the chat inference in JSON format")
 @click.option(
@@ -490,19 +455,17 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output, is_vanilla=True)
     "--tools-file", type=click.Path(exists=True, path_type=Path), required=False, help="Path to JSON file containing tool configurations"
 )
 @click.option("--tool-choice", type=str, default="", help="Specific tool choice for the LLM")
-@click.option("--local", is_flag=True, help="Force use of local model even if not in LLM enum")
 @click.option(
     "--x402-settlement-mode",
     type=click.Choice(x402SettlementModes.keys()),
     default="settle-batch",
-    help="Settlement mode for x402 payments (TEE mode): settle (hashes only), settle-batch (batched, default), settle-metadata (full data)",
+    help="Settlement mode for x402 payments: settle (hashes only), settle-batch (batched, default), settle-metadata (full data)",
 )
-@click.option("--stream", is_flag=True, default=False, help="Stream the output from the LLM (TEE mode only)")
+@click.option("--stream", is_flag=True, default=False, help="Stream the output from the LLM")
 @click.pass_context
 def chat(
     ctx,
     model_cid: str,
-    inference_mode: str,
     messages: Optional[str],
     messages_file: Optional[Path],
     max_tokens: int,
@@ -512,39 +475,27 @@ def chat(
     tools_file: Optional[Path],
     tool_choice: Optional[str],
     x402_settlement_mode: Optional[str],
-    local: bool,
     stream: bool,
 ):
     """
-    Run chat inference on an LLM model.
+    Run chat inference on an LLM model via TEE.
 
-    Supports two inference modes:
-    - VANILLA: On-chain inference with transaction settlement
-    - TEE: Verified execution in Trusted Execution Environment with x402 payments
-
+    Uses verified execution in Trusted Execution Environment with x402 payments.
     Tool calling is supported for compatible models.
 
     Example usage:
 
     \b
-    # VANILLA mode (on-chain)
-    opengradient chat --model meta-llama/Llama-3.2-3B-Instruct --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+    opengradient chat --model anthropic/claude-3.5-haiku --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
+    opengradient chat --model openai/gpt-4o --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
 
-    # TEE mode (verified execution)
-    opengradient chat --model anthropic/claude-3.5-haiku --mode TEE --messages '[{"role":"user","content":"hello"}]' --max-tokens 50
-
-    # TEE mode with streaming
-    opengradient chat --model anthropic/claude-3.5-haiku --mode TEE --messages '[{"role":"user","content":"How are clouds formed?"}]' --max-tokens 250 --stream
+    # With streaming
+    opengradient chat --model anthropic/claude-3.5-haiku --messages '[{"role":"user","content":"How are clouds formed?"}]' --max-tokens 250 --stream
     """
     client: Client = ctx.obj["client"]
 
     try:
-        is_tee = inference_mode == "TEE"
-
-        if is_tee:
-            click.echo(f'Running TEE LLM chat for model "{model_cid}"\n')
-        else:
-            click.echo(f'Running VANILLA LLM chat for model "{model_cid}"\n')
+        click.echo(f'Running TEE LLM chat for model "{model_cid}"\n')
 
         # Parse messages
         if not messages and not messages_file:
@@ -603,23 +554,21 @@ def chat(
 
         result = client.llm_chat(
             model_cid=model_cid,
-            inference_mode=LlmInferenceModes[inference_mode],
             messages=messages,
             max_tokens=max_tokens,
             stop_sequence=list(stop_sequence),
             temperature=temperature,
             tools=parsed_tools,
             tool_choice=tool_choice,
-            local_model=local,
-            x402_settlement_mode=x402_settlement_mode,
+            x402_settlement_mode=x402SettlementModes[x402_settlement_mode],
             stream=stream,
         )
 
         # Handle response based on streaming flag
         if stream:
-            print_streaming_chat_result(model_cid, result, is_tee)
+            print_streaming_chat_result(model_cid, result, is_tee=True)
         else:
-            print_llm_chat_result(model_cid, result.transaction_hash, result.finish_reason, result.chat_output, not is_tee)
+            print_llm_chat_result(model_cid, result.transaction_hash, result.finish_reason, result.chat_output, is_vanilla=False)
 
     except Exception as e:
         click.echo(f"Error running LLM chat inference: {str(e)}")
