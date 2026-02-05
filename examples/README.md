@@ -190,9 +190,8 @@ LLM chat pattern:
 
 ```python
 completion = og_client.llm_chat(
-    model_cid=og.LLM.CLAUDE_3_5_HAIKU,
+    model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
     messages=[{"role": "user", "content": "Your message"}],
-    inference_mode=og.LlmInferenceMode.VANILLA
 )
 print(f"Response: {completion.chat_output['content']}")
 ```
