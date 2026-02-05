@@ -1,8 +1,5 @@
-import json
-from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
-from eth_account.account import LocalAccount
 from web3 import Web3
 
 from ..defaults import (
@@ -14,7 +11,7 @@ from ..defaults import (
 )
 from .llm import LLM
 from .model_hub import ModelHub
-from .model_hub_inference import Inference
+from .onchain_inference import Inference
 
 
 class Client:
@@ -49,14 +46,6 @@ class Client:
         blockchain = Web3(Web3.HTTPProvider(rpc_url))
         wallet_account = blockchain.eth.account.from_key(private_key)
 
-        abi_path = Path(__file__).parent.parent / "abi" / "inference.abi"
-        with open(abi_path, "r") as abi_file:
-            inference_abi = json.load(abi_file)
-
-        abi_path = Path(__file__).parent.parent / "abi" / "InferencePrecompile.abi"
-        with open(abi_path, "r") as abi_file:
-            precompile_abi = json.load(abi_file)
-
         hub_user = None
         if email is not None:
             hub_user = ModelHub._login_to_hub(email, password)
@@ -78,8 +67,6 @@ class Client:
             blockchain=blockchain,
             wallet_account=wallet_account,
             inference_hub_contract_address=contract_address,
-            inference_abi=inference_abi,
-            precompile_abi=precompile_abi,
             api_url=api_url,
         )
 

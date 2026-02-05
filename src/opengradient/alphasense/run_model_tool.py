@@ -4,7 +4,7 @@ import numpy as np
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
-from opengradient.client.model_hub_inference import Inference
+from opengradient.client.onchain_inference import Inference
 from opengradient.types import InferenceMode, InferenceResult
 
 from .types import ToolType

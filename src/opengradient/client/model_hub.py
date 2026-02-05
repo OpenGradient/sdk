@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import firebase
 import requests
 
-from ..exceptions import OpenGradientError
+from .exceptions import OpenGradientError
 from ..types import FileUploadResult, ModelRepository
 
 # Security Update: Credentials moved to environment variables

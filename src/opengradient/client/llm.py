@@ -9,7 +9,7 @@ from x402.clients.httpx import x402HttpxClient
 from ..defaults import (
     DEFAULT_NETWORK_FILTER,
 )
-from ..exceptions import OpenGradientError
+from .exceptions import OpenGradientError
 from ..types import (
     TEE_LLM,
     StreamChunk,

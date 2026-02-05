@@ -5,8 +5,6 @@ This module contains features that are only available on the Alpha Testnet,
 including workflow management and ML model execution.
 """
 
-import json
-from pathlib import Path
 from typing import List, Optional
 
 from eth_account.account import LocalAccount
@@ -15,7 +13,8 @@ from web3.exceptions import ContractLogicError
 
 from ..defaults import DEFAULT_SCHEDULER_ADDRESS
 from ..types import HistoricalInputQuery, ModelOutput, SchedulerParams
-from ..utils import convert_array_to_model_output
+from ._conversions import convert_array_to_model_output
+from ._utils import get_abi, get_bin, run_with_retry
 
 # How much time we wait for txn to be included in chain
 INFERENCE_TX_TIMEOUT = 120
@@ -37,21 +36,6 @@ class Alpha:
     def __init__(self, blockchain: Web3, wallet_account: LocalAccount):
         self._blockchain = blockchain
         self._wallet_account = wallet_account
-
-    def _get_abi(self, abi_name: str) -> dict:
-        """Returns the ABI for the requested contract."""
-        abi_path = Path(__file__).parent / "abi" / abi_name
-        with open(abi_path, "r") as f:
-            return json.load(f)
-
-    def _get_bin(self, bin_name: str) -> str:
-        """Returns the bin for the requested contract."""
-        bin_path = Path(__file__).parent / "bin" / bin_name
-        with open(bin_path, "r", encoding="utf-8") as f:
-            bytecode = f.read().strip()
-            if not bytecode.startswith("0x"):
-                bytecode = "0x" + bytecode
-            return bytecode
 
     def new_workflow(
         self,
@@ -85,11 +69,9 @@ class Alpha:
         Raises:
             Exception: If transaction fails or gas estimation fails
         """
-        from .model_hub_inference import run_with_retry
-
         # Get contract ABI and bytecode
-        abi = self._get_abi("PriceHistoryInference.abi")
-        bytecode = self._get_bin("PriceHistoryInference.bin")
+        abi = get_abi("PriceHistoryInference.abi")
+        bytecode = get_bin("PriceHistoryInference.bin")
 
         def deploy_transaction():
             contract = self._blockchain.eth.contract(abi=abi, bytecode=bytecode)
@@ -147,7 +129,7 @@ class Alpha:
             Exception: If registration with scheduler fails. The workflow contract will
                       still be deployed and can be executed manually.
         """
-        scheduler_abi = self._get_abi("WorkflowScheduler.abi")
+        scheduler_abi = get_abi("WorkflowScheduler.abi")
 
         # Scheduler contract address
         scheduler_address = DEFAULT_SCHEDULER_ADDRESS
@@ -190,7 +172,7 @@ class Alpha:
         """
         # Get the contract interface
         contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
+            address=Web3.to_checksum_address(contract_address), abi=get_abi("PriceHistoryInference.abi")
         )
 
         # Get the result
@@ -214,7 +196,7 @@ class Alpha:
         """
         # Get the contract interface
         contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
+            address=Web3.to_checksum_address(contract_address), abi=get_abi("PriceHistoryInference.abi")
         )
 
         # Call run() function
@@ -258,7 +240,7 @@ class Alpha:
             List[ModelOutput]: List of historical inference results
         """
         contract = self._blockchain.eth.contract(
-            address=Web3.to_checksum_address(contract_address), abi=self._get_abi("PriceHistoryInference.abi")
+            address=Web3.to_checksum_address(contract_address), abi=get_abi("PriceHistoryInference.abi")
         )
 
         results = contract.functions.getLastInferenceResults(num_results).call()

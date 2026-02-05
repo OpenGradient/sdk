@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 # Import from src/opengradient
 import src.opengradient.types as types
-import src.opengradient.utils as utils
+import src.opengradient.client._conversions as utils
 
 
 @pytest.fixture

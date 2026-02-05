@@ -39,10 +39,8 @@ __pdoc__ = {
     "cli": False,
     "client": False,
     "defaults": False,
-    "exceptions": False,
     "llm": True,
     "alphasense": True,
     "proto": False,
     "types": False,
-    "utils": False,
 }
