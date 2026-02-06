@@ -26,7 +26,11 @@ outline: [2,3]
   
 
   
-Initialize the OpenGradient client.
+Main OpenGradient SDK client.
+
+Provides unified access to all OpenGradient services including LLM inference,
+on-chain model inference, and the Model Hub. Handles authentication via
+blockchain private key and optional Model Hub credentials.
   
 
 **Arguments**

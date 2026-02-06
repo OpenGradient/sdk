@@ -16,7 +16,11 @@ outline: [2,3]
   
 
   
+LLM inference namespace.
 
+Provides access to large language model completions and chat via TEE
+(Trusted Execution Environment) with x402 payment protocol support.
+Supports both streaming and non-streaming responses.
   
 
   

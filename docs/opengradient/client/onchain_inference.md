@@ -16,7 +16,10 @@ outline: [2,3]
   
 
   
+On-chain model inference namespace.
 
+Provides access to decentralized ONNX model inference via blockchain smart contracts.
+Supports multiple inference modes including VANILLA, TEE, and ZKML.
   
 
   

@@ -16,7 +16,10 @@ outline: [2,3]
   
 
   
+Model Hub namespace.
 
+Provides access to the OpenGradient Model Hub for creating, versioning,
+and uploading ML models. Requires email/password authentication.
   
 
   
