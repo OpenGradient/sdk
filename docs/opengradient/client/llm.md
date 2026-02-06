@@ -24,7 +24,9 @@ def __init__(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_st
 
 #### Methods
 
-##### `chat()`
+---
+
+#### `chat()`
 
 ```python
 def chat(self, model: `TEE_LLM`, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[`TextGenerationOutput`, `TextGenerationStream`]
@@ -57,7 +59,9 @@ Union[TextGenerationOutput, TextGenerationStream]:
 
 * **`OpenGradientError`**: If the inference fails.
 
-##### `completion()`
+---
+
+#### `completion()`
 
 ```python
 def completion(self, model: `TEE_LLM`, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH) ‑> `TextGenerationOutput`

@@ -26,7 +26,9 @@ def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`)
 
 #### Methods
 
-##### `new_workflow()`
+---
+
+#### `new_workflow()`
 
 ```python
 def new_workflow(self, model_cid: str, input_query: `HistoricalInputQuery`, input_tensor_name: str, scheduler_params: Optional[`SchedulerParams`] = None) ‑> str
@@ -58,7 +60,9 @@ str: Deployed contract address. If scheduler_params was provided, the workflow
 
 * **`Exception`**: If transaction fails or gas estimation fails
 
-##### `read_workflow_history()`
+---
+
+#### `read_workflow_history()`
 
 ```python
 def read_workflow_history(self, contract_address: str, num_results: int) ‑> List[`ModelOutput`]
@@ -77,7 +81,9 @@ storage, with the most recent result first.
 
 List[ModelOutput]: List of historical inference results
 
-##### `read_workflow_result()`
+---
+
+#### `read_workflow_result()`
 
 ```python
 def read_workflow_result(self, contract_address: str) ‑> `ModelOutput`
@@ -97,7 +103,9 @@ ModelOutput: The inference result from the contract
 * **`ContractLogicError`**: If the transaction fails
 * **`Web3Error`**: If there are issues with the web3 connection or contract interaction
 
-##### `run_workflow()`
+---
+
+#### `run_workflow()`
 
 ```python
 def run_workflow(self, contract_address: str) ‑> `ModelOutput`

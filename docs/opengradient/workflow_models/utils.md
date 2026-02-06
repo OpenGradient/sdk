@@ -8,6 +8,8 @@ Utility functions for the models module.
 
 ## Functions
 
+---
+
 ### `create_block_explorer_link_smart_contract()`
 
 ```python
@@ -15,12 +17,16 @@ def create_block_explorer_link_smart_contract(transaction_hash: str) ‑> str
 ```
 Create block explorer link for smart contract.
 
+---
+
 ### `create_block_explorer_link_transaction()`
 
 ```python
 def create_block_explorer_link_transaction(transaction_hash: str) ‑> str
 ```
 Create block explorer link for transaction.
+
+---
 
 ### `read_workflow_wrapper()`
 

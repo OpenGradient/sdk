@@ -57,9 +57,9 @@ print(result.model_output)
 
 The `Client` object exposes three namespaces:
 
-- **`client.llm`** -- LLM chat and completion (see `client.llm`)
-- **`client.inference`** -- On-chain ONNX model inference (see `client.inference`)
-- **`client.model_hub`** -- Model repository management (see `client.model_hub`)
+- **[llm](./client/llm)** -- LLM chat and completion
+- **[onchain_inference](./client/onchain_inference)** -- On-chain ONNX model inference
+- **[model_hub](./client/model_hub)** -- Model repository management
 
 ## Model Hub (requires email auth)
 
@@ -87,6 +87,8 @@ The SDK includes adapters for popular AI frameworks -- see the `agents` submodul
 * [**workflow_models**](./workflow_models/index): OpenGradient Hardcoded Models
 
 ## Functions
+
+---
 
 ### `init()`
 

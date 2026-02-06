@@ -18,7 +18,9 @@ def __init__(functions: List[`AbiFunction`])
 
 #### Static methods
 
-##### `from_json()`
+---
+
+#### `from_json()`
 
 ```python
 static def from_json(abi_json)
@@ -87,7 +89,9 @@ def __init__(base: str, quote: str, total_candles: int, candle_duration_in_mi
 
 #### Methods
 
-##### `to_abi_format()`
+---
+
+#### `to_abi_format()`
 
 ```python
 def to_abi_format(self) ‑> tuple
@@ -255,7 +259,9 @@ def __init__(frequency: int, duration_hours: int)
 
 #### Static methods
 
-##### `from_dict()`
+---
+
+#### `from_dict()`
 
 ```python
 static def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[`SchedulerParams`]
@@ -312,7 +318,9 @@ def __init__(choices: List[`StreamChoice`], model: str, usage: Optional[`Stre
 
 #### Static methods
 
-##### `from_sse_data()`
+---
+
+#### `from_sse_data()`
 
 ```python
 static def from_sse_data(data: Dict) ‑> `StreamChunk`

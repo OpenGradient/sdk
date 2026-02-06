@@ -23,7 +23,9 @@ def __init__(hub_user: Optional[Dict] = None)
 
 #### Methods
 
-##### `create_model()`
+---
+
+#### `create_model()`
 
 ```python
 def create_model(self, model_name: str, model_desc: str, version: str = '1.00') ‑> `ModelRepository`
@@ -44,7 +46,9 @@ dict: The server response containing model details.
 
 * **`CreateModelError`**: If the model creation fails.
 
-##### `create_version()`
+---
+
+#### `create_version()`
 
 ```python
 def create_version(self, model_name: str, notes: str = '', is_major: bool = False) ‑> dict
@@ -65,7 +69,9 @@ dict: The server response containing version details.
 
 * **`Exception`**: If the version creation fails.
 
-##### `list_files()`
+---
+
+#### `list_files()`
 
 ```python
 def list_files(self, model_name: str, version: str) ‑> List[Dict]
@@ -85,7 +91,9 @@ List[Dict]: A list of dictionaries containing file information.
 
 * **`OpenGradientError`**: If the file listing fails.
 
-##### `upload()`
+---
+
+#### `upload()`
 
 ```python
 def upload(self, model_path: str, model_name: str, version: str) ‑> `FileUploadResult`

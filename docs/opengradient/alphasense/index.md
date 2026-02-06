@@ -8,6 +8,8 @@ OpenGradient AlphaSense Tools
 
 ## Functions
 
+---
+
 ### `create_read_workflow_tool()`
 
 ```python
@@ -44,6 +46,8 @@ Callable: For ToolType.SWARM, returns a decorated function with appropriate meta
 **Raises**
 
 * **`ValueError`**: If an invalid tool_type is provided.
+
+---
 
 ### `create_run_model_tool()`
 

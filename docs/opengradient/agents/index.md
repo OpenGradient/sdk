@@ -12,6 +12,8 @@ into existing applications and agent frameworks.
 
 ## Functions
 
+---
+
 ### `langchain_adapter()`
 
 ```python
@@ -19,6 +21,8 @@ def langchain_adapter(private_key: str, model_cid: `LLM`, max_tokens: int =�
 ```
 Returns an OpenGradient LLM that implements LangChain's LLM interface
 and can be plugged into LangChain agents.
+
+---
 
 ### `openai_adapter()`
 

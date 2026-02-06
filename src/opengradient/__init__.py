@@ -50,9 +50,9 @@ print(result.model_output)
 
 The `Client` object exposes three namespaces:
 
-- **`client.llm`** -- LLM chat and completion (see `client.llm`)
-- **`client.inference`** -- On-chain ONNX model inference (see `client.inference`)
-- **`client.model_hub`** -- Model repository management (see `client.model_hub`)
+- **`opengradient.client.llm`** -- LLM chat and completion
+- **`opengradient.client.onchain_inference`** -- On-chain ONNX model inference
+- **`opengradient.client.model_hub`** -- Model repository management
 
 ## Model Hub (requires email auth)
 

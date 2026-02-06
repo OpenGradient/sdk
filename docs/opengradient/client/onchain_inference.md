@@ -23,7 +23,9 @@ def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub
 
 #### Methods
 
-##### `infer()`
+---
+
+#### `infer()`
 
 ```python
 def infer(self, model_cid: str, inference_mode: `InferenceMode`, model_input: Dict[str, Union[str, int, float, List, `ndarray`]], max_retries: Optional[int] = None) ‑> `InferenceResult`

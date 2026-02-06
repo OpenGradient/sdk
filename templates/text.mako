@@ -63,6 +63,24 @@ def breakdown_google(text):
 def format_for_list(docstring, depth=1):
   spaces = depth * 2 * ' '
   return re.compile(r'\n\n', re.MULTILINE).sub('\n\n' + spaces, docstring)
+
+def linkify(text, mod):
+  """Convert backtick-wrapped qualified names to markdown links."""
+  cur_parts = mod.name.split('.')
+  def replace_ref(match):
+    name = match.group(1)
+    dobj = mod.find_ident(name)
+    if dobj is None:
+      return match.group(0)
+    target_parts = name.split('.')
+    common = sum(1 for a, b in zip(cur_parts, target_parts) if a == b)
+    remaining = target_parts[common:]
+    if not remaining:
+      return match.group(0)
+    display = match.group(2)
+    rel_path = '/'.join(remaining)
+    return '[{}](./{})'.format(display, rel_path)
+  return re.sub(r'`(opengradient(?:\.\w+)+\.(\w+))`', replace_ref, text)
 %>\
 <%def name="show_term_list(terms)">\
 % for i in range(0, len(terms), 2):
@@ -139,6 +157,9 @@ params = ', '.join(f.params(annotate=show_type_annotations, link=link))
 return_type = get_annotation(f.return_annotation, '\N{non-breaking hyphen}>', link=link)
 prefix = qual + ' ' if qual else ''
 %>
+
+---
+
 ${header('`' + f.name + '()`', level)}
 
 ```python
@@ -180,7 +201,7 @@ ${header('Package ' + module.name, 1)}
 **Version: ${_project_version}**
 % endif
 
-${module.docstring}
+${linkify(module.docstring, module)}
 % if submodules:
 
 ${header('Submodules', 2)}
@@ -260,13 +281,13 @@ ${header('Subclasses', 4)}
 
 ${header('Static methods', 4)}
 
-${show_funcs(smethods, 'static', 5)}\
+${show_funcs(smethods, 'static', 4)}\
 % endif
 % if methods:
 
 ${header('Methods', 4)}
 
-${show_funcs(methods, '', 5)}\
+${show_funcs(methods, '', 4)}\
 % endif
 % if class_vars or inst_vars:
 
