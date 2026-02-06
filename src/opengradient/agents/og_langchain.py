@@ -21,8 +21,8 @@ from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from typing_extensions import override
 
-from opengradient.client import Client
-from opengradient.types import LLM
+from ..client import Client
+from ..types import LLM
 
 
 class OpenGradientChatModel(BaseChatModel):

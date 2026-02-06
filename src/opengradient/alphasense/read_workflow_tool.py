@@ -2,8 +2,7 @@ from typing import Callable, Optional
 
 from langchain_core.tools import BaseTool, StructuredTool
 
-from opengradient.client.alpha import Alpha
-
+from ..client.alpha import Alpha
 from .types import ToolType
 
 
@@ -62,12 +61,12 @@ def create_read_workflow_tool(
     if alpha is None:
         import opengradient as og
 
-        if og.client is None:
+        if og.global_client is None:
             raise ValueError(
                 "No alpha instance provided and no global client initialized. "
                 "Either pass alpha=client.alpha or call opengradient.init() first."
             )
-        alpha = og.client.alpha
+        alpha = og.global_client.alpha
 
     # define runnable
     def read_workflow():

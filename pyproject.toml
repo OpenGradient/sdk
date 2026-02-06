@@ -55,6 +55,9 @@ exclude = ["tests*", "stresstest*"]
     "**/*.py"
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
 [tool.ruff]
 line-length = 140
 target-version = "py310"

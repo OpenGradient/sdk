@@ -5,8 +5,8 @@ from typing import List
 
 from openai.types.chat import ChatCompletion
 
-from opengradient.client import Client
-from opengradient.types import LLM
+from ..client import Client
+from ..types import LLM
 
 
 class OGCompletions(object):

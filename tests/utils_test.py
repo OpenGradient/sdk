@@ -1,16 +1,10 @@
 import json
-import os
-import sys
 
 import numpy as np
 import pytest
 
-# Add the src directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-# Import from src/opengradient
-import src.opengradient.client._conversions as utils
-import src.opengradient.types as types
+import opengradient.client._conversions as utils
+import opengradient.types as types
 
 
 @pytest.fixture

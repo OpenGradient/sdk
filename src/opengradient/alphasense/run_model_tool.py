@@ -4,9 +4,8 @@ import numpy as np
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
-from opengradient.client.onchain_inference import Inference
-from opengradient.types import InferenceMode, InferenceResult
-
+from ..client.onchain_inference import Inference
+from ..types import InferenceMode, InferenceResult
 from .types import ToolType
 
 
@@ -115,12 +114,12 @@ def create_run_model_tool(
     if inference is None:
         import opengradient as og
 
-        if og.client is None:
+        if og.global_client is None:
             raise ValueError(
                 "No inference instance provided and no global client initialized. "
                 "Either pass inference=client.inference or call opengradient.init() first."
             )
-        inference = og.client.inference
+        inference = og.global_client.inference
 
     def model_executor(**llm_input):
         # Pass LLM input arguments (formatted based on tool_input_schema) as parameters into model_input_provider
