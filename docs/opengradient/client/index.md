@@ -13,9 +13,8 @@ OpenGradient Client -- the central entry point to all SDK services.
 The [Client](./client) class provides unified access to three service namespaces:
 
 - **[llm](./llm)** -- LLM chat and text completion with TEE-verified execution and x402 payment settlement
-- **[onchain_inference](./onchain_inference)** -- On-chain ONNX model inference via blockchain smart contracts (VANILLA, TEE, ZKML modes)
 - **[model_hub](./model_hub)** -- Model repository management: create, version, and upload ML models
-- **[alpha](./alpha)** -- Alpha Testnet features: workflow deployment and scheduled ML model execution
+- **[alpha](./alpha)** -- Alpha Testnet features: on-chain ONNX model inference (VANILLA, TEE, ZKML modes), workflow deployment, and scheduled ML model execution
 
 ## Usage
 
@@ -35,7 +34,7 @@ for chunk in client.llm.chat(
         print(chunk.choices[0].delta.content, end="")
 
 # On-chain model inference
-result = client.inference.infer(
+result = client.alpha.infer(
     model_cid="your_model_cid",
     inference_mode=og.InferenceMode.VANILLA,
     model_input={"input": [1.0, 2.0, 3.0]},
@@ -53,7 +52,6 @@ repo = client.model_hub.create_model("my-model", "A price prediction model")
 * [exceptions](./exceptions): Exception types for OpenGradient SDK errors.
 * [llm](./llm): LLM chat and completion via TEE-verified execution with x402 payments.
 * [model_hub](./model_hub): Model Hub for creating, versioning, and uploading ML models.
-* [onchain_inference](./onchain_inference): On-chain ONNX model inference via blockchain smart contracts.
 
 ## Classes
 
@@ -84,7 +82,6 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 
 #### Variables
 
-* [**`inference`**](./onchain_inference): On-chain ONNX model inference via blockchain smart contracts.
+* [**`alpha`**](./alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.
 * [**`llm`**](./llm): LLM chat and completion via TEE-verified execution.
 * [**`model_hub`**](./model_hub): Model Hub for creating, versioning, and uploading ML models.
-* [**`alpha`**](./alpha): Alpha Testnet features including workflow management and ML model execution.

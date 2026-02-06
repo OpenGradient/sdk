@@ -9,7 +9,7 @@ outline: [2,3]
 Alpha Testnet features for OpenGradient SDK.
 
 This module contains features that are only available on the Alpha Testnet,
-including workflow management and ML model execution.
+including on-chain ONNX model inference, workflow management, and ML model execution.
 
 ## Classes
 
@@ -18,15 +18,41 @@ including workflow management and ML model execution.
 Alpha Testnet features namespace.
 
 This class provides access to features that are only available on the Alpha Testnet,
-including workflow deployment and execution.
+including on-chain ONNX model inference, workflow deployment, and execution.
 
 #### Constructor
 
 ```python
-def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`)
+def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub_contract_address: str, api_url: str)
 ```
 
 #### Methods
+
+---
+
+#### `infer()`
+
+```python
+def infer(self, model_cid: str, inference_mode: `InferenceMode`, model_input: Dict[str, Union[str, int, float, List, `ndarray`]], max_retries: Optional[int] = None) ‑> `InferenceResult`
+```
+Perform inference on a model.
+
+**Arguments**
+
+* **`model_cid (str)`**: The unique content identifier for the model from IPFS.
+* **`inference_mode (InferenceMode)`**: The inference mode.
+* **`model_input (Dict[str, Union[str, int, float, List, np.ndarray]])`**: The input data for the model.
+* **`max_retries (int, optional)`**: Maximum number of retry attempts. Defaults to 5.
+
+**Returns**
+
+InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
+    transaction_hash (str): Blockchain hash for the transaction
+    model_output (Dict[str, np.ndarray]): Output of the ONNX model
+
+**Raises**
+
+* **`OpenGradientError`**: If the inference fails.
 
 ---
 
@@ -126,3 +152,8 @@ ModelOutput: The inference result from the contract
 
 * **`ContractLogicError`**: If the transaction fails
 * **`Web3Error`**: If there are issues with the web3 connection or contract interaction
+
+#### Variables
+
+* `inference_abi` : dict
+* `precompile_abi` : dict

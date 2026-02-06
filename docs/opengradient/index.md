@@ -47,7 +47,7 @@ for chunk in client.llm.chat(
         print(chunk.choices[0].delta.content, end="")
 
 # Run on-chain ONNX model inference
-result = client.inference.infer(
+result = client.alpha.infer(
     model_cid="your_model_cid",
     inference_mode=og.InferenceMode.VANILLA,
     model_input={"input": [1.0, 2.0, 3.0]},
@@ -60,7 +60,7 @@ print(result.model_output)
 The [Client](./client/index) object exposes three namespaces:
 
 - **[llm](./client/llm)** -- LLM chat and completion
-- **[onchain_inference](./client/onchain_inference)** -- On-chain ONNX model inference
+- **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution
 - **[model_hub](./client/model_hub)** -- Model repository management
 
 ## Model Hub (requires email auth)
@@ -142,10 +142,9 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 
 #### Variables
 
-* [**`inference`**](./client/onchain_inference): On-chain ONNX model inference via blockchain smart contracts.
+* [**`alpha`**](./client/alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.
 * [**`llm`**](./client/llm): LLM chat and completion via TEE-verified execution.
 * [**`model_hub`**](./client/model_hub): Model Hub for creating, versioning, and uploading ML models.
-* [**`alpha`**](./client/alpha): Alpha Testnet features including workflow management and ML model execution.
 
 ### `InferenceMode`
 

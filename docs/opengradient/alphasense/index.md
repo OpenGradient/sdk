@@ -54,7 +54,7 @@ Callable: For ToolType.SWARM, returns a decorated function with appropriate meta
 ### `create_run_model_tool()`
 
 ```python
-def create_run_model_tool(tool_type: [ToolType](./types), model_cid: str, tool_name: str, model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, `ndarray`]]], model_output_formatter: Callable[[`InferenceResult`], str], inference: Optional[`Inference`] = None, tool_input_schema: Optional[Type[`BaseModel`]] = None, tool_description: str = 'Executes the given ML model', inference_mode: `InferenceMode` = InferenceMode.VANILLA) ‑> Union[`BaseTool`, Callable]
+def create_run_model_tool(tool_type: [ToolType](./types), model_cid: str, tool_name: str, model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, `ndarray`]]], model_output_formatter: Callable[[`InferenceResult`], str], inference: Optional[`Alpha`] = None, tool_input_schema: Optional[Type[`BaseModel`]] = None, tool_description: str = 'Executes the given ML model', inference_mode: `InferenceMode` = InferenceMode.VANILLA) ‑> Union[`BaseTool`, Callable]
 ```
 Creates a tool that wraps an OpenGradient model for inference.
 
@@ -85,8 +85,8 @@ runs inference using the specified OpenGradient model.
         InferenceResult has attributes:
             * transaction_hash (str): Blockchain hash for the transaction
             * model_output (Dict[str, np.ndarray]): Output of the ONNX model
-* **`inference (Inference, optional)`**: The inference namespace from an initialized OpenGradient client
-        (client.inference). If not provided, falls back to the global client set via ``opengradient.init()``.
+* **`inference (Alpha, optional)`**: The alpha namespace from an initialized OpenGradient client
+        (client.alpha). If not provided, falls back to the global client set via ``opengradient.init()``.
 * **`tool_input_schema (Type[BaseModel], optional)`**: A Pydantic BaseModel class defining the
         input schema.
 
