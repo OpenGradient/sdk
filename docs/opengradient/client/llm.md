@@ -11,10 +11,10 @@ LLM chat and completion via TEE-verified execution with x402 payments.
 ## Classes
     
 
-###  LLM
+### LLM
 
 ```python
-class LLM(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_streaming_server_url: str)
+class LLM
 ```
 
   
@@ -27,11 +27,17 @@ Provides access to large language model completions and chat via TEE
 Supports both streaming and non-streaming responses.
   
 
+#### Constructor
+
+```python
+def __init__(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_streaming_server_url: str)
+```
+
 #### Methods
 
   
 
-### Chat 
+##### chat
 
 ```python
 def chat(self, model: opengradient.types.TEE_LLM, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
@@ -73,7 +79,7 @@ Union[TextGenerationOutput, TextGenerationStream]:
 
   
 
-### Completion 
+##### completion
 
 ```python
 def completion(self, model: opengradient.types.TEE_LLM, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = x402SettlementMode.SETTLE_BATCH) ‑> opengradient.types.TextGenerationOutput

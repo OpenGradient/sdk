@@ -14,10 +14,10 @@ including workflow management and ML model execution.
 ## Classes
     
 
-###  Alpha
+### Alpha
 
 ```python
-class Alpha(blockchain: `Web3`, wallet_account: `LocalAccount`)
+class Alpha
 ```
 
   
@@ -29,11 +29,17 @@ This class provides access to features that are only available on the Alpha Test
 including workflow deployment and execution.
   
 
+#### Constructor
+
+```python
+def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`)
+```
+
 #### Methods
 
   
 
-### New workflow 
+##### new_workflow
 
 ```python
 def new_workflow(self, model_cid: str, input_query: opengradient.types.HistoricalInputQuery, input_tensor_name: str, scheduler_params: Optional[opengradient.types.SchedulerParams] = None) ‑> str
@@ -74,7 +80,7 @@ str: Deployed contract address. If scheduler_params was provided, the workflow
 
   
 
-### Read workflow history 
+##### read_workflow_history
 
 ```python
 def read_workflow_history(self, contract_address: str, num_results: int) ‑> List[opengradient.types.ModelOutput]
@@ -101,7 +107,7 @@ List[ModelOutput]: List of historical inference results
 
   
 
-### Read workflow result 
+##### read_workflow_result
 
 ```python
 def read_workflow_result(self, contract_address: str) ‑> opengradient.types.ModelOutput
@@ -130,7 +136,7 @@ ModelOutput: The inference result from the contract
 
   
 
-### Run workflow 
+##### run_workflow
 
 ```python
 def run_workflow(self, contract_address: str) ‑> opengradient.types.ModelOutput

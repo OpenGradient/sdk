@@ -11,10 +11,10 @@ Type definitions for models module.
 ## Classes
     
 
-###  WorkflowModelOutput
+### WorkflowModelOutput
 
 ```python
-class WorkflowModelOutput(result: str, block_explorer_link: str = '')
+class WorkflowModelOutput
 ```
 
   
@@ -22,6 +22,12 @@ class WorkflowModelOutput(result: str, block_explorer_link: str = '')
   
 Output definition for reading from a workflow model.
   
+
+#### Constructor
+
+```python
+def __init__(result: str, block_explorer_link: str = '')
+```
 
 #### Variables
 

@@ -11,10 +11,10 @@ OpenGradient Specific Types
 ## Classes
     
 
-###  Abi
+### Abi
 
 ```python
-class Abi(functions: List[`AbiFunction`])
+class Abi
 ```
 
   
@@ -23,19 +23,21 @@ class Abi(functions: List[`AbiFunction`])
 Abi(functions: List[opengradient.types.AbiFunction])
   
 
+#### Constructor
+
+```python
+def __init__(functions: List[`AbiFunction`])
+```
+
 #### Static methods
 
   
 
-### From json 
+##### from_json
 
 ```python
-def from_json(abi_json)
+static def from_json(abi_json)
 ```
-
-  
-
-  
 
   
 
@@ -48,10 +50,10 @@ def from_json(abi_json)
       
     
 
-###  AbiFunction
+### AbiFunction
 
 ```python
-class AbiFunction(name: str, inputs: List[Union[str, ForwardRef('`AbiFunction`')]], outputs: List[Union[str, ForwardRef('`AbiFunction`')]], state_mutability: str)
+class AbiFunction
 ```
 
   
@@ -59,6 +61,12 @@ class AbiFunction(name: str, inputs: List[Union[str, ForwardRef('`AbiFunction
   
 AbiFunction(name: str, inputs: List[Union[str, ForwardRef('AbiFunction')]], outputs: List[Union[str, ForwardRef('AbiFunction')]], state_mutability: str)
   
+
+#### Constructor
+
+```python
+def __init__(name: str, inputs: List[Union[str, ForwardRef('`AbiFunction`')]], outputs: List[Union[str, ForwardRef('`AbiFunction`')]], state_mutability: str)
+```
 
 #### Variables
 
@@ -75,10 +83,10 @@ AbiFunction(name: str, inputs: List[Union[str, ForwardRef('AbiFunction')]], outp
       
     
 
-###  CandleOrder
+### CandleOrder
 
 ```python
-class CandleOrder(*args, **kwds)
+class CandleOrder
 ```
 
   
@@ -98,10 +106,10 @@ Enum where members are also (and must be) ints
       
     
 
-###  CandleType
+### CandleType
 
 ```python
-class CandleType(*args, **kwds)
+class CandleType
 ```
 
   
@@ -127,10 +135,10 @@ Enum where members are also (and must be) ints
       
     
 
-###  FileUploadResult
+### FileUploadResult
 
 ```python
-class FileUploadResult(modelCid: str, size: int)
+class FileUploadResult
 ```
 
   
@@ -138,6 +146,12 @@ class FileUploadResult(modelCid: str, size: int)
   
 FileUploadResult(modelCid: str, size: int)
   
+
+#### Constructor
+
+```python
+def __init__(modelCid: str, size: int)
+```
 
 #### Variables
 
@@ -150,10 +164,10 @@ FileUploadResult(modelCid: str, size: int)
       
     
 
-###  HistoricalInputQuery
+### HistoricalInputQuery
 
 ```python
-class HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: `CandleOrder`, candle_types: List[`CandleType`])
+class HistoricalInputQuery
 ```
 
   
@@ -162,11 +176,17 @@ class HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_
 HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: opengradient.types.CandleOrder, candle_types: List[opengradient.types.CandleType])
   
 
+#### Constructor
+
+```python
+def __init__(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: `CandleOrder`, candle_types: List[`CandleType`])
+```
+
 #### Methods
 
   
 
-### To abi format 
+##### to_abi_format
 
 ```python
 def to_abi_format(self) ‑> tuple
@@ -197,10 +217,10 @@ Convert to format expected by contract ABI
       
     
 
-###  InferenceMode
+### InferenceMode
 
 ```python
-class InferenceMode(*args, **kwds)
+class InferenceMode
 ```
 
   
@@ -222,10 +242,10 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
       
     
 
-###  InferenceResult
+### InferenceResult
 
 ```python
-class InferenceResult(transaction_hash: str, model_output: Dict[str, `ndarray`])
+class InferenceResult
 ```
 
   
@@ -236,6 +256,12 @@ This class has two fields
     transaction_hash (str): Blockchain hash for the transaction
     model_output (Dict[str, np.ndarray]): Output of the ONNX model
   
+
+#### Constructor
+
+```python
+def __init__(transaction_hash: str, model_output: Dict[str, `ndarray`])
+```
 
 #### Variables
 
@@ -248,10 +274,10 @@ This class has two fields
       
     
 
-###  LLM
+### LLM
 
 ```python
-class LLM(*args, **kwds)
+class LLM
 ```
 
   
@@ -307,10 +333,10 @@ Trusted Execution Environment (TEE) verified inference.
       
     
 
-###  ModelInput
+### ModelInput
 
 ```python
-class ModelInput(numbers: List[`NumberTensor`], strings: List[`StringTensor`])
+class ModelInput
 ```
 
   
@@ -325,6 +351,12 @@ A collection of tensor inputs required for ONNX model inference.
 * **`strings`**: Collection of string tensors for the model.
   
 
+#### Constructor
+
+```python
+def __init__(numbers: List[`NumberTensor`], strings: List[`StringTensor`])
+```
+
 #### Variables
 
   
@@ -336,10 +368,10 @@ A collection of tensor inputs required for ONNX model inference.
       
     
 
-###  ModelOutput
+### ModelOutput
 
 ```python
-class ModelOutput(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray`], jsons: Dict[str, `ndarray`], is_simulation_result: bool)
+class ModelOutput
 ```
 
   
@@ -347,6 +379,12 @@ class ModelOutput(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray
   
 Model output struct based on translations from smart contract.
   
+
+#### Constructor
+
+```python
+def __init__(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray`], jsons: Dict[str, `ndarray`], is_simulation_result: bool)
+```
 
 #### Variables
 
@@ -363,10 +401,10 @@ Model output struct based on translations from smart contract.
       
     
 
-###  ModelRepository
+### ModelRepository
 
 ```python
-class ModelRepository(name: str, initialVersion: str)
+class ModelRepository
 ```
 
   
@@ -374,6 +412,12 @@ class ModelRepository(name: str, initialVersion: str)
   
 ModelRepository(name: str, initialVersion: str)
   
+
+#### Constructor
+
+```python
+def __init__(name: str, initialVersion: str)
+```
 
 #### Variables
 
@@ -386,10 +430,10 @@ ModelRepository(name: str, initialVersion: str)
       
     
 
-###  Number
+### Number
 
 ```python
-class Number(value: int, decimals: int)
+class Number
 ```
 
   
@@ -397,6 +441,12 @@ class Number(value: int, decimals: int)
   
 Number(value: int, decimals: int)
   
+
+#### Constructor
+
+```python
+def __init__(value: int, decimals: int)
+```
 
 #### Variables
 
@@ -409,10 +459,10 @@ Number(value: int, decimals: int)
       
     
 
-###  NumberTensor
+### NumberTensor
 
 ```python
-class NumberTensor(name: str, values: List[Tuple[int, int]])
+class NumberTensor
 ```
 
   
@@ -427,6 +477,12 @@ A container for numeric tensor data used as input for ONNX models.
 * **`values`**: List of integer tuples representing the tensor data.
   
 
+#### Constructor
+
+```python
+def __init__(name: str, values: List[Tuple[int, int]])
+```
+
 #### Variables
 
   
@@ -438,10 +494,10 @@ A container for numeric tensor data used as input for ONNX models.
       
     
 
-###  SchedulerParams
+### SchedulerParams
 
 ```python
-class SchedulerParams(frequency: int, duration_hours: int)
+class SchedulerParams
 ```
 
   
@@ -450,19 +506,21 @@ class SchedulerParams(frequency: int, duration_hours: int)
 SchedulerParams(frequency: int, duration_hours: int)
   
 
+#### Constructor
+
+```python
+def __init__(frequency: int, duration_hours: int)
+```
+
 #### Static methods
 
   
 
-### From dict 
+##### from_dict
 
 ```python
-def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.types.SchedulerParams]
+static def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.types.SchedulerParams]
 ```
-
-  
-
-  
 
   
 
@@ -481,10 +539,10 @@ def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.type
       
     
 
-###  StreamChoice
+### StreamChoice
 
 ```python
-class StreamChoice(delta: `StreamDelta`, index: int = 0, finish_reason: Optional[str] = None)
+class StreamChoice
 ```
 
   
@@ -500,6 +558,12 @@ Represents a choice in a streaming response.
 * **`finish_reason`**: Reason for completion (appears in final chunk)
   
 
+#### Constructor
+
+```python
+def __init__(delta: `StreamDelta`, index: int = 0, finish_reason: Optional[str] = None)
+```
+
 #### Variables
 
   
@@ -513,10 +577,10 @@ Represents a choice in a streaming response.
       
     
 
-###  StreamChunk
+### StreamChunk
 
 ```python
-class StreamChunk(choices: List[`StreamChoice`], model: str, usage: Optional[`StreamUsage`] = None, is_final: bool = False)
+class StreamChunk
 ```
 
   
@@ -537,14 +601,20 @@ usage information.
 * **`is_final`**: Whether this is the final chunk (before [DONE])
   
 
+#### Constructor
+
+```python
+def __init__(choices: List[`StreamChoice`], model: str, usage: Optional[`StreamUsage`] = None, is_final: bool = False)
+```
+
 #### Static methods
 
   
 
-### From sse data 
+##### from_sse_data
 
 ```python
-def from_sse_data(data: Dict) ‑> opengradient.types.StreamChunk
+static def from_sse_data(data: Dict) ‑> opengradient.types.StreamChunk
 ```
 
   
@@ -577,10 +647,10 @@ StreamChunk instance
       
     
 
-###  StreamDelta
+### StreamDelta
 
 ```python
-class StreamDelta(content: Optional[str] = None, role: Optional[str] = None, tool_calls: Optional[List[Dict]] = None)
+class StreamDelta
 ```
 
   
@@ -596,6 +666,12 @@ Represents a delta (incremental change) in a streaming response.
 * **`tool_calls`**: Tool call information (if function calling is used)
   
 
+#### Constructor
+
+```python
+def __init__(content: Optional[str] = None, role: Optional[str] = None, tool_calls: Optional[List[Dict]] = None)
+```
+
 #### Variables
 
   
@@ -609,10 +685,10 @@ Represents a delta (incremental change) in a streaming response.
       
     
 
-###  StreamUsage
+### StreamUsage
 
 ```python
-class StreamUsage(prompt_tokens: int, completion_tokens: int, total_tokens: int)
+class StreamUsage
 ```
 
   
@@ -628,6 +704,12 @@ Token usage information for a streaming response.
 * **`total_tokens`**: Total tokens used
   
 
+#### Constructor
+
+```python
+def __init__(prompt_tokens: int, completion_tokens: int, total_tokens: int)
+```
+
 #### Variables
 
   
@@ -641,10 +723,10 @@ Token usage information for a streaming response.
       
     
 
-###  StringTensor
+### StringTensor
 
 ```python
-class StringTensor(name: str, values: List[str])
+class StringTensor
 ```
 
   
@@ -659,6 +741,12 @@ A container for string tensor data used as input for ONNX models.
 * **`values`**: List of strings representing the tensor data.
   
 
+#### Constructor
+
+```python
+def __init__(name: str, values: List[str])
+```
+
 #### Variables
 
   
@@ -670,10 +758,10 @@ A container for string tensor data used as input for ONNX models.
       
     
 
-###  TEE_LLM
+### TEE_LLM
 
 ```python
-class TEE_LLM(*args, **kwds)
+class TEE_LLM
 ```
 
   
@@ -730,10 +818,10 @@ indicates support for TEE execution.
       
     
 
-###  TextGenerationOutput
+### TextGenerationOutput
 
 ```python
-class TextGenerationOutput(transaction_hash: str, finish_reason: Optional[str] = None, chat_output: Optional[Dict] = None, completion_output: Optional[str] = None, payment_hash: Optional[str] = None)
+class TextGenerationOutput
 ```
 
   
@@ -741,6 +829,12 @@ class TextGenerationOutput(transaction_hash: str, finish_reason: Optional[str]
   
 Output structure for text generation requests.
   
+
+#### Constructor
+
+```python
+def __init__(transaction_hash: str, finish_reason: Optional[str] = None, chat_output: Optional[Dict] = None, completion_output: Optional[str] = None, payment_hash: Optional[str] = None)
+```
 
 #### Variables
 
@@ -759,10 +853,10 @@ Output structure for text generation requests.
       
     
 
-###  TextGenerationStream
+### TextGenerationStream
 
 ```python
-class TextGenerationStream(_iterator: Union[Iterator[str], AsyncIterator[str]])
+class TextGenerationStream
 ```
 
   
@@ -774,13 +868,18 @@ Provides a clean interface for iterating over stream chunks with
 automatic parsing of SSE format.
   
 
+#### Constructor
+
+```python
+def __init__(_iterator: Union[Iterator[str], AsyncIterator[str]])
+```
       
     
 
-###  x402SettlementMode
+### x402SettlementMode
 
 ```python
-class x402SettlementMode(*args, **kwds)
+class x402SettlementMode
 ```
 
   

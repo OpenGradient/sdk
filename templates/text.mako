@@ -3,7 +3,6 @@ outline: [2,3]
 ---
 
 <%
-  import os
   import pdoc
   import re
   import textwrap
@@ -12,23 +11,6 @@ outline: [2,3]
 
   with open('pyproject.toml', 'rb') as _f:
     _project_version = tomllib.load(_f)['project']['version']
-
-  def convert_to_sentence(text):
-    # First, handle snake_case by replacing underscores with spaces
-    text = text.replace('_', ' ')
-    
-    # Capitalize the first letter
-    text = text[0].upper() + text[1:]
-    
-    # Handle camelCase by adding spaces before capital letters
-    result = ''
-    for i, char in enumerate(text):
-        if i > 0 and char.isupper():
-            result += ' ' + char
-        else:
-            result += char
-            
-    return result
 
   def firstline(ds):
     return ds.split('\n\n', 1)[0]
@@ -146,7 +128,6 @@ ${sections['Notes']}
 <%def name="show_desc(d, short=False)">
   <%
   inherits = ' inherited' if d.inherits else ''
-  #docstring = firstline(d.docstring) if short or inherits else breakdown_google(d.docstring)
   %>
   % if d.inherits:
     _Inherited from:_
@@ -158,37 +139,28 @@ ${sections['Notes']}
   % endif
 % if short or inherits:
 ${firstline(d.docstring)}
-% else:
+% elif d.docstring and breakdown_google(d.docstring):
 ${show_breakdown(breakdown_google(d.docstring))}
 % endif
 </%def>
 
-<%def name="show_list(items, indent=1)">
-  <%
-    spaces = '  ' * indent
-  %>
-  % for item in items:
-${spaces}* ${link(item, item.name)}
-  % endfor
-</%def>
-
-<%def name="show_func(f, qual='')">
+<%def name="show_func(f, qual='', level=3)">
   <%
     params = ', '.join(f.params(annotate=show_type_annotations))
     return_type = get_annotation(f.return_annotation, '\N{non-breaking hyphen}>')
     qual = qual + ' ' if qual else ''
   %>
-${header(convert_to_sentence(f.name), 3)} 
+${header(f.name, level)}
 
 ```python
-${f.funcdef()} ${f.name}(${params})${return_type}
+${qual}${f.funcdef()} ${f.name}(${params})${return_type}
 ```
 ${show_desc(f)}
 </%def>
 
-<%def name="show_funcs(fs, qual='')">
+<%def name="show_funcs(fs, qual='', level=3)">
   % for f in fs:
-${show_func(f, qual)}
+${show_func(f, qual, level)}
   % endfor
 </%def>
 
@@ -217,10 +189,6 @@ ${show_func(f, qual)}
   functions = module.functions(sort=sort_identifiers)
   submodules = module.submodules()
   %>
-
-  ## # ${'Namespace' if module.is_namespace else  \
-  ##                     'Package' if module.is_package and not module.supermodule else \
-  ##                    'Module'} <code>${module.name}</code></h1>
 
 ${header('Package ' + module.name, 1)}
 % if not module.supermodule:
@@ -259,18 +227,31 @@ ${header('Classes', 2)}
     class_vars = c.class_variables(show_inherited_members, sort=sort_identifiers)
     smethods = c.functions(show_inherited_members, sort=sort_identifiers)
     inst_vars = c.instance_variables(show_inherited_members, sort=sort_identifiers)
-    methods = c.methods(show_inherited_members, sort=sort_identifiers)
+    all_methods = c.methods(show_inherited_members, sort=sort_identifiers)
+    init_method = c.doc.get('__init__')
+    methods = [m for m in all_methods if m.name != '__init__']
     mro = c.mro()
     subclasses = c.subclasses()
-    params = ', '.join(c.params(annotate=show_type_annotations, link=link))
+    is_enum = any(m.qualname.split('.')[-1] in ('Enum', 'IntEnum', 'StrEnum', 'Flag', 'IntFlag') for m in mro)
+    init_params = ', '.join(c.params(annotate=show_type_annotations, link=link))
     %>
-${header('', 3)} ${c.name}
+${header(c.name, 3)}
 
 ```python
-class ${c.name}(${params})
+class ${c.name}
 ```
 
 ${show_desc(c)}
+    % if not is_enum and init_params:
+${header('Constructor', 4)}
+
+```python
+def __init__(${init_params})
+```
+      % if init_method and init_method.docstring and init_method.docstring != c.docstring:
+${show_desc(init_method)}
+      % endif
+    % endif
     % if subclasses:
 ${header('Subclasses', 4)}
       % for sub in subclasses:
@@ -279,11 +260,11 @@ ${header('Subclasses', 4)}
     % endif
     % if smethods:
 ${header('Static methods', 4)}
-${show_funcs(smethods, 'static')}
+${show_funcs(smethods, 'static', 5)}
     % endif
     % if methods:
 ${header('Methods', 4)}
-${show_funcs(methods)}
+${show_funcs(methods, '', 5)}
     % endif
     % if class_vars or inst_vars:
 ${header('Variables', 4)}

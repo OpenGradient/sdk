@@ -58,10 +58,10 @@ repo = client.model_hub.create_model("my-model", "A price prediction model")
 ## Classes
     
 
-###  Client
+### Client
 
 ```python
-class Client(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+class Client
 ```
 
   
@@ -85,6 +85,12 @@ blockchain private key and optional Model Hub credentials.
 * **`og_llm_server_url`**: OpenGradient LLM server URL.
 * **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
   
+
+#### Constructor
+
+```python
+def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+```
 
 #### Variables
 

@@ -12,7 +12,7 @@ Utility functions for the models module.
 
   
 
-### Create block explorer link smart contract 
+### create_block_explorer_link_smart_contract
 
 ```python
 def create_block_explorer_link_smart_contract(transaction_hash: str) ‑> str
@@ -26,7 +26,7 @@ Create block explorer link for smart contract.
 
   
 
-### Create block explorer link transaction 
+### create_block_explorer_link_transaction
 
 ```python
 def create_block_explorer_link_transaction(transaction_hash: str) ‑> str
@@ -40,7 +40,7 @@ Create block explorer link for transaction.
 
   
 
-### Read workflow wrapper 
+### read_workflow_wrapper
 
 ```python
 def read_workflow_wrapper(alpha: opengradient.client.alpha.Alpha, contract_address: str, format_function: Callable[..., str]) ‑> opengradient.workflow_models.types.WorkflowModelOutput

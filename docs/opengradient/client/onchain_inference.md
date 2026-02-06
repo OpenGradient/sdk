@@ -11,10 +11,10 @@ On-chain ONNX model inference via blockchain smart contracts.
 ## Classes
     
 
-###  Inference
+### Inference
 
 ```python
-class Inference(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub_contract_address: str, api_url: str)
+class Inference
 ```
 
   
@@ -26,11 +26,17 @@ Provides access to decentralized ONNX model inference via blockchain smart contr
 Supports multiple inference modes including VANILLA, TEE, and ZKML.
   
 
+#### Constructor
+
+```python
+def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub_contract_address: str, api_url: str)
+```
+
 #### Methods
 
   
 
-### Infer 
+##### infer
 
 ```python
 def infer(self, model_cid: str, inference_mode: opengradient.types.InferenceMode, model_input: Dict[str, Union[str, int, float, List, numpy.ndarray]], max_retries: Optional[int] = None) ‑> opengradient.types.InferenceResult

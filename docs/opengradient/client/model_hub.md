@@ -11,10 +11,10 @@ Model Hub for creating, versioning, and uploading ML models.
 ## Classes
     
 
-###  ModelHub
+### ModelHub
 
 ```python
-class ModelHub(hub_user: Optional[Dict] = None)
+class ModelHub
 ```
 
   
@@ -26,11 +26,17 @@ Provides access to the OpenGradient Model Hub for creating, versioning,
 and uploading ML models. Requires email/password authentication.
   
 
+#### Constructor
+
+```python
+def __init__(hub_user: Optional[Dict] = None)
+```
+
 #### Methods
 
   
 
-### Create model 
+##### create_model
 
 ```python
 def create_model(self, model_name: str, model_desc: str, version: str = '1.00') ‑> opengradient.types.ModelRepository
@@ -60,7 +66,7 @@ dict: The server response containing model details.
 
   
 
-### Create version 
+##### create_version
 
 ```python
 def create_version(self, model_name: str, notes: str = '', is_major: bool = False) ‑> dict
@@ -90,7 +96,7 @@ dict: The server response containing version details.
 
   
 
-### List files 
+##### list_files
 
 ```python
 def list_files(self, model_name: str, version: str) ‑> List[Dict]
@@ -119,7 +125,7 @@ List[Dict]: A list of dictionaries containing file information.
 
   
 
-### Upload 
+##### upload
 
 ```python
 def upload(self, model_path: str, model_name: str, version: str) ‑> opengradient.types.FileUploadResult

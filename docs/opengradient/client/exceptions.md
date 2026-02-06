@@ -11,10 +11,10 @@ Exception types for OpenGradient SDK errors.
 ## Classes
     
 
-###  AuthenticationError
+### AuthenticationError
 
 ```python
-class AuthenticationError(message='Authentication failed', **kwargs)
+class AuthenticationError
 ```
 
   
@@ -23,13 +23,18 @@ class AuthenticationError(message='Authentication failed', **kwargs)
 Raised when there's an authentication error
   
 
+#### Constructor
+
+```python
+def __init__(message='Authentication failed', **kwargs)
+```
       
     
 
-###  FileNotFoundError
+### FileNotFoundError
 
 ```python
-class FileNotFoundError(file_path)
+class FileNotFoundError
 ```
 
   
@@ -38,13 +43,18 @@ class FileNotFoundError(file_path)
 Raised when a file is not found
   
 
+#### Constructor
+
+```python
+def __init__(file_path)
+```
       
     
 
-###  InferenceError
+### InferenceError
 
 ```python
-class InferenceError(message, model_cid=None, **kwargs)
+class InferenceError
 ```
 
   
@@ -53,13 +63,18 @@ class InferenceError(message, model_cid=None, **kwargs)
 Raised when there's an error during inference
   
 
+#### Constructor
+
+```python
+def __init__(message, model_cid=None, **kwargs)
+```
       
     
 
-###  InsufficientCreditsError
+### InsufficientCreditsError
 
 ```python
-class InsufficientCreditsError(message='Insufficient credits', required_credits=None, available_credits=None, **kwargs)
+class InsufficientCreditsError
 ```
 
   
@@ -68,13 +83,18 @@ class InsufficientCreditsError(message='Insufficient credits', required_credits=
 Raised when the user has insufficient credits for the operation
   
 
+#### Constructor
+
+```python
+def __init__(message='Insufficient credits', required_credits=None, available_credits=None, **kwargs)
+```
       
     
 
-###  InvalidInputError
+### InvalidInputError
 
 ```python
-class InvalidInputError(message, invalid_fields=None, **kwargs)
+class InvalidInputError
 ```
 
   
@@ -83,13 +103,18 @@ class InvalidInputError(message, invalid_fields=None, **kwargs)
 Raised when invalid input is provided
   
 
+#### Constructor
+
+```python
+def __init__(message, invalid_fields=None, **kwargs)
+```
       
     
 
-###  NetworkError
+### NetworkError
 
 ```python
-class NetworkError(message, status_code=None, response=None)
+class NetworkError
 ```
 
   
@@ -98,13 +123,18 @@ class NetworkError(message, status_code=None, response=None)
 Raised when a network error occurs
   
 
+#### Constructor
+
+```python
+def __init__(message, status_code=None, response=None)
+```
       
     
 
-###  OpenGradientError
+### OpenGradientError
 
 ```python
-class OpenGradientError(message, status_code=None, response=None)
+class OpenGradientError
 ```
 
   
@@ -112,6 +142,12 @@ class OpenGradientError(message, status_code=None, response=None)
   
 Base exception for OpenGradient SDK
   
+
+#### Constructor
+
+```python
+def __init__(message, status_code=None, response=None)
+```
 
 #### Subclasses
   * `AuthenticationError`
@@ -129,10 +165,10 @@ Base exception for OpenGradient SDK
       
     
 
-###  RateLimitError
+### RateLimitError
 
 ```python
-class RateLimitError(message='Rate limit exceeded', retry_after=None, **kwargs)
+class RateLimitError
 ```
 
   
@@ -141,13 +177,18 @@ class RateLimitError(message='Rate limit exceeded', retry_after=None, **kwargs)
 Raised when API rate limit is exceeded
   
 
+#### Constructor
+
+```python
+def __init__(message='Rate limit exceeded', retry_after=None, **kwargs)
+```
       
     
 
-###  ResultRetrievalError
+### ResultRetrievalError
 
 ```python
-class ResultRetrievalError(message, inference_cid=None, **kwargs)
+class ResultRetrievalError
 ```
 
   
@@ -156,13 +197,18 @@ class ResultRetrievalError(message, inference_cid=None, **kwargs)
 Raised when there's an error retrieving results
   
 
+#### Constructor
+
+```python
+def __init__(message, inference_cid=None, **kwargs)
+```
       
     
 
-###  ServerError
+### ServerError
 
 ```python
-class ServerError(message, status_code=None, response=None)
+class ServerError
 ```
 
   
@@ -171,13 +217,18 @@ class ServerError(message, status_code=None, response=None)
 Raised when a server error occurs
   
 
+#### Constructor
+
+```python
+def __init__(message, status_code=None, response=None)
+```
       
     
 
-###  TimeoutError
+### TimeoutError
 
 ```python
-class TimeoutError(message='Request timed out', timeout=None, **kwargs)
+class TimeoutError
 ```
 
   
@@ -186,13 +237,18 @@ class TimeoutError(message='Request timed out', timeout=None, **kwargs)
 Raised when a request times out
   
 
+#### Constructor
+
+```python
+def __init__(message='Request timed out', timeout=None, **kwargs)
+```
       
     
 
-###  UnsupportedModelError
+### UnsupportedModelError
 
 ```python
-class UnsupportedModelError(model_type)
+class UnsupportedModelError
 ```
 
   
@@ -201,16 +257,28 @@ class UnsupportedModelError(model_type)
 Raised when an unsupported model type is used
   
 
+#### Constructor
+
+```python
+def __init__(model_type)
+```
       
     
 
-###  UploadError
+### UploadError
 
 ```python
-class UploadError(message, file_path=None, **kwargs)
+class UploadError
 ```
 
   
 
   
 Raised when there's an error during file upload
+  
+
+#### Constructor
+
+```python
+def __init__(message, file_path=None, **kwargs)
+```

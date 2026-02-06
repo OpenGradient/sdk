@@ -16,7 +16,7 @@ into existing applications and agent frameworks.
 
   
 
-### Langchain adapter 
+### langchain_adapter
 
 ```python
 def langchain_adapter(private_key: str, model_cid: opengradient.types.LLM, max_tokens: int = 300) ‑> opengradient.agents.og_langchain.OpenGradientChatModel
@@ -31,7 +31,7 @@ and can be plugged into LangChain agents.
 
   
 
-### Openai adapter 
+### openai_adapter
 
 ```python
 def openai_adapter(private_key: str) ‑> opengradient.agents.og_openai.OpenGradientOpenAIClient
