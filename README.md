@@ -83,7 +83,7 @@ The SDK includes models from multiple providers accessible via the `og.TEE_LLM` 
 
 For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API documentation](https://docs.opengradient.ai/api_reference/python_sdk/).
 
-### 5. Alpha Testnet Features
+### 4. Alpha Testnet Features
 
 The Alpha Testnet provides access to experimental features, including **workflow deployment and execution**. Workflows allow you to deploy on-chain AI pipelines that connect models with data sources and can be scheduled for automated execution.
 
@@ -143,7 +143,7 @@ latest = client.alpha.read_workflow_result(contract_address)
 history = client.alpha.read_workflow_history(contract_address, num_results=5)
 ```
 
-### 6. Examples
+### 5. Examples
 
 See code examples under [examples](./examples).
 
