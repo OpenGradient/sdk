@@ -27,6 +27,45 @@ from ..types import TEE_LLM
 __all__ = ["OpenGradientChatModel"]
 
 
+def _extract_content(content: Any) -> str:
+    """Normalize content to a plain string.
+
+    The API may return content as a string or as a list of content blocks
+    like [{"type": "text", "text": "..."}]. This extracts the text in either case.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(block.get("text", ""))
+            elif isinstance(block, str):
+                parts.append(block)
+        return "".join(parts)
+    return str(content) if content else ""
+
+
+def _parse_tool_call(tool_call: Dict) -> ToolCall:
+    """Parse a tool call from the API response.
+
+    Handles both flat format {"id", "name", "arguments"} and
+    OpenAI nested format {"id", "function": {"name", "arguments"}}.
+    """
+    if "function" in tool_call:
+        func = tool_call["function"]
+        return ToolCall(
+            id=tool_call.get("id", ""),
+            name=func["name"],
+            args=json.loads(func.get("arguments", "{}")),
+        )
+    return ToolCall(
+        id=tool_call.get("id", ""),
+        name=tool_call["name"],
+        args=json.loads(tool_call.get("arguments", "{}")),
+    )
+
+
 class OpenGradientChatModel(BaseChatModel):
     """OpenGradient adapter class for LangChain chat model"""
 
@@ -87,18 +126,27 @@ class OpenGradientChatModel(BaseChatModel):
         sdk_messages = []
         for message in messages:
             if isinstance(message, SystemMessage):
-                sdk_messages.append({"role": "system", "content": message.content})
+                sdk_messages.append({"role": "system", "content": _extract_content(message.content)})
             elif isinstance(message, HumanMessage):
-                sdk_messages.append({"role": "user", "content": message.content})
+                sdk_messages.append({"role": "user", "content": _extract_content(message.content)})
             elif isinstance(message, AIMessage):
-                msg: Dict[str, Any] = {"role": "assistant", "content": message.content}
+                msg: Dict[str, Any] = {"role": "assistant", "content": _extract_content(message.content)}
                 if message.tool_calls:
                     msg["tool_calls"] = [
-                        {"id": call["id"], "name": call["name"], "arguments": json.dumps(call["args"])} for call in message.tool_calls
+                        {
+                            "id": call["id"],
+                            "type": "function",
+                            "function": {"name": call["name"], "arguments": json.dumps(call["args"])},
+                        }
+                        for call in message.tool_calls
                     ]
                 sdk_messages.append(msg)
             elif isinstance(message, ToolMessage):
-                sdk_messages.append({"role": "tool", "content": message.content, "tool_call_id": message.tool_call_id})
+                sdk_messages.append({
+                    "role": "tool",
+                    "content": _extract_content(message.content),
+                    "tool_call_id": message.tool_call_id,
+                })
             else:
                 raise ValueError(f"Unexpected message type: {message}")
 
@@ -114,19 +162,14 @@ class OpenGradientChatModel(BaseChatModel):
         chat_response = chat_output.chat_output or {}
 
         if chat_response.get("tool_calls"):
-            tool_calls = [
-                ToolCall(
-                    id=tool_call.get("id", ""),
-                    name=tool_call["name"],
-                    args=json.loads(tool_call["arguments"]),
-                )
-                for tool_call in chat_response["tool_calls"]
-            ]
+            tool_calls = [_parse_tool_call(tc) for tc in chat_response["tool_calls"]]
             ai_message = AIMessage(content="", tool_calls=tool_calls)
         else:
-            ai_message = AIMessage(content=chat_response.get("content", ""))
+            ai_message = AIMessage(content=_extract_content(chat_response.get("content", "")))
 
-        return ChatResult(generations=[ChatGeneration(message=ai_message, generation_info={"finish_reason": finish_reason})])
+        return ChatResult(
+            generations=[ChatGeneration(message=ai_message, generation_info={"finish_reason": finish_reason})]
+        )
 
     @property
     def _identifying_params(self) -> Dict[str, Any]:

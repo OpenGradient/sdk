@@ -10,7 +10,7 @@ from langchain_core.tools import tool
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from src.opengradient.agents.og_langchain import OpenGradientChatModel
+from src.opengradient.agents.og_langchain import OpenGradientChatModel, _extract_content, _parse_tool_call
 from src.opengradient.types import TEE_LLM, TextGenerationOutput
 
 
@@ -61,8 +61,8 @@ class TestGenerate:
         assert result.generations[0].message.content == "Hello there!"
         assert result.generations[0].generation_info == {"finish_reason": "stop"}
 
-    def test_tool_call_response(self, model, mock_client):
-        """Test _generate with a tool call response."""
+    def test_tool_call_response_flat_format(self, model, mock_client):
+        """Test _generate with tool calls in flat format {name, arguments}."""
         mock_client.llm.chat.return_value = TextGenerationOutput(
             transaction_hash="external",
             finish_reason="tool_call",
@@ -87,6 +87,51 @@ class TestGenerate:
         assert ai_msg.tool_calls[0]["id"] == "call_123"
         assert ai_msg.tool_calls[0]["name"] == "get_balance"
         assert ai_msg.tool_calls[0]["args"] == {"account": "main"}
+
+    def test_tool_call_response_nested_format(self, model, mock_client):
+        """Test _generate with tool calls in OpenAI nested format {function: {name, arguments}}."""
+        mock_client.llm.chat.return_value = TextGenerationOutput(
+            transaction_hash="external",
+            finish_reason="tool_call",
+            chat_output={
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call_456",
+                        "type": "function",
+                        "function": {
+                            "name": "get_balance",
+                            "arguments": json.dumps({"account": "savings"}),
+                        },
+                    }
+                ],
+            },
+        )
+
+        result = model._generate([HumanMessage(content="What is my balance?")])
+
+        ai_msg = result.generations[0].message
+        assert ai_msg.content == ""
+        assert len(ai_msg.tool_calls) == 1
+        assert ai_msg.tool_calls[0]["id"] == "call_456"
+        assert ai_msg.tool_calls[0]["name"] == "get_balance"
+        assert ai_msg.tool_calls[0]["args"] == {"account": "savings"}
+
+    def test_content_as_list_of_blocks(self, model, mock_client):
+        """Test _generate when API returns content as a list of content blocks."""
+        mock_client.llm.chat.return_value = TextGenerationOutput(
+            transaction_hash="external",
+            finish_reason="stop",
+            chat_output={
+                "role": "assistant",
+                "content": [{"index": 0, "text": "Hello there!", "type": "text"}],
+            },
+        )
+
+        result = model._generate([HumanMessage(content="Hi")])
+
+        assert result.generations[0].message.content == "Hello there!"
 
     def test_empty_chat_output(self, model, mock_client):
         """Test _generate handles None chat_output gracefully."""
@@ -130,11 +175,12 @@ class TestMessageConversion:
         # AIMessage with no tool_calls should not include tool_calls key
         assert sdk_messages[2] == {"role": "assistant", "content": "Hello!"}
         assert "tool_calls" not in sdk_messages[2]
-        # AIMessage with tool_calls should include them
+        # AIMessage with tool_calls should include them in OpenAI nested format
         assert sdk_messages[3]["role"] == "assistant"
         assert len(sdk_messages[3]["tool_calls"]) == 1
-        assert sdk_messages[3]["tool_calls"][0]["name"] == "search"
-        assert sdk_messages[3]["tool_calls"][0]["arguments"] == json.dumps({"q": "test"})
+        assert sdk_messages[3]["tool_calls"][0]["type"] == "function"
+        assert sdk_messages[3]["tool_calls"][0]["function"]["name"] == "search"
+        assert sdk_messages[3]["tool_calls"][0]["function"]["arguments"] == json.dumps({"q": "test"})
         # ToolMessage
         assert sdk_messages[4] == {"role": "tool", "content": "result", "tool_call_id": "call_1"}
 
@@ -208,3 +254,41 @@ class TestBindTools:
         model._generate([HumanMessage(content="Hi")])
 
         assert mock_client.llm.chat.call_args.kwargs["tools"] == [tool_dict]
+
+
+class TestExtractContent:
+    def test_string_passthrough(self):
+        assert _extract_content("hello") == "hello"
+
+    def test_empty_string(self):
+        assert _extract_content("") == ""
+
+    def test_none(self):
+        assert _extract_content(None) == ""
+
+    def test_list_of_text_blocks(self):
+        content = [
+            {"index": 0, "text": "Hello ", "type": "text"},
+            {"index": 1, "text": "world!", "type": "text"},
+        ]
+        assert _extract_content(content) == "Hello world!"
+
+    def test_list_of_strings(self):
+        assert _extract_content(["hello ", "world"]) == "hello world"
+
+
+class TestParseToolCall:
+    def test_flat_format(self):
+        tc = _parse_tool_call({"id": "1", "name": "foo", "arguments": '{"x": 1}'})
+        assert tc["name"] == "foo"
+        assert tc["args"] == {"x": 1}
+
+    def test_nested_function_format(self):
+        tc = _parse_tool_call({
+            "id": "2",
+            "type": "function",
+            "function": {"name": "bar", "arguments": '{"y": 2}'},
+        })
+        assert tc["name"] == "bar"
+        assert tc["args"] == {"y": 2}
+        assert tc["id"] == "2"
