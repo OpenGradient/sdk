@@ -15,6 +15,20 @@ from .onchain_inference import Inference
 
 
 class Client:
+    """
+    Main OpenGradient SDK client.
+
+    Provides unified access to all OpenGradient services including LLM inference,
+    on-chain model inference, and the Model Hub. Handles authentication via
+    blockchain private key and optional Model Hub credentials.
+
+    Usage:
+        client = og.Client(private_key="0x...")
+        result = client.llm.chat(model=TEE_LLM.CLAUDE_3_5_HAIKU, messages=[...])
+        result = client.inference.infer(model_cid, InferenceMode.VANILLA, input_data)
+        client.model_hub.upload(model_path, model_name, version)
+    """
+
     model_hub: ModelHub
     llm: LLM
     inference: Inference

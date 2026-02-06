@@ -20,6 +20,18 @@ _FIREBASE_CONFIG = {
 
 
 class ModelHub:
+    """
+    Model Hub namespace.
+
+    Provides access to the OpenGradient Model Hub for creating, versioning,
+    and uploading ML models. Requires email/password authentication.
+
+    Usage:
+        client = og.Client(private_key="0x...", email="user@example.com", password="...")
+        repo = client.model_hub.create_model("my-model", "A description")
+        client.model_hub.upload("model.onnx", repo.name, repo.version)
+    """
+
     def __init__(self, hub_user: Optional[Dict] = None):
         self._hub_user = hub_user
 

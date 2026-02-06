@@ -22,6 +22,17 @@ PRECOMPILE_CONTRACT_ADDRESS = "0x00000000000000000000000000000000000000F4"
 
 
 class Inference:
+    """
+    On-chain model inference namespace.
+
+    Provides access to decentralized ONNX model inference via blockchain smart contracts.
+    Supports multiple inference modes including VANILLA, TEE, and ZKML.
+
+    Usage:
+        client = og.Client(...)
+        result = client.inference.infer(model_cid, InferenceMode.VANILLA, model_input)
+    """
+
     def __init__(
         self,
         blockchain: Web3,

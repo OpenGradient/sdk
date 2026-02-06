@@ -38,6 +38,19 @@ LIMITS = httpx.Limits(
 
 
 class LLM:
+    """
+    LLM inference namespace.
+
+    Provides access to large language model completions and chat via TEE
+    (Trusted Execution Environment) with x402 payment protocol support.
+    Supports both streaming and non-streaming responses.
+
+    Usage:
+        client = og.Client(...)
+        result = client.llm.chat(model=TEE_LLM.CLAUDE_3_5_HAIKU, messages=[...])
+        result = client.llm.completion(model=TEE_LLM.CLAUDE_3_5_HAIKU, prompt="Hello")
+    """
+
     def __init__(self, wallet_account: LocalAccount, og_llm_server_url: str, og_llm_streaming_server_url: str):
         self._wallet_account = wallet_account
         self._og_llm_server_url = og_llm_server_url
