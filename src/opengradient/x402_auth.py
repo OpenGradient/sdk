@@ -43,6 +43,7 @@ class X402Auth(httpx.Auth):
             ]
         ] = None,
         network_filter: typing.Optional[str] = None,
+        scheme_filter: typing.Optional[str] = None,
     ):
         """
         Initialize X402Auth with an Ethereum account for signing payments.
@@ -50,6 +51,7 @@ class X402Auth(httpx.Auth):
         Args:
             account: eth_account LocalAccount instance for signing payments
             max_value: Optional maximum allowed payment amount in base units
+            payment_requirements_selector: Optional callable to select payment requirements
             network_filter: Optional network filter for selecting payment requirements
             scheme_filter: Optional scheme filter for selecting payment requirements
         """
@@ -59,6 +61,7 @@ class X402Auth(httpx.Auth):
             payment_requirements_selector=payment_requirements_selector,  # type: ignore
         )
         self.network_filter = network_filter
+        self.scheme_filter = scheme_filter
 
     async def async_auth_flow(self, request: httpx.Request) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
         """
@@ -79,12 +82,17 @@ class X402Auth(httpx.Auth):
 
                 payment_response = x402PaymentRequiredResponse(**data)
 
+                # Теперь используем и network_filter, и scheme_filter, как просил Copilot
                 selected_requirements = self.x402_client.select_payment_requirements(
                     payment_response.accepts,
                     self.network_filter,
+                    self.scheme_filter,
                 )
 
-                payment_header = self.x402_client.create_payment_header(selected_requirements, payment_response.x402_version)
+                payment_header = self.x402_client.create_payment_header(
+                    selected_requirements, 
+                    payment_response.x402_version
+                )
 
                 request.headers["X-Payment"] = payment_header
                 request.headers["Access-Control-Expose-Headers"] = "X-Payment-Response"
