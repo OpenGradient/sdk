@@ -109,7 +109,7 @@ For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API d
 
 ### 4. Alpha Testnet Features
 
-The Alpha Testnet provides access to experimental features, including **workflow deployment and execution**. Workflows allow you to deploy on-chain AI pipelines that connect models with data sources and can be scheduled for automated execution.
+The Alpha Testnet provides access to experimental features, including **custom ML model inference** and **workflow deployment and execution**. Run inference on any model hosted on the Model Hub, or deploy on-chain AI pipelines that connect models with data sources and can be scheduled for automated execution.
 
 **Note:** Alpha features require connecting to the Alpha Testnet. See [Network Configuration](#network-configuration) for details.
 
