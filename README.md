@@ -51,10 +51,10 @@ opengradient config init
 import os
 import opengradient as og
 
-og_client = og.new_client(
+client = og.init(
+    private_key=os.environ.get("OG_PRIVATE_KEY"),
     email=None,  # Optional: only needed for model uploads
     password=None,
-    private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 ```
 
@@ -62,7 +62,7 @@ og_client = og.new_client(
 
 #### LLM Chat
 ```python
-completion = og_client.llm_chat(
+completion = client.llm.chat(
     model=og.TEE_LLM.GPT_4O,
     messages=[{"role": "user", "content": "Hello!"}],
 )
@@ -73,7 +73,7 @@ print(f"Tx hash: {completion.transaction_hash}")
 #### Custom Model Inference
 Browse models on our [Model Hub](https://hub.opengradient.ai/) or upload your own:
 ```python
-result = og_client.infer(
+result = client.inference.infer(
     model_cid="your-model-cid",
     model_input={"input": [1.0, 2.0, 3.0]},
     inference_mode=og.InferenceMode.VANILLA,
@@ -86,7 +86,7 @@ print(f"Output: {result.model_output}")
 OpenGradient supports secure, verifiable inference through TEE for leading LLM providers. Access models from OpenAI, Anthropic, Google, and xAI with cryptographic attestation:
 ```python
 # Use TEE mode for verifiable AI execution
-completion = og_client.llm_chat(
+completion = client.llm.chat(
     model=og.TEE_LLM.CLAUDE_3_7_SONNET,
     messages=[{"role": "user", "content": "Your message here"}],
 )
@@ -112,10 +112,10 @@ The Alpha Testnet provides access to experimental features, including **workflow
 ```python
 import opengradient as og
 
-og.init(
+client = og.init(
+    private_key="your-private-key",
     email="your-email",
     password="your-password",
-    private_key="your-private-key",
 )
 
 # Define input query for historical price data
@@ -129,7 +129,7 @@ input_query = og.HistoricalInputQuery(
 )
 
 # Deploy a workflow (optionally with scheduling)
-contract_address = og.alpha.new_workflow(
+contract_address = client.alpha.new_workflow(
     model_cid="your-model-cid",
     input_query=input_query,
     input_tensor_name="input",
@@ -141,14 +141,14 @@ print(f"Workflow deployed at: {contract_address}")
 #### Execute and Read Results
 ```python
 # Manually trigger workflow execution
-result = og.alpha.run_workflow(contract_address)
+result = client.alpha.run_workflow(contract_address)
 print(f"Inference output: {result}")
 
 # Read the latest result
-latest = og.alpha.read_workflow_result(contract_address)
+latest = client.alpha.read_workflow_result(contract_address)
 
 # Get historical results
-history = og.alpha.read_workflow_history(contract_address, num_results=5)
+history = client.alpha.read_workflow_history(contract_address, num_results=5)
 ```
 
 ### 6. Examples
