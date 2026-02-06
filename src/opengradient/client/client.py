@@ -10,6 +10,7 @@ from ..defaults import (
     DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
     DEFAULT_RPC_URL,
 )
+from .alpha import Alpha
 from .llm import LLM
 from .model_hub import ModelHub
 from .onchain_inference import Inference
@@ -31,8 +32,13 @@ class Client:
     """
 
     model_hub: ModelHub
+    """Model Hub for creating, versioning, and uploading ML models."""
+
     llm: LLM
+    """LLM chat and completion via TEE-verified execution."""
+
     inference: Inference
+    """On-chain ONNX model inference via blockchain smart contracts."""
 
     def __init__(
         self,
@@ -88,19 +94,8 @@ class Client:
         self._alpha = None  # Lazy initialization for alpha namespace
 
     @property
-    def alpha(self):
-        """
-        Access Alpha Testnet features.
-
-        Returns:
-            Alpha: Alpha namespace with workflow and ML model execution methods.
-
-        Example:
-            client = og.Client(...)
-            result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
-        """
+    def alpha(self) -> Alpha:
+        """Alpha Testnet features including workflow management and ML model execution."""
         if self._alpha is None:
-            from .alpha import Alpha
-
             self._alpha = Alpha(self._blockchain, self._wallet_account)
         return self._alpha

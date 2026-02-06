@@ -64,6 +64,21 @@ def format_for_list(docstring, depth=1):
   spaces = depth * 2 * ' '
   return re.compile(r'\n\n', re.MULTILINE).sub('\n\n' + spaces, docstring)
 
+def resolve_namespace_target(v):
+  """If v's type resolves to an opengradient class in a different module, return link target."""
+  result = [None]
+  var_mod = v.module.name if hasattr(v, 'module') and v.module else ''
+  def capture(dobj):
+    if not isinstance(dobj, pdoc.Module) and hasattr(dobj, 'module') and dobj.module is not None:
+      mod_parts = dobj.module.name.split('.')
+      if (len(mod_parts) >= 2 and mod_parts[0] == 'opengradient'
+          and dobj.module.name != var_mod):
+        result[0] = mod_parts[-1] if len(mod_parts) > 2 else mod_parts[1]
+    return '`{}`'.format(dobj.qualname.split('.')[-1])
+  if show_type_annotations:
+    v.type_annotation(link=capture)
+  return result[0]
+
 def linkify(text, mod):
   """Convert backtick-wrapped qualified names to markdown links."""
   cur_parts = mod.name.split('.')
@@ -185,14 +200,21 @@ prefix = qual + ' ' if qual else ''
 %>\
 % for v in vs:
 <%
-return_type = get_annotation(v.type_annotation, link=link)
-type_str = return_type if return_type else ''
 raw_desc = v.docstring.strip() if v.docstring else ''
 if raw_desc == 'The type of the None singleton.':
   raw_desc = ''
+ns_target = resolve_namespace_target(v)
+%>\
+% if ns_target:
+* [**`${v.name}`**](./${ns_target})${ ': ' + firstline(raw_desc) if raw_desc else ''}
+% else:
+<%
+return_type = get_annotation(v.type_annotation, link=link)
+type_str = return_type if return_type else ''
 desc = ' - ' + format_for_list(raw_desc, 1) if raw_desc else ''
 %>\
 * ${prefix}`${v.name}`${type_str}${desc}
+% endif
 % endfor
 </%def>\
 <%def name="show_module(module)">\

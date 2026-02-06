@@ -140,17 +140,10 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 
 #### Variables
 
-* static `inference` : `Inference`
-* static `llm` : `LLM`
-* static `model_hub` : `ModelHub`
-* `alpha` - Access Alpha Testnet features.
-
-  Returns:
-    Alpha: Alpha namespace with workflow and ML model execution methods.
-
-  Example:
-    client = og.Client(...)
-    result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
+* [**`inference`**](./onchain_inference): On-chain ONNX model inference via blockchain smart contracts.
+* [**`llm`**](./llm): LLM chat and completion via TEE-verified execution.
+* [**`model_hub`**](./model_hub): Model Hub for creating, versioning, and uploading ML models.
+* [**`alpha`**](./alpha): Alpha Testnet features including workflow management and ML model execution.
 
 ### `InferenceMode`
 
