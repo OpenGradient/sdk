@@ -132,7 +132,9 @@ Callable: For ToolType.SWARM, returns a decorated function with appropriate meta
 
 ###  ToolType
 
-<code>class <b>ToolType</b>(*args, **kwds)</code>
+```python
+class ToolType(*args, **kwds)
+```
 
   
 

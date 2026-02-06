@@ -13,7 +13,9 @@ On-chain ONNX model inference via blockchain smart contracts.
 
 ###  Inference
 
-<code>class <b>Inference</b>(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub_contract_address: str, api_url: str)</code>
+```python
+class Inference(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub_contract_address: str, api_url: str)
+```
 
   
 

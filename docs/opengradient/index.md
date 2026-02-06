@@ -124,7 +124,9 @@ The newly created `Client` instance.
 
 ###  Client
 
-<code>class <b>Client</b>(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')</code>
+```python
+class Client(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+```
 
   
 
@@ -174,7 +176,9 @@ blockchain private key and optional Model Hub credentials.
 
 ###  InferenceMode
 
-<code>class <b>InferenceMode</b>(*args, **kwds)</code>
+```python
+class InferenceMode(*args, **kwds)
+```
 
   
 
@@ -197,7 +201,9 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
 
 ###  LLM
 
-<code>class <b>LLM</b>(*args, **kwds)</code>
+```python
+class LLM(*args, **kwds)
+```
 
   
 
@@ -254,7 +260,9 @@ Trusted Execution Environment (TEE) verified inference.
 
 ###  TEE_LLM
 
-<code>class <b>TEE_LLM</b>(*args, **kwds)</code>
+```python
+class TEE_LLM(*args, **kwds)
+```
 
   
 

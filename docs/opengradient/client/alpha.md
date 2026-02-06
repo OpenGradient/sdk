@@ -16,7 +16,9 @@ including workflow management and ML model execution.
 
 ###  Alpha
 
-<code>class <b>Alpha</b>(blockchain: `Web3`, wallet_account: `LocalAccount`)</code>
+```python
+class Alpha(blockchain: `Web3`, wallet_account: `LocalAccount`)
+```
 
   
 

@@ -266,7 +266,9 @@ ${header('Classes', 2)}
     %>
 ${header('', 3)} ${c.name}
 
-<code>class <b>${c.name}</b>(${params})</code>
+```python
+class ${c.name}(${params})
+```
 
 ${show_desc(c)}
     % if subclasses:

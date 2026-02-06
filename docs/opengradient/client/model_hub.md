@@ -13,7 +13,9 @@ Model Hub for creating, versioning, and uploading ML models.
 
 ###  ModelHub
 
-<code>class <b>ModelHub</b>(hub_user: Optional[Dict] = None)</code>
+```python
+class ModelHub(hub_user: Optional[Dict] = None)
+```
 
   
 

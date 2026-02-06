@@ -13,7 +13,9 @@ LLM chat and completion via TEE-verified execution with x402 payments.
 
 ###  LLM
 
-<code>class <b>LLM</b>(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_streaming_server_url: str)</code>
+```python
+class LLM(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_streaming_server_url: str)
+```
 
   
 

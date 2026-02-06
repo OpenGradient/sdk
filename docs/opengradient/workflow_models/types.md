@@ -13,7 +13,9 @@ Type definitions for models module.
 
 ###  WorkflowModelOutput
 
-<code>class <b>WorkflowModelOutput</b>(result: str, block_explorer_link: str = '')</code>
+```python
+class WorkflowModelOutput(result: str, block_explorer_link: str = '')
+```
 
   
 

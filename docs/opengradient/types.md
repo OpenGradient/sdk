@@ -13,7 +13,9 @@ OpenGradient Specific Types
 
 ###  Abi
 
-<code>class <b>Abi</b>(functions: List[`AbiFunction`])</code>
+```python
+class Abi(functions: List[`AbiFunction`])
+```
 
   
 
@@ -48,7 +50,9 @@ def from_json(abi_json)
 
 ###  AbiFunction
 
-<code>class <b>AbiFunction</b>(name: str, inputs: List[Union[str, ForwardRef('`AbiFunction`')]], outputs: List[Union[str, ForwardRef('`AbiFunction`')]], state_mutability: str)</code>
+```python
+class AbiFunction(name: str, inputs: List[Union[str, ForwardRef('`AbiFunction`')]], outputs: List[Union[str, ForwardRef('`AbiFunction`')]], state_mutability: str)
+```
 
   
 
@@ -73,7 +77,9 @@ AbiFunction(name: str, inputs: List[Union[str, ForwardRef('AbiFunction')]], outp
 
 ###  CandleOrder
 
-<code>class <b>CandleOrder</b>(*args, **kwds)</code>
+```python
+class CandleOrder(*args, **kwds)
+```
 
   
 
@@ -94,7 +100,9 @@ Enum where members are also (and must be) ints
 
 ###  CandleType
 
-<code>class <b>CandleType</b>(*args, **kwds)</code>
+```python
+class CandleType(*args, **kwds)
+```
 
   
 
@@ -121,7 +129,9 @@ Enum where members are also (and must be) ints
 
 ###  FileUploadResult
 
-<code>class <b>FileUploadResult</b>(modelCid: str, size: int)</code>
+```python
+class FileUploadResult(modelCid: str, size: int)
+```
 
   
 
@@ -142,7 +152,9 @@ FileUploadResult(modelCid: str, size: int)
 
 ###  HistoricalInputQuery
 
-<code>class <b>HistoricalInputQuery</b>(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: `CandleOrder`, candle_types: List[`CandleType`])</code>
+```python
+class HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: `CandleOrder`, candle_types: List[`CandleType`])
+```
 
   
 
@@ -187,7 +199,9 @@ Convert to format expected by contract ABI
 
 ###  InferenceMode
 
-<code>class <b>InferenceMode</b>(*args, **kwds)</code>
+```python
+class InferenceMode(*args, **kwds)
+```
 
   
 
@@ -210,7 +224,9 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
 
 ###  InferenceResult
 
-<code>class <b>InferenceResult</b>(transaction_hash: str, model_output: Dict[str, `ndarray`])</code>
+```python
+class InferenceResult(transaction_hash: str, model_output: Dict[str, `ndarray`])
+```
 
   
 
@@ -234,7 +250,9 @@ This class has two fields
 
 ###  LLM
 
-<code>class <b>LLM</b>(*args, **kwds)</code>
+```python
+class LLM(*args, **kwds)
+```
 
   
 
@@ -291,7 +309,9 @@ Trusted Execution Environment (TEE) verified inference.
 
 ###  ModelInput
 
-<code>class <b>ModelInput</b>(numbers: List[`NumberTensor`], strings: List[`StringTensor`])</code>
+```python
+class ModelInput(numbers: List[`NumberTensor`], strings: List[`StringTensor`])
+```
 
   
 
@@ -318,7 +338,9 @@ A collection of tensor inputs required for ONNX model inference.
 
 ###  ModelOutput
 
-<code>class <b>ModelOutput</b>(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray`], jsons: Dict[str, `ndarray`], is_simulation_result: bool)</code>
+```python
+class ModelOutput(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray`], jsons: Dict[str, `ndarray`], is_simulation_result: bool)
+```
 
   
 
@@ -343,7 +365,9 @@ Model output struct based on translations from smart contract.
 
 ###  ModelRepository
 
-<code>class <b>ModelRepository</b>(name: str, initialVersion: str)</code>
+```python
+class ModelRepository(name: str, initialVersion: str)
+```
 
   
 
@@ -364,7 +388,9 @@ ModelRepository(name: str, initialVersion: str)
 
 ###  Number
 
-<code>class <b>Number</b>(value: int, decimals: int)</code>
+```python
+class Number(value: int, decimals: int)
+```
 
   
 
@@ -385,7 +411,9 @@ Number(value: int, decimals: int)
 
 ###  NumberTensor
 
-<code>class <b>NumberTensor</b>(name: str, values: List[Tuple[int, int]])</code>
+```python
+class NumberTensor(name: str, values: List[Tuple[int, int]])
+```
 
   
 
@@ -412,7 +440,9 @@ A container for numeric tensor data used as input for ONNX models.
 
 ###  SchedulerParams
 
-<code>class <b>SchedulerParams</b>(frequency: int, duration_hours: int)</code>
+```python
+class SchedulerParams(frequency: int, duration_hours: int)
+```
 
   
 
@@ -453,7 +483,9 @@ def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.type
 
 ###  StreamChoice
 
-<code>class <b>StreamChoice</b>(delta: `StreamDelta`, index: int = 0, finish_reason: Optional[str] = None)</code>
+```python
+class StreamChoice(delta: `StreamDelta`, index: int = 0, finish_reason: Optional[str] = None)
+```
 
   
 
@@ -483,7 +515,9 @@ Represents a choice in a streaming response.
 
 ###  StreamChunk
 
-<code>class <b>StreamChunk</b>(choices: List[`StreamChoice`], model: str, usage: Optional[`StreamUsage`] = None, is_final: bool = False)</code>
+```python
+class StreamChunk(choices: List[`StreamChoice`], model: str, usage: Optional[`StreamUsage`] = None, is_final: bool = False)
+```
 
   
 
@@ -545,7 +579,9 @@ StreamChunk instance
 
 ###  StreamDelta
 
-<code>class <b>StreamDelta</b>(content: Optional[str] = None, role: Optional[str] = None, tool_calls: Optional[List[Dict]] = None)</code>
+```python
+class StreamDelta(content: Optional[str] = None, role: Optional[str] = None, tool_calls: Optional[List[Dict]] = None)
+```
 
   
 
@@ -575,7 +611,9 @@ Represents a delta (incremental change) in a streaming response.
 
 ###  StreamUsage
 
-<code>class <b>StreamUsage</b>(prompt_tokens: int, completion_tokens: int, total_tokens: int)</code>
+```python
+class StreamUsage(prompt_tokens: int, completion_tokens: int, total_tokens: int)
+```
 
   
 
@@ -605,7 +643,9 @@ Token usage information for a streaming response.
 
 ###  StringTensor
 
-<code>class <b>StringTensor</b>(name: str, values: List[str])</code>
+```python
+class StringTensor(name: str, values: List[str])
+```
 
   
 
@@ -632,7 +672,9 @@ A container for string tensor data used as input for ONNX models.
 
 ###  TEE_LLM
 
-<code>class <b>TEE_LLM</b>(*args, **kwds)</code>
+```python
+class TEE_LLM(*args, **kwds)
+```
 
   
 
@@ -690,7 +732,9 @@ indicates support for TEE execution.
 
 ###  TextGenerationOutput
 
-<code>class <b>TextGenerationOutput</b>(transaction_hash: str, finish_reason: Optional[str] = None, chat_output: Optional[Dict] = None, completion_output: Optional[str] = None, payment_hash: Optional[str] = None)</code>
+```python
+class TextGenerationOutput(transaction_hash: str, finish_reason: Optional[str] = None, chat_output: Optional[Dict] = None, completion_output: Optional[str] = None, payment_hash: Optional[str] = None)
+```
 
   
 
@@ -717,7 +761,9 @@ Output structure for text generation requests.
 
 ###  TextGenerationStream
 
-<code>class <b>TextGenerationStream</b>(_iterator: Union[Iterator[str], AsyncIterator[str]])</code>
+```python
+class TextGenerationStream(_iterator: Union[Iterator[str], AsyncIterator[str]])
+```
 
   
 
@@ -733,7 +779,9 @@ automatic parsing of SSE format.
 
 ###  x402SettlementMode
 
-<code>class <b>x402SettlementMode</b>(*args, **kwds)</code>
+```python
+class x402SettlementMode(*args, **kwds)
+```
 
   
 
