@@ -125,7 +125,7 @@ class TestAlphaProperty:
         """Test that alpha property is lazily initialized."""
         assert client._alpha is None
 
-        with patch("src.opengradient.client.alpha.Alpha") as mock_alpha:
+        with patch("src.opengradient.client.client.Alpha") as mock_alpha:
             mock_alpha_instance = MagicMock()
             mock_alpha.return_value = mock_alpha_instance
 
@@ -136,7 +136,7 @@ class TestAlphaProperty:
 
     def test_alpha_returns_same_instance(self, client):
         """Test that alpha property returns the same instance on subsequent calls."""
-        with patch("src.opengradient.client.alpha.Alpha") as mock_alpha:
+        with patch("src.opengradient.client.client.Alpha") as mock_alpha:
             mock_alpha_instance = MagicMock()
             mock_alpha.return_value = mock_alpha_instance
 
