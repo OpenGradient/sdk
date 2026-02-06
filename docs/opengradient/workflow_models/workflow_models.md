@@ -15,7 +15,7 @@ Repository of OpenGradient quantitative workflow models.
 ### Read btc 1 hour price forecast 
 
 ```python
-def read_btc_1_hour_price_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_btc_1_hour_price_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   
@@ -31,7 +31,7 @@ More information on this model can be found at https://hub.opengradient.ai/model
 ### Read eth 1 hour price forecast 
 
 ```python
-def read_eth_1_hour_price_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_eth_1_hour_price_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   
@@ -47,7 +47,7 @@ More information on this model can be found at https://hub.opengradient.ai/model
 ### Read eth usdt one hour volatility forecast 
 
 ```python
-def read_eth_usdt_one_hour_volatility_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_eth_usdt_one_hour_volatility_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   
@@ -63,7 +63,7 @@ More information on this model can be found at https://hub.opengradient.ai/model
 ### Read sol 1 hour price forecast 
 
 ```python
-def read_sol_1_hour_price_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_sol_1_hour_price_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   
@@ -79,7 +79,7 @@ More information on this model can be found at https://hub.opengradient.ai/model
 ### Read sui 1 hour price forecast 
 
 ```python
-def read_sui_1_hour_price_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_sui_1_hour_price_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   
@@ -95,7 +95,7 @@ More information on this model can be found at https://hub.opengradient.ai/model
 ### Read sui usdt 30 min price forecast 
 
 ```python
-def read_sui_usdt_30_min_price_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_sui_usdt_30_min_price_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   
@@ -111,7 +111,7 @@ More information on this model can be found at https://hub.opengradient.ai/model
 ### Read sui usdt 6 hour price forecast 
 
 ```python
-def read_sui_usdt_6_hour_price_forecast() ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_sui_usdt_6_hour_price_forecast(alpha: opengradient.client.alpha.Alpha) ‑> opengradient.workflow_models.types.WorkflowModelOutput
 ```
 
   

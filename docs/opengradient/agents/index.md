@@ -4,7 +4,7 @@ outline: [2,3]
 
   
 
-# Package opengradient.llm
+# Package opengradient.agents
 
 OpenGradient LLM Adapters
 
@@ -19,7 +19,7 @@ into existing applications and agent frameworks.
 ### Langchain adapter 
 
 ```python
-def langchain_adapter(private_key: str, model_cid: opengradient.types.LLM, max_tokens: int = 300) ‑> opengradient.llm.og_langchain.OpenGradientChatModel
+def langchain_adapter(private_key: str, model_cid: opengradient.types.LLM, max_tokens: int = 300) ‑> opengradient.agents.og_langchain.OpenGradientChatModel
 ```
 
   
@@ -34,7 +34,7 @@ and can be plugged into LangChain agents.
 ### Openai adapter 
 
 ```python
-def openai_adapter(private_key: str) ‑> opengradient.llm.og_openai.OpenGradientOpenAIClient
+def openai_adapter(private_key: str) ‑> opengradient.agents.og_openai.OpenGradientOpenAIClient
 ```
 
   

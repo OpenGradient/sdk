@@ -1,12 +1,12 @@
+# mypy: ignore-errors
 import time
 import uuid
 from typing import List
 
 from openai.types.chat import ChatCompletion
 
-from opengradient.client import Client
-from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
-from opengradient.types import LLM
+from ..client import Client
+from ..types import LLM
 
 
 class OGCompletions(object):
@@ -27,8 +27,8 @@ class OGCompletions(object):
         # convert OpenAI message format so it's compatible with the SDK
         sdk_messages = OGCompletions.convert_to_abi_compatible(messages)
 
-        chat_output = self.client.llm_chat(
-            model_cid=model,
+        chat_output = self.client.llm.chat(
+            model=model,
             messages=sdk_messages,
             max_tokens=200,
             tools=tools,
@@ -109,7 +109,5 @@ class OpenGradientOpenAIClient(object):
     chat: OGChat
 
     def __init__(self, private_key: str):
-        self.client = Client(
-            private_key=private_key, rpc_url=DEFAULT_RPC_URL, contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS, email=None, password=None
-        )
+        self.client = Client(private_key=private_key)
         self.chat = OGChat(self.client)

@@ -4,7 +4,7 @@ outline: [2,3]
 
   
 
-# Package opengradient.x402_auth
+# Package opengradient.client.x402_auth
 
 X402 Authentication handler for httpx streaming requests.
 

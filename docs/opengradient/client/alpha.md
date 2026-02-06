@@ -4,7 +4,7 @@ outline: [2,3]
 
   
 
-# Package opengradient.alpha
+# Package opengradient.client.alpha
 
 Alpha Testnet features for OpenGradient SDK.
 
@@ -16,7 +16,7 @@ including workflow management and ML model execution.
 
 ###  Alpha
 
-<code>class <b>Alpha</b>(client: Client)</code>
+<code>class <b>Alpha</b>(blockchain: [Web3](docs/main.md#Web3), wallet_account: [local](docs/signers.md#local))</code>
 
   
 
