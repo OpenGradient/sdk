@@ -18,7 +18,7 @@ import opengradient as og
 # Create the OpenGradient LangChain adapter
 llm = og.agents.langchain_adapter(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
-    model_cid=og.TEE_LLM.CLAUDE_3_5_HAIKU,
+    model_cid=og.TEE_LLM.GPT_4_1_2025_04_14,
     max_tokens=300,
 )
 
