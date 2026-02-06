@@ -12,6 +12,16 @@ import logging
 from x402.clients.base import x402Client
 from x402.types import x402PaymentRequiredResponse, PaymentRequirements
 
+# Define a type alias for better readability and type safety as suggested by Copilot
+PaymentSelector = typing.Callable[
+    [
+        list[PaymentRequirements],
+        typing.Optional[str],
+        typing.Optional[str],
+        typing.Optional[int],
+    ],
+    PaymentRequirements,
+]
 
 class X402Auth(httpx.Auth):
     """
@@ -31,7 +41,7 @@ class X402Auth(httpx.Auth):
         self,
         account: typing.Any,
         max_value: typing.Optional[int] = None,
-        payment_requirements_selector: typing.Optional[typing.Callable] = None,
+        payment_requirements_selector: typing.Optional[PaymentSelector] = None,
         network_filter: typing.Optional[str] = None,
         scheme_filter: typing.Optional[str] = None,
     ):
@@ -57,8 +67,16 @@ class X402Auth(httpx.Auth):
     ) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
         """
         Handle authentication flow for x402 payment protocol.
+
+        Args:
+            request: httpx Request object to be authenticated
+
+        Yields:
+            httpx Request object with authentication headers attached
         """
+        # Buffer request body to allow re-reading after 402 challenge
         request.read()
+        
         response = yield request
 
         if response.status_code == 402:
@@ -71,6 +89,7 @@ class X402Auth(httpx.Auth):
                 selected_requirements = self.x402_client.select_payment_requirements(
                     payment_response.accepts,
                     self.network_filter,
+                    self.scheme_filter,
                 )
                 
                 if not selected_requirements:
