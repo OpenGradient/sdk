@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient.types
 
+OpenGradient Specific Types
+
 ## Classes
     
 

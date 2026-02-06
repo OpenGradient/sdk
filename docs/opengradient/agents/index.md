@@ -6,7 +6,7 @@ outline: [2,3]
 
 # Package opengradient.agents
 
-OpenGradient LLM Adapters
+OpenGradient Agent Framework Adapters
 
 This module provides adapter interfaces to use OpenGradient LLMs with popular AI frameworks
 like LangChain and OpenAI. These adapters allow seamless integration of OpenGradient models

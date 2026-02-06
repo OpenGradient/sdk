@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient.client
 
+OpenGradient Client
+
 ## Submodules
 
 * [alpha](./alpha): Alpha Testnet features for OpenGradient SDK.
