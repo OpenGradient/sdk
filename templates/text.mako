@@ -68,12 +68,16 @@ def resolve_namespace_target(v):
   """If v's type resolves to an opengradient class in a different module, return link target."""
   result = [None]
   var_mod = v.module.name if hasattr(v, 'module') and v.module else ''
+  cur_parts = var_mod.split('.')
   def capture(dobj):
     if not isinstance(dobj, pdoc.Module) and hasattr(dobj, 'module') and dobj.module is not None:
       mod_parts = dobj.module.name.split('.')
       if (len(mod_parts) >= 2 and mod_parts[0] == 'opengradient'
           and dobj.module.name != var_mod):
-        result[0] = mod_parts[-1] if len(mod_parts) > 2 else mod_parts[1]
+        common = sum(1 for a, b in zip(cur_parts, mod_parts) if a == b)
+        remaining = mod_parts[common:]
+        if remaining:
+          result[0] = '/'.join(remaining)
     return '`{}`'.format(dobj.qualname.split('.')[-1])
   if show_type_annotations:
     v.type_annotation(link=capture)

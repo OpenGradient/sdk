@@ -140,10 +140,10 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 
 #### Variables
 
-* [**`inference`**](./onchain_inference): On-chain ONNX model inference via blockchain smart contracts.
-* [**`llm`**](./llm): LLM chat and completion via TEE-verified execution.
-* [**`model_hub`**](./model_hub): Model Hub for creating, versioning, and uploading ML models.
-* [**`alpha`**](./alpha): Alpha Testnet features including workflow management and ML model execution.
+* [**`inference`**](./client/onchain_inference): On-chain ONNX model inference via blockchain smart contracts.
+* [**`llm`**](./client/llm): LLM chat and completion via TEE-verified execution.
+* [**`model_hub`**](./client/model_hub): Model Hub for creating, versioning, and uploading ML models.
+* [**`alpha`**](./client/alpha): Alpha Testnet features including workflow management and ML model execution.
 
 ### `InferenceMode`
 
