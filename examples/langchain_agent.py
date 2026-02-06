@@ -10,9 +10,10 @@ Usage:
 
 import os
 
-import opengradient as og
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
+
+import opengradient as og
 
 # Create the OpenGradient LangChain adapter
 llm = og.agents.langchain_adapter(
