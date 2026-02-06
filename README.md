@@ -30,7 +30,7 @@ Note: Windows users should temporarily enable WSL when installing `opengradient`
 
 OpenGradient runs on two networks:
 - **Testnet**: The main public testnet for general use
-- **Alpha Testnet**: For alpha features like workflow execution (see [Alpha Testnet Features](#alpha-testnet-features))
+- **Alpha Testnet**: For alpha features like atomic AI execution from smart contracts or scheduled ML workflow execution (see [Alpha Testnet Features](#alpha-testnet-features))
 
 For the latest network RPCs, contract addresses, and deployment information, see the [Network Deployment Documentation](https://docs.opengradient.ai/learn/network/deployment.html).
 
