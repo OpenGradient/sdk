@@ -55,7 +55,7 @@ print(result.model_output)
 
 ## Client Namespaces
 
-The [Client](./client) object exposes three namespaces:
+The [Client](./client/index) object exposes three namespaces:
 
 - **[llm](./client/llm)** -- LLM chat and completion
 - **[onchain_inference](./client/onchain_inference)** -- On-chain ONNX model inference

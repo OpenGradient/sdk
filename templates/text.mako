@@ -83,6 +83,9 @@ def linkify(text, mod):
       return match.group(0)
     display = match.group(2)
     rel_path = '/'.join(remaining)
+    target_mod = dobj if isinstance(dobj, pdoc.Module) else dobj.module
+    if isinstance(target_mod, pdoc.Module) and target_mod.is_package:
+      rel_path += '/index'
     return '[{}](./{})'.format(display, rel_path)
   return re.sub(r'`(opengradient(?:\.\w+)+\.(\w+))`', replace_ref, text)
 %>\
