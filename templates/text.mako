@@ -107,6 +107,24 @@ def linkify(text, mod):
       rel_path += '/index'
     return '[{}](./{})'.format(display, rel_path)
   return re.sub(r'`(opengradient(?:\.\w+)+\.(\w+))`', replace_ref, text)
+
+def breadcrumb(module):
+  parts = module.name.split('.')
+  if len(parts) <= 1:
+    return parts[0]
+  current_dir_level = len(parts) - 1 if module.is_package else len(parts) - 2
+  crumbs = []
+  for i, part in enumerate(parts):
+    if i == len(parts) - 1:
+      crumbs.append(part)
+    else:
+      levels_up = current_dir_level - i
+      if levels_up == 0:
+        path = './index'
+      else:
+        path = '../' * levels_up + 'index'
+      crumbs.append('[{}]({})'.format(part, path))
+  return ' / '.join(crumbs)
 %>\
 <%def name="show_term_list(terms)">\
 % for i in range(0, len(terms), 2):
@@ -228,6 +246,7 @@ classes = module.classes(sort=sort_identifiers)
 functions = module.functions(sort=sort_identifiers)
 submodules = module.submodules()
 %>
+${breadcrumb(module)}
 ${header('Package ' + module.name, 1)}
 % if not module.supermodule:
 

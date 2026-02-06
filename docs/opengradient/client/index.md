@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / client
+
 # Package opengradient.client
 
 OpenGradient Client -- the central entry point to all SDK services.

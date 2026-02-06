@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [workflow_models](./index) / types
+
 # Package opengradient.workflow_models.types
 
 Type definitions for models module.

@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / workflow_models
+
 # Package opengradient.workflow_models
 
 OpenGradient Hardcoded Models

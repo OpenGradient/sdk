@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](./index) / types
+
 # Package opengradient.types
 
 OpenGradient Specific Types

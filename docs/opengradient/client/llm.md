@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [client](./index) / llm
+
 # Package opengradient.client.llm
 
 LLM chat and completion via TEE-verified execution with x402 payments.

@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / alphasense
+
 # Package opengradient.alphasense
 
 OpenGradient AlphaSense Tools

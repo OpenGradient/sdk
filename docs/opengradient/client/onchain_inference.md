@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [client](./index) / onchain_inference
+
 # Package opengradient.client.onchain_inference
 
 On-chain ONNX model inference via blockchain smart contracts.

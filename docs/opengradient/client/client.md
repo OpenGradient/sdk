@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [client](./index) / client
+
 # Package opengradient.client.client
 
 Main Client class that unifies all OpenGradient service namespaces.

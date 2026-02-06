@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [workflow_models](./index) / workflow_models
+
 # Package opengradient.workflow_models.workflow_models
 
 Repository of OpenGradient quantitative workflow models.

@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / agents
+
 # Package opengradient.agents
 
 OpenGradient Agent Framework Adapters

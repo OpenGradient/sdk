@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [client](./index) / model_hub
+
 # Package opengradient.client.model_hub
 
 Model Hub for creating, versioning, and uploading ML models.

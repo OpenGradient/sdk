@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [client](./index) / alpha
+
 # Package opengradient.client.alpha
 
 Alpha Testnet features for OpenGradient SDK.

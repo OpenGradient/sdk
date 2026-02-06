@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+opengradient
+
 # Package opengradient
 
 **Version: 0.6.0**

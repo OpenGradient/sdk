@@ -2,6 +2,8 @@
 outline: [2,3]
 ---
 
+[opengradient](../index) / [client](./index) / exceptions
+
 # Package opengradient.client.exceptions
 
 Exception types for OpenGradient SDK errors.
