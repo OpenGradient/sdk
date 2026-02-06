@@ -73,6 +73,10 @@ def linkify(text, mod):
     if dobj is None:
       return match.group(0)
     target_parts = name.split('.')
+    # For non-module objects (classes, functions), drop the object name
+    # and link to the containing module page instead
+    if not isinstance(dobj, pdoc.Module):
+      target_parts = target_parts[:-1]
     common = sum(1 for a, b in zip(cur_parts, target_parts) if a == b)
     remaining = target_parts[common:]
     if not remaining:

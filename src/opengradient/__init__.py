@@ -48,7 +48,7 @@ print(result.model_output)
 
 ## Client Namespaces
 
-The `Client` object exposes three namespaces:
+The `opengradient.client.Client` object exposes three namespaces:
 
 - **`opengradient.client.llm`** -- LLM chat and completion
 - **`opengradient.client.onchain_inference`** -- On-chain ONNX model inference

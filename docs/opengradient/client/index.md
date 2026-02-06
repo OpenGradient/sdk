@@ -8,7 +8,7 @@ OpenGradient Client -- the central entry point to all SDK services.
 
 ## Overview
 
-The `Client` class provides unified access to three service namespaces:
+The [Client](./client) class provides unified access to three service namespaces:
 
 - **[llm](./llm)** -- LLM chat and text completion with TEE-verified execution and x402 payment settlement
 - **[onchain_inference](./onchain_inference)** -- On-chain ONNX model inference via blockchain smart contracts (VANILLA, TEE, ZKML modes)
