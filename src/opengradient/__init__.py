@@ -50,7 +50,7 @@ print(result.model_output)
 
 The `opengradient.client.Client` object exposes three namespaces:
 
-- **`opengradient.client.llm`** -- LLM chat and completion
+- **`opengradient.client.llm`** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
 - **`opengradient.client.alpha`** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
 - **`opengradient.client.model_hub`** -- Model repository management
 
