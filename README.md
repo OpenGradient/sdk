@@ -100,7 +100,7 @@ The SDK includes models from multiple providers accessible via the `og.TEE_LLM` 
 - **Google**: Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash
 - **xAI**: Grok 3 Beta, Grok 3 Mini Beta, Grok 4.1 Fast
 
-For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API documentation](https://docs.opengradient.ai/).
+For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API documentation](https://docs.opengradient.ai/api_reference/python_sdk/).
 
 ### 5. Alpha Testnet Features
 
