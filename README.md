@@ -40,6 +40,7 @@ For the latest network RPCs, contract addresses, and deployment information, see
 
 You'll need:
 - **Private key**: An Ethereum-compatible wallet private key for OpenGradient transactions
+- **Test tokens**: Get free test tokens from the [OpenGradient Faucet](https://faucet.opengradient.ai) to use LLM inference on the testnet
 - **Model Hub account** (optional): Only needed for uploading models. Create one at [Hub Sign Up](https://hub.opengradient.ai/signup)
 
 The easiest way to set up your configuration is through our wizard:
