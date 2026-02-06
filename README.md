@@ -61,7 +61,10 @@ client = og.Client(
 
 ### 3. Basic Usage
 
-#### LLM Chat
+#### LLM Chat secured by TEE (Trusted Execution Environment)
+
+OpenGradient supports secure, verifiable inference through TEE for leading LLM providers. Access models from OpenAI, Anthropic, Google, and xAI with cryptographic attestation verified by the OpenGradient network:
+
 ```python
 completion = client.llm.chat(
     model=og.TEE_LLM.GPT_4O,
@@ -69,29 +72,6 @@ completion = client.llm.chat(
 )
 print(f"Response: {completion.chat_output['content']}")
 print(f"Tx hash: {completion.transaction_hash}")
-```
-
-#### Custom Model Inference
-Browse models on our [Model Hub](https://hub.opengradient.ai/) or upload your own:
-```python
-result = client.alpha.infer(
-    model_cid="your-model-cid",
-    model_input={"input": [1.0, 2.0, 3.0]},
-    inference_mode=og.InferenceMode.VANILLA,
-)
-print(f"Output: {result.model_output}")
-```
-
-### 4. TEE (Trusted Execution Environment) Inference
-
-OpenGradient supports secure, verifiable inference through TEE for leading LLM providers. Access models from OpenAI, Anthropic, Google, and xAI with cryptographic attestation:
-```python
-# Use TEE mode for verifiable AI execution
-completion = client.llm.chat(
-    model=og.TEE_LLM.CLAUDE_3_7_SONNET,
-    messages=[{"role": "user", "content": "Your message here"}],
-)
-print(f"Response: {completion.chat_output['content']}")
 ```
 
 **Available TEE Models:**
@@ -108,6 +88,17 @@ For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API d
 The Alpha Testnet provides access to experimental features, including **workflow deployment and execution**. Workflows allow you to deploy on-chain AI pipelines that connect models with data sources and can be scheduled for automated execution.
 
 **Note:** Alpha features require connecting to the Alpha Testnet. See [Network Configuration](#network-configuration) for details.
+
+#### Custom Model Inference 
+Browse models on our [Model Hub](https://hub.opengradient.ai/) or upload your own:
+```python
+result = client.alpha.infer(
+    model_cid="your-model-cid",
+    model_input={"input": [1.0, 2.0, 3.0]},
+    inference_mode=og.InferenceMode.VANILLA,
+)
+print(f"Output: {result.model_output}")
+```
 
 #### Deploy a Workflow
 ```python
