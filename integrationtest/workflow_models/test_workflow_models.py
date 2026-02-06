@@ -2,32 +2,25 @@ import os
 import unittest
 from dataclasses import dataclass
 
-from opengradient.alphasense import create_read_workflow_tool, ToolType
-from opengradient.llm import OpenGradientChatModel
-from opengradient import LLM
-from opengradient import init
-from opengradient import read_workflow_result
-
+from opengradient import init, read_workflow_result
 from opengradient.workflow_models import (
-    read_eth_usdt_one_hour_volatility_forecast,
     read_btc_1_hour_price_forecast,
     read_eth_1_hour_price_forecast,
+    read_eth_usdt_one_hour_volatility_forecast,
     read_sol_1_hour_price_forecast,
     read_sui_1_hour_price_forecast,
-    read_sui_usdt_30_min_price_forecast,
     read_sui_usdt_6_hour_price_forecast,
+    read_sui_usdt_30_min_price_forecast,
 )
-
 from opengradient.workflow_models.constants import (
-    ETH_USDT_1_HOUR_VOLATILITY_ADDRESS,
     BTC_1_HOUR_PRICE_FORECAST_ADDRESS,
     ETH_1_HOUR_PRICE_FORECAST_ADDRESS,
+    ETH_USDT_1_HOUR_VOLATILITY_ADDRESS,
     SOL_1_HOUR_PRICE_FORECAST_ADDRESS,
     SUI_1_HOUR_PRICE_FORECAST_ADDRESS,
-    SUI_30_MINUTE_PRICE_FORECAST_ADDRESS,
     SUI_6_HOUR_PRICE_FORECAST_ADDRESS,
+    SUI_30_MINUTE_PRICE_FORECAST_ADDRESS,
 )
-
 from opengradient.workflow_models.utils import create_block_explorer_link_smart_contract
 
 

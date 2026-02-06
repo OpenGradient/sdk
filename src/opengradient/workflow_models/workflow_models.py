@@ -1,17 +1,16 @@
 """Repository of OpenGradient quantitative workflow models."""
 
-import opengradient as og
 from .constants import (
-    ETH_USDT_1_HOUR_VOLATILITY_ADDRESS,
     BTC_1_HOUR_PRICE_FORECAST_ADDRESS,
     ETH_1_HOUR_PRICE_FORECAST_ADDRESS,
+    ETH_USDT_1_HOUR_VOLATILITY_ADDRESS,
     SOL_1_HOUR_PRICE_FORECAST_ADDRESS,
     SUI_1_HOUR_PRICE_FORECAST_ADDRESS,
-    SUI_30_MINUTE_PRICE_FORECAST_ADDRESS,
     SUI_6_HOUR_PRICE_FORECAST_ADDRESS,
+    SUI_30_MINUTE_PRICE_FORECAST_ADDRESS,
 )
-from .utils import read_workflow_wrapper
 from .types import WorkflowModelOutput
+from .utils import read_workflow_wrapper
 
 
 def read_eth_usdt_one_hour_volatility_forecast() -> WorkflowModelOutput:

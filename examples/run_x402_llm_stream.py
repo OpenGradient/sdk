@@ -1,5 +1,6 @@
-import opengradient as og
 import os
+
+import opengradient as og
 
 client = og.new_client(
     email=None,
@@ -12,11 +13,11 @@ messages = [
 ]
 
 stream = client.llm_chat(
-    model_cid=og.LLM.GPT_4_1_2025_04_14,
-    inference_mode=og.LlmInferenceMode.TEE,
+    model=og.TEE_LLM.GPT_4_1_2025_04_14,
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
     stream=True,
+    max_tokens=1000,
 )
 
 for chunk in stream:

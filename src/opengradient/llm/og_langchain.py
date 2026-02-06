@@ -1,27 +1,28 @@
 import json
-from typing import Any, Dict, List, Optional, Sequence, Union, Callable
-from typing_extensions import override
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from langchain.chat_models.base import BaseChatModel
+from langchain_core.callbacks.manager import CallbackManagerForLLMRun
+from langchain_core.language_models.base import LanguageModelInput
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
     HumanMessage,
     SystemMessage,
+    ToolCall,
 )
+from langchain_core.messages.tool import ToolMessage
 from langchain_core.outputs import (
     ChatGeneration,
     ChatResult,
 )
-from langchain_core.callbacks.manager import CallbackManagerForLLMRun
-from langchain_core.messages import ToolCall
-from langchain_core.messages.tool import ToolMessage
-from langchain_core.tools import BaseTool
 from langchain_core.runnables import Runnable
-from langchain_core.language_models.base import LanguageModelInput
+from langchain_core.tools import BaseTool
+from typing_extensions import override
 
-from opengradient import Client, LlmInferenceMode, LLM
-from opengradient.defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL, DEFAULT_API_URL
+from opengradient.client import Client
+from opengradient.defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
+from opengradient.types import LLM
 
 
 class OpenGradientChatModel(BaseChatModel):
@@ -117,7 +118,6 @@ class OpenGradientChatModel(BaseChatModel):
             stop_sequence=stop,
             max_tokens=self._max_tokens,
             tools=self._tools,
-            inference_mode=LlmInferenceMode.VANILLA,
         )
 
         finish_reason = chat_output.finish_reason or ""

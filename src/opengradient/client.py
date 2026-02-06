@@ -1,53 +1,42 @@
+import asyncio
+import base64
 import json
-import logging
 import os
 import time
-import base64
+import urllib.parse
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Callable, Dict, List, Optional, Union
 
 import firebase
+import httpx
 import numpy as np
 import requests
-import httpx
 from eth_account.account import LocalAccount
 from web3 import Web3
 from web3.exceptions import ContractLogicError
 from web3.logs import DISCARD
-import urllib.parse
-import asyncio
+from x402.clients.base import x402Client
 from x402.clients.httpx import x402HttpxClient
-from x402.clients.base import decode_x_payment_response, x402Client
 
-from .x402_auth import X402Auth
-from .exceptions import OpenGradientError
-from .proto import infer_pb2, infer_pb2_grpc
-from .types import (
-    LLM,
-    TEE_LLM,
-    x402SettlementMode,
-    HistoricalInputQuery,
-    InferenceMode,
-    LlmInferenceMode,
-    ModelOutput,
-    TextGenerationOutput,
-    TextGenerationStream,
-    SchedulerParams,
-    InferenceResult,
-    ModelRepository,
-    FileUploadResult,
-    StreamChunk,
-)
 from .defaults import (
-    DEFAULT_IMAGE_GEN_HOST,
-    DEFAULT_IMAGE_GEN_PORT,
-    DEFAULT_SCHEDULER_ADDRESS,
-    DEFAULT_LLM_SERVER_URL,
+    DEFAULT_NETWORK_FILTER,
     DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
     DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
-    DEFAULT_NETWORK_FILTER,
+)
+from .exceptions import OpenGradientError
+from .types import (
+    TEE_LLM,
+    FileUploadResult,
+    InferenceMode,
+    InferenceResult,
+    ModelRepository,
+    StreamChunk,
+    TextGenerationOutput,
+    TextGenerationStream,
+    x402SettlementMode,
 )
 from .utils import convert_to_model_input, convert_to_model_output
+from .x402_auth import X402Auth
 
 # Security Update: Credentials moved to environment variables
 _FIREBASE_CONFIG = {
@@ -86,6 +75,7 @@ LIMITS = httpx.Limits(
     keepalive_expiry=60 * 20,  # 20 minutes
 )
 
+
 class Client:
     _inference_hub_contract_address: str
     _blockchain: Web3
@@ -95,8 +85,6 @@ class Client:
     _api_url: str
     _inference_abi: Dict
     _precompile_abi: Dict
-    _llm_server_url: str
-    _external_api_keys: Dict[str, str]
 
     def __init__(
         self,
@@ -106,12 +94,8 @@ class Client:
         contract_address: str,
         email: Optional[str] = None,
         password: Optional[str] = None,
-        llm_server_url: Optional[str] = DEFAULT_LLM_SERVER_URL,
         og_llm_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_SERVER_URL,
         og_llm_streaming_server_url: Optional[str] = DEFAULT_OPENGRADIENT_LLM_STREAMING_SERVER_URL,
-        openai_api_key: Optional[str] = None,
-        anthropic_api_key: Optional[str] = None,
-        google_api_key: Optional[str] = None,
     ):
         """
         Initialize the Client with private key, RPC URL, and contract address.
@@ -141,17 +125,8 @@ class Client:
         else:
             self._hub_user = None
 
-        self._llm_server_url = llm_server_url
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
-
-        self._external_api_keys = {}
-        if openai_api_key or os.getenv("OPENAI_API_KEY"):
-            self._external_api_keys["openai"] = openai_api_key or os.getenv("OPENAI_API_KEY")
-        if anthropic_api_key or os.getenv("ANTHROPIC_API_KEY"):
-            self._external_api_keys["anthropic"] = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY")
-        if google_api_key or os.getenv("GOOGLE_API_KEY"):
-            self._external_api_keys["google"] = google_api_key or os.getenv("GOOGLE_API_KEY")
 
         self._alpha = None  # Lazy initialization for alpha namespace
 
@@ -169,6 +144,7 @@ class Client:
         """
         if self._alpha is None:
             from .alpha import Alpha
+
             self._alpha = Alpha(self)
         return self._alpha
 
@@ -221,16 +197,11 @@ class Client:
         return self._external_api_keys.get(provider)
 
     def _login_to_hub(self, email, password):
-        try:
-            # Check if API Key is present in environment
-            if not _FIREBASE_CONFIG.get("apiKey"):
-                logging.warning("Firebase API Key is missing in environment variables. Authentication may fail.")
-            
-            firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
-            return firebase_app.auth().sign_in_with_email_and_password(email, password)
-        except Exception as e:
-            logging.error(f"Authentication failed: {str(e)}")
-            raise
+        if not _FIREBASE_CONFIG.get("apiKey"):
+            raise ValueError("Firebase API Key is missing in environment variables")
+
+        firebase_app = firebase.initialize_app(_FIREBASE_CONFIG)
+        return firebase_app.auth().sign_in_with_email_and_password(email, password)
 
     def create_model(self, model_name: str, model_desc: str, version: str = "1.00") -> ModelRepository:
         """
@@ -294,40 +265,24 @@ class Client:
         payload = {"notes": notes, "is_major": is_major}
 
         try:
-            logging.debug(f"Create Version URL: {url}")
-            logging.debug(f"Headers: {headers}")
-            logging.debug(f"Payload: {payload}")
-
-            response = requests.post(url, json=payload, headers=headers, allow_redirects=True)
+            response = requests.post(url, json=payload, headers=headers, allow_redirects=False)
             response.raise_for_status()
 
             json_response = response.json()
 
-            logging.debug(f"Full server response: {json_response}")
-
             if isinstance(json_response, list) and not json_response:
-                logging.info("Server returned an empty list. Assuming version was created successfully.")
                 return {"versionString": "Unknown", "note": "Created based on empty response"}
             elif isinstance(json_response, dict):
                 version_string = json_response.get("versionString")
                 if not version_string:
-                    logging.warning(f"'versionString' not found in response. Response: {json_response}")
                     return {"versionString": "Unknown", "note": "Version ID not provided in response"}
-                logging.info(f"Version creation successful. Version ID: {version_string}")
                 return {"versionString": version_string}
             else:
-                logging.error(f"Unexpected response type: {type(json_response)}. Content: {json_response}")
                 raise Exception(f"Unexpected response type: {type(json_response)}")
 
         except requests.RequestException as e:
-            logging.error(f"Version creation failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response headers: {e.response.headers}")
-                logging.error(f"Response content: {e.response.text}")
             raise Exception(f"Version creation failed: {str(e)}")
-        except Exception as e:
-            logging.error(f"Unexpected error during version creation: {str(e)}")
+        except Exception:
             raise
 
     def upload(self, model_path: str, model_name: str, version: str) -> FileUploadResult:
@@ -345,7 +300,7 @@ class Client:
         Raises:
             OpenGradientError: If the upload fails.
         """
-        from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
+        from requests_toolbelt import MultipartEncoder
 
         if not self._hub_user:
             raise ValueError("User not authenticated")
@@ -356,55 +311,30 @@ class Client:
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
         headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
-        logging.info(f"Starting upload for file: {model_path}")
-        logging.info(f"File size: {os.path.getsize(model_path)} bytes")
-        logging.debug(f"Upload URL: {url}")
-        logging.debug(f"Headers: {headers}")
-
-        def create_callback(encoder):
-            encoder_len = encoder.len
-
-            def callback(monitor):
-                progress = (monitor.bytes_read / encoder_len) * 100
-                logging.info(f"Upload progress: {progress:.2f}%")
-
-            return callback
-
         try:
             with open(model_path, "rb") as file:
                 encoder = MultipartEncoder(fields={"file": (os.path.basename(model_path), file, "application/octet-stream")})
-                monitor = MultipartEncoderMonitor(encoder, create_callback(encoder))
-                headers["Content-Type"] = monitor.content_type
+                headers["Content-Type"] = encoder.content_type
 
-                logging.info("Sending POST request...")
-                response = requests.post(url, data=monitor, headers=headers, timeout=3600)  # 1 hour timeout
-
-                logging.info(f"Response received. Status code: {response.status_code}")
-                logging.info(f"Full response content: {response.text}")  # Log the full response content
+                response = requests.post(url, data=encoder, headers=headers, timeout=3600)
 
                 if response.status_code == 201:
                     if response.content and response.content != b"null":
                         json_response = response.json()
                         return FileUploadResult(json_response.get("ipfsCid"), json_response.get("size"))
                     else:
-                        raise RuntimeError("Empty or null response content received. Assuming upload was successful.")
+                        raise RuntimeError("Empty or null response content received")
                 elif response.status_code == 500:
-                    error_message = "Internal server error occurred. Please try again later or contact support."
-                    logging.error(error_message)
-                    raise OpenGradientError(error_message, status_code=500)
+                    raise OpenGradientError("Internal server error occurred", status_code=500)
                 else:
                     error_message = response.json().get("detail", "Unknown error occurred")
-                    logging.error(f"Upload failed with status code {response.status_code}: {error_message}")
                     raise OpenGradientError(f"Upload failed: {error_message}", status_code=response.status_code)
 
         except requests.RequestException as e:
-            logging.error(f"Request exception during upload: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
-            raise OpenGradientError(f"Upload failed due to request exception: {str(e)}")
+            raise OpenGradientError(f"Upload failed: {str(e)}")
+        except OpenGradientError:
+            raise
         except Exception as e:
-            logging.error(f"Unexpected error during upload: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during upload: {str(e)}")
 
     def infer(
@@ -470,28 +400,22 @@ class Client:
 
     def llm_completion(
         self,
-        model_cid: str,  # Changed from LLM to str to accept any model
+        model: TEE_LLM,
         prompt: str,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
-        inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
-        max_retries: Optional[int] = None,
-        local_model: Optional[bool] = False,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
-        Perform inference on an LLM model using completions.
+        Perform inference on an LLM model using completions via TEE.
 
         Args:
-            model_cid (str): The unique content identifier for the model.
-            inference_mode (LlmInferenceMode): The inference mode (only used for local models).
+            model (TEE_LLM): The model to use (e.g., TEE_LLM.CLAUDE_3_5_HAIKU).
             prompt (str): The input prompt for the LLM.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
-            max_retries (int, optional): Maximum number of retry attempts for blockchain transactions.
-            local_model (bool, optional): Force use of local model even if not in LLM enum.
             x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
                 - SETTLE: Records input/output hashes only (most privacy-preserving).
                 - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
@@ -500,66 +424,23 @@ class Client:
 
         Returns:
             TextGenerationOutput: Generated text results including:
-                - Transaction hash (or "external" for external providers)
+                - Transaction hash ("external" for TEE providers)
                 - String of completion output
-                - Payment hash for x402 transactions (when using x402 settlement)
+                - Payment hash for x402 transactions
 
         Raises:
             OpenGradientError: If the inference fails.
         """
-        # Check if this is a local model or external
-        # TODO (Kyle): separate TEE and Vanilla completion requests
-        if inference_mode == LlmInferenceMode.TEE:
-            if model_cid not in TEE_LLM:
-                return OpenGradientError("That model CID is not supported yet for TEE inference")
+        return self._tee_llm_completion(
+            model=model.split("/")[1],
+            prompt=prompt,
+            max_tokens=max_tokens,
+            stop_sequence=stop_sequence,
+            temperature=temperature,
+            x402_settlement_mode=x402_settlement_mode,
+        )
 
-            return self._external_llm_completion(
-                model=model_cid.split("/")[1],
-                prompt=prompt,
-                max_tokens=max_tokens,
-                stop_sequence=stop_sequence,
-                temperature=temperature,
-                x402_settlement_mode=x402_settlement_mode,
-            )
-
-        # Original local model logic
-        def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA:
-                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-
-            if model_cid not in [llm.value for llm in LLM]:
-                raise OpenGradientError("That model CID is not yet supported for inference")
-
-            model_name = model_cid
-            if model_cid in [llm.value for llm in TEE_LLM]:
-                model_name = model_cid.split("/")[1]
-
-            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
-
-            llm_request = {
-                "mode": inference_mode.value,
-                "modelCID": model_name,
-                "prompt": prompt,
-                "max_tokens": max_tokens,
-                "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100),
-            }
-            logging.debug(f"Prepared LLM request: {llm_request}")
-
-            run_function = contract.functions.runLLMCompletion(llm_request)
-
-            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
-            parsed_logs = contract.events.LLMCompletionResult().process_receipt(tx_receipt, errors=DISCARD)
-            if len(parsed_logs) < 1:
-                raise OpenGradientError("LLM completion result event not found in transaction logs")
-
-            llm_answer = parsed_logs[0]["args"]["response"]["answer"]
-
-            return TextGenerationOutput(transaction_hash=tx_hash.hex(), completion_output=llm_answer)
-
-        return run_with_retry(execute_transaction, max_retries)
-
-    def _external_llm_completion(
+    def _tee_llm_completion(
         self,
         model: str,
         prompt: str,
@@ -569,7 +450,7 @@ class Client:
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
-        Route completion request to external LLM server with x402 payments.
+        Route completion request to OpenGradient TEE LLM server with x402 payments.
 
         Args:
             model: Model identifier
@@ -577,6 +458,7 @@ class Client:
             max_tokens: Maximum tokens to generate
             stop_sequence: Stop sequences
             temperature: Sampling temperature
+            x402_settlement_mode: Settlement mode for x402 payments
 
         Returns:
             TextGenerationOutput with completion
@@ -584,42 +466,6 @@ class Client:
         Raises:
             OpenGradientError: If request fails
         """
-        api_key = self._get_api_key_for_model(model)
-
-        if api_key:
-            logging.debug("External LLM completions using API key")
-            url = f"{self._llm_server_url}/v1/completions"
-
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-
-            payload = {
-                "model": model,
-                "prompt": prompt,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-
-            if stop_sequence:
-                payload["stop"] = stop_sequence
-
-            try:
-                response = requests.post(url, json=payload, headers=headers, timeout=60)
-                response.raise_for_status()
-
-                result = response.json()
-
-                return TextGenerationOutput(transaction_hash="external", completion_output=result.get("completion"))
-
-            except requests.RequestException as e:
-                error_msg = f"External LLM completion failed: {str(e)}"
-                if hasattr(e, "response") and e.response is not None:
-                    try:
-                        error_detail = e.response.json()
-                        error_msg += f" - {error_detail}"
-                    except:
-                        error_msg += f" - {e.response.text}"
-                logging.error(error_msg)
-                raise OpenGradientError(error_msg)
 
         async def make_request():
             # Security Fix: verify=True enabled
@@ -661,11 +507,8 @@ class Client:
                     )
 
                 except Exception as e:
-                    error_msg = f"External LLM completion request failed: {str(e)}"
-                    logging.error(error_msg)
-                    raise OpenGradientError(error_msg)
-
-        try:
+                    raise OpenGradientError(f"TEE LLM completion request failed: {str(e)}")
+try:
             try:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
@@ -679,45 +522,31 @@ class Client:
             
             return loop.run_until_complete(make_request())
         except Exception as e:
-            error_msg = f"External LLM completion failed: {str(e)}"
-            if hasattr(e, "response") and e.response is not None:
-                try:
-                    error_detail = e.response.json()
-                    error_msg += f" - {error_detail}"
-                except:
-                    error_msg += f" - {e.response.text}"
-            logging.error(error_msg)
-            raise OpenGradientError(error_msg)
+            raise OpenGradientError(f"TEE LLM completion failed: {str(e)}")
 
     def llm_chat(
         self,
-        model_cid: str,
+        model: TEE_LLM,
         messages: List[Dict],
-        inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = [],
         tool_choice: Optional[str] = None,
-        max_retries: Optional[int] = None,
-        local_model: Optional[bool] = False,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
         stream: bool = False,
     ) -> Union[TextGenerationOutput, TextGenerationStream]:
         """
-        Perform inference on an LLM model using chat.
+        Perform inference on an LLM model using chat via TEE.
 
         Args:
-            model_cid (str): The unique content identifier for the model.
-            inference_mode (LlmInferenceMode): The inference mode (only used for local models).
+            model (TEE_LLM): The model to use (e.g., TEE_LLM.CLAUDE_3_5_HAIKU).
             messages (List[Dict]): The messages that will be passed into the chat.
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM.
             temperature (float): Temperature for LLM inference, between 0 and 1.
             tools (List[dict], optional): Set of tools for function calling.
             tool_choice (str, optional): Sets a specific tool to choose.
-            max_retries (int, optional): Maximum number of retry attempts.
-            local_model (bool, optional): Force use of local model.
             x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
                 - SETTLE: Records input/output hashes only (most privacy-preserving).
                 - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
@@ -726,116 +555,39 @@ class Client:
             stream (bool, optional): Whether to stream the response. Default is False.
 
         Returns:
-            Union[TextGenerationOutput, TextGenerationStream]: 
+            Union[TextGenerationOutput, TextGenerationStream]:
                 - If stream=False: TextGenerationOutput with chat_output, transaction_hash, finish_reason, and payment_hash
                 - If stream=True: TextGenerationStream yielding StreamChunk objects with typed deltas (true streaming via threading)
 
         Raises:
             OpenGradientError: If the inference fails.
         """
-        # Check if this is a local model or external
-        # TODO (Kyle): separate TEE and Vanilla completion requests
-        if inference_mode == LlmInferenceMode.TEE:
-            if model_cid not in TEE_LLM:
-                return OpenGradientError("That model CID is not supported yet for TEE inference")
-
-            if stream:
-                # Use threading bridge for true sync streaming
-                return self._external_llm_chat_stream_sync(
-                    model=model_cid.split("/")[1],
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    stop_sequence=stop_sequence,
-                    temperature=temperature,
-                    tools=tools,
-                    tool_choice=tool_choice,
-                    x402_settlement_mode=x402_settlement_mode,
-                    use_tee=True,
-                )
-            else:
-                # Non-streaming
-                return self._external_llm_chat(
-                    model=model_cid.split("/")[1],
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    stop_sequence=stop_sequence,
-                    temperature=temperature,
-                    tools=tools,
-                    tool_choice=tool_choice,
-                    x402_settlement_mode=x402_settlement_mode,
-                    stream=False,
-                    use_tee=True,
-                )
-
-        # Original local model logic
-        def execute_transaction():
-            if inference_mode != LlmInferenceMode.VANILLA:
-                raise OpenGradientError("Invalid inference mode %s: Inference mode must be VANILLA or TEE" % inference_mode)
-
-            if model_cid not in [llm.value for llm in LLM]:
-                raise OpenGradientError("That model CID is not yet supported for inference")
-
-            model_name = model_cid
-            if model_cid in [llm.value for llm in TEE_LLM]:
-                model_name = model_cid.split("/")[1]
-
-            contract = self._blockchain.eth.contract(address=self._inference_hub_contract_address, abi=self._inference_abi)
-
-            for message in messages:
-                if "tool_calls" not in message:
-                    message["tool_calls"] = []
-                if "tool_call_id" not in message:
-                    message["tool_call_id"] = ""
-                if "name" not in message:
-                    message["name"] = ""
-
-            converted_tools = []
-            if tools is not None:
-                for tool in tools:
-                    function = tool["function"]
-                    converted_tool = {}
-                    converted_tool["name"] = function["name"]
-                    converted_tool["description"] = function["description"]
-                    if (parameters := function.get("parameters")) is not None:
-                        try:
-                            converted_tool["parameters"] = json.dumps(parameters)
-                        except Exception as e:
-                            raise OpenGradientError("Chat LLM failed to convert parameters into JSON: %s", e)
-                    converted_tools.append(converted_tool)
-
-            llm_request = {
-                "mode": inference_mode.value,
-                "modelCID": model_name,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "stop_sequence": stop_sequence or [],
-                "temperature": int(temperature * 100),
-                "tools": converted_tools or [],
-                "tool_choice": tool_choice if tool_choice else ("" if tools is None else "auto"),
-            }
-            logging.debug(f"Prepared LLM request: {llm_request}")
-
-            run_function = contract.functions.runLLMChat(llm_request)
-
-            tx_hash, tx_receipt = self._send_tx_with_revert_handling(run_function)
-            parsed_logs = contract.events.LLMChatResult().process_receipt(tx_receipt, errors=DISCARD)
-            if len(parsed_logs) < 1:
-                raise OpenGradientError("LLM chat result event not found in transaction logs")
-
-            llm_result = parsed_logs[0]["args"]["response"]
-            message = dict(llm_result["message"])
-            if (tool_calls := message.get("tool_calls")) is not None:
-                message["tool_calls"] = [dict(tool_call) for tool_call in tool_calls]
-
-            return TextGenerationOutput(
-                transaction_hash=tx_hash.hex(),
-                finish_reason=llm_result["finish_reason"],
-                chat_output=message,
+        if stream:
+            # Use threading bridge for true sync streaming
+            return self._tee_llm_chat_stream_sync(
+                model=model.split("/")[1],
+                messages=messages,
+                max_tokens=max_tokens,
+                stop_sequence=stop_sequence,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+                x402_settlement_mode=x402_settlement_mode,
+            )
+        else:
+            # Non-streaming
+            return self._tee_llm_chat(
+                model=model.split("/")[1],
+                messages=messages,
+                max_tokens=max_tokens,
+                stop_sequence=stop_sequence,
+                temperature=temperature,
+                tools=tools,
+                tool_choice=tool_choice,
+                x402_settlement_mode=x402_settlement_mode,
             )
 
-        return run_with_retry(execute_transaction, max_retries)
-
-    def _external_llm_chat(
+    def _tee_llm_chat(
         self,
         model: str,
         messages: List[Dict],
@@ -845,11 +597,9 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
-        stream: bool = False,
-        use_tee: bool = False,
-    ) -> Union[TextGenerationOutput, TextGenerationStream]:
+    ) -> TextGenerationOutput:
         """
-        Route chat request to external LLM server with x402 payments.
+        Route chat request to OpenGradient TEE LLM server with x402 payments.
 
         Args:
             model: Model identifier
@@ -859,72 +609,15 @@ class Client:
             temperature: Sampling temperature
             tools: Function calling tools
             tool_choice: Tool selection strategy
-            stream: Whether to stream the response
-            use_tee: Whether to use TEE
+            x402_settlement_mode: Settlement mode for x402 payments
 
         Returns:
-            Union[TextGenerationOutput, TextGenerationStream]: Chat completion or TextGenerationStream
+            TextGenerationOutput: Chat completion
 
         Raises:
             OpenGradientError: If request fails
         """
-        api_key = None if use_tee else self._get_api_key_for_model(model)
 
-        if api_key:
-            logging.debug("External LLM chat using API key")
-            
-            if stream:
-                url = f"{self._llm_server_url}/v1/chat/completions/stream"
-            else:
-                url = f"{self._llm_server_url}/v1/chat/completions"
-
-            headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
-
-            payload = {
-                "model": model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            }
-
-            if stop_sequence:
-                payload["stop"] = stop_sequence
-
-            if tools:
-                payload["tools"] = tools
-                payload["tool_choice"] = tool_choice or "auto"
-
-            try:
-                if stream:
-                    # Return streaming response wrapped in TextGenerationStream
-                    response = requests.post(url, json=payload, headers=headers, timeout=60, stream=True)
-                    response.raise_for_status()
-                    return TextGenerationStream(_iterator=response.iter_lines(decode_unicode=True), _is_async=False)
-                else:
-                    # Non-streaming response
-                    response = requests.post(url, json=payload, headers=headers, timeout=60)
-                    response.raise_for_status()
-
-                    result = response.json()
-
-                    return TextGenerationOutput(
-                        transaction_hash="external", 
-                        finish_reason=result.get("finish_reason"), 
-                        chat_output=result.get("message")
-                    )
-
-            except requests.RequestException as e:
-                error_msg = f"External LLM chat failed: {str(e)}"
-                if hasattr(e, "response") and e.response is not None:
-                    try:
-                        error_detail = e.response.json()
-                        error_msg += f" - {error_detail}"
-                    except:
-                        error_msg += f" - {e.response.text}"
-                logging.error(error_msg)
-                raise OpenGradientError(error_msg)
-
-        # x402 payment path - non-streaming only here
         async def make_request():
             # Security Fix: verify=True enabled
             async with x402HttpxClient(
@@ -978,25 +671,16 @@ class Client:
                     )
 
                 except Exception as e:
-                    error_msg = f"External LLM chat request failed: {str(e)}"
-                    logging.error(error_msg)
-                    raise OpenGradientError(error_msg)
+                    raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
 
         try:
-            # Run the async function in a sync context
             return asyncio.run(make_request())
+        except OpenGradientError:
+            raise
         except Exception as e:
-            error_msg = f"External LLM chat failed: {str(e)}"
-            if hasattr(e, "response") and e.response is not None:
-                try:
-                    error_detail = e.response.json()
-                    error_msg += f" - {error_detail}"
-                except:
-                    error_msg += f" - {e.response.text}"
-            logging.error(error_msg)
-            raise OpenGradientError(error_msg)
+            raise OpenGradientError(f"TEE LLM chat failed: {str(e)}")
 
-    def _external_llm_chat_stream_sync(
+    def _tee_llm_chat_stream_sync(
         self,
         model: str,
         messages: List[Dict],
@@ -1006,11 +690,10 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
-        use_tee: bool = False,
     ):
         """
         Sync streaming using threading bridge - TRUE real-time streaming.
-        
+
         Yields StreamChunk objects as they arrive from the background thread.
         NO buffering, NO conversion, just direct pass-through.
         """
@@ -1029,7 +712,7 @@ class Client:
 
                 async def _stream():
                     try:
-                        async for chunk in self._external_llm_chat_stream_async(
+                        async for chunk in self._tee_llm_chat_stream_async(
                             model=model,
                             messages=messages,
                             max_tokens=max_tokens,
@@ -1038,7 +721,6 @@ class Client:
                             tools=tools,
                             tool_choice=tool_choice,
                             x402_settlement_mode=x402_settlement_mode,
-                            use_tee=use_tee,
                         ):
                             queue.put(chunk)  # Put chunk immediately
                     except Exception as e:
@@ -1057,6 +739,8 @@ class Client:
                         for task in pending:
                             task.cancel()
                         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                        # Properly close async generators to avoid RuntimeWarning
+                        loop.run_until_complete(loop.shutdown_asyncgens())
                     finally:
                         loop.close()
 
@@ -1076,12 +760,11 @@ class Client:
 
             if exception_holder:
                 raise exception_holder[0]
-        except Exception as e:
+        except Exception:
             thread.join(timeout=1)
             raise
 
-
-    async def _external_llm_chat_stream_async(
+    async def _tee_llm_chat_stream_async(
         self,
         model: str,
         messages: List[Dict],
@@ -1091,21 +774,26 @@ class Client:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
-        use_tee: bool = False,
     ):
         """
-        Internal async streaming implementation.
-        
+        Internal async streaming implementation for TEE LLM with x402 payments.
+
         Yields StreamChunk objects as they arrive from the server.
         """
-        api_key = None if use_tee else self._get_api_key_for_model(model)
-
-        if api_key:
-            # API key path - streaming to local llm-server
-            url = f"{self._og_llm_streaming_server_url}/v1/chat/completions"
+        async with httpx.AsyncClient(
+            base_url=self._og_llm_streaming_server_url,
+            headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
+            timeout=TIMEOUT,
+            limits=LIMITS,
+            http2=False,
+            follow_redirects=False,
+            auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
+            verify=True,
+        ) as client:
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
+                "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                "X-SETTLEMENT-TYPE": x402_settlement_mode,
             }
 
             payload = {
@@ -1122,110 +810,43 @@ class Client:
                 payload["tools"] = tools
                 payload["tool_choice"] = tool_choice or "auto"
 
-            # Security Fix: verify=True enabled
-            async with httpx.AsyncClient(verify=True, timeout=None) as client:
-                async with client.stream("POST", url, json=payload, headers=headers) as response:
-                    buffer = b""
-                    async for chunk in response.aiter_raw():
-                        if not chunk:
+            async with client.stream(
+                "POST",
+                "/v1/chat/completions",
+                json=payload,
+                headers=headers,
+            ) as response:
+                buffer = b""
+                async for chunk in response.aiter_raw():
+                    if not chunk:
+                        continue
+
+                    buffer += chunk
+
+                    # Process complete lines from buffer
+                    while b"\n" in buffer:
+                        line_bytes, buffer = buffer.split(b"\n", 1)
+
+                        if not line_bytes.strip():
                             continue
-                        
-                        buffer += chunk
 
-                        # Process all complete lines in buffer
-                        while b"\n" in buffer:
-                            line_bytes, buffer = buffer.split(b"\n", 1)
-                            
-                            if not line_bytes.strip():
-                                continue
-                            
-                            try:
-                                line = line_bytes.decode('utf-8').strip()
-                            except UnicodeDecodeError:
-                                continue
-
-                            if not line.startswith("data: "):
-                                continue
-
-                            data_str = line[6:]  # Strip "data: " prefix
-                            if data_str.strip() == "[DONE]":
-                                return
-
-                            try:
-                                data = json.loads(data_str)
-                                yield StreamChunk.from_sse_data(data)
-                            except json.JSONDecodeError:
-                                continue
-        else:
-            # x402 payment path
-            # Security Fix: verify=True enabled (default for httpx, ensuring correct auth)
-            async with httpx.AsyncClient(
-                base_url=self._og_llm_streaming_server_url,
-                headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
-                timeout=TIMEOUT,
-                limits=LIMITS,
-                http2=False,
-                follow_redirects=False,
-                auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
-                verify=True, 
-            ) as client:
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
-                }
-
-                payload = {
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                    "stream": True,
-                }
-
-                if stop_sequence:
-                    payload["stop"] = stop_sequence
-                if tools:
-                    payload["tools"] = tools
-                    payload["tool_choice"] = tool_choice or "auto"
-
-                async with client.stream(
-                    "POST",
-                    "/v1/chat/completions",
-                    json=payload,
-                    headers=headers,
-                ) as response:
-                    buffer = b""
-                    async for chunk in response.aiter_raw():
-                        if not chunk:
+                        try:
+                            line = line_bytes.decode("utf-8").strip()
+                        except UnicodeDecodeError:
                             continue
-                        
-                        buffer += chunk
 
-                        # Process complete lines from buffer
-                        while b"\n" in buffer:
-                            line_bytes, buffer = buffer.split(b"\n", 1)
-                            
-                            if not line_bytes.strip():
-                                continue
-                            
-                            try:
-                                line = line_bytes.decode('utf-8').strip()
-                            except UnicodeDecodeError:
-                                continue
+                        if not line.startswith("data: "):
+                            continue
 
-                            if not line.startswith("data: "):
-                                continue
+                        data_str = line[6:]
+                        if data_str.strip() == "[DONE]":
+                            return
 
-                            data_str = line[6:]
-                            if data_str.strip() == "[DONE]":
-                                return
-
-                            try:
-                                data = json.loads(data_str)
-                                yield StreamChunk.from_sse_data(data)
-                            except json.JSONDecodeError:
-                                continue
+                        try:
+                            data = json.loads(data_str)
+                            yield StreamChunk.from_sse_data(data)
+                        except json.JSONDecodeError:
+                            continue
 
     def list_files(self, model_name: str, version: str) -> List[Dict]:
         """
@@ -1247,145 +868,15 @@ class Client:
         url = f"https://api.opengradient.ai/api/v0/models/{model_name}/versions/{version}/files"
         headers = {"Authorization": f"Bearer {self._hub_user['idToken']}"}
 
-        logging.debug(f"List Files URL: {url}")
-        logging.debug(f"Headers: {headers}")
-
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
-
-            json_response = response.json()
-            logging.info(f"File listing successful. Number of files: {len(json_response)}")
-
-            return json_response
+            return response.json()
 
         except requests.RequestException as e:
-            logging.error(f"File listing failed: {str(e)}")
-            if hasattr(e, "response") and e.response is not None:
-                logging.error(f"Response status code: {e.response.status_code}")
-                logging.error(f"Response content: {e.response.text[:1000]}...")  # Log first 1000 characters
             raise OpenGradientError(f"File listing failed: {str(e)}")
         except Exception as e:
-            logging.error(f"Unexpected error during file listing: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Unexpected error during file listing: {str(e)}")
-
-    # def generate_image(
-    #      self,
-    #      model_cid: str,
-    #      prompt: str,
-    #      host: str = DEFAULT_IMAGE_GEN_HOST,
-    #      port: int = DEFAULT_IMAGE_GEN_PORT,
-    #      width: int = 1024,
-    #      height: int = 1024,
-    #      timeout: int = 300,  # 5 minute timeout
-    #      max_retries: int = 3,
-    # ) -> bytes:
-    #      """
-    #      Generate an image using a diffusion model through gRPC.
-
-    #      Args:
-    #          model_cid (str): The model identifier (e.g. "stabilityai/stable-diffusion-xl-base-1.0")
-    #          prompt (str): The text prompt to generate the image from
-    #          host (str, optional): gRPC host address. Defaults to DEFAULT_IMAGE_GEN_HOST.
-    #          port (int, optional): gRPC port number. Defaults to DEFAULT_IMAGE_GEN_PORT.
-    #          width (int, optional): Output image width. Defaults to 1024.
-    #          height (int, optional): Output image height. Defaults to 1024.
-    #          timeout (int, optional): Maximum time to wait for generation in seconds. Defaults to 300.
-    #          max_retries (int, optional): Maximum number of retry attempts. Defaults to 3.
-
-    #      Returns:
-    #          bytes: The raw image data bytes
-
-    #      Raises:
-    #          OpenGradientError: If the image generation fails
-    #          TimeoutError: If the generation exceeds the timeout period
-    #      """
-
-    #      def exponential_backoff(attempt: int, max_delay: float = 30.0) -> None:
-    #          """Calculate and sleep for exponential backoff duration"""
-    #          delay = min(0.1 * (2**attempt), max_delay)
-    #          time.sleep(delay)
-
-    #      channel = None
-    #      start_time = time.time()
-    #      retry_count = 0
-
-    #      try:
-    #          while retry_count < max_retries:
-    #              try:
-    #                  # Initialize gRPC channel and stub
-    #                  channel = grpc.insecure_channel(f"{host}:{port}")
-    #                  stub = infer_pb2_grpc.InferenceServiceStub(channel)
-
-    #                  # Create image generation request
-    #                  image_request = infer_pb2.ImageGenerationRequest(model=model_cid, prompt=prompt, height=height, width=width)
-
-    #                  # Create inference request with random transaction ID
-    #                  tx_id = str(uuid.uuid4())
-    #                  request = infer_pb2.InferenceRequest(tx=tx_id, image_generation=image_request)
-
-    #                  # Send request with timeout
-    #                  response_id = stub.RunInferenceAsync(
-    #                      request,
-    #                      timeout=min(30, timeout),  # Initial request timeout
-    #                  )
-
-    #                  # Poll for completion
-    #                  attempt = 0
-    #                  while True:
-    #                      # Check timeout
-    #                      if time.time() - start_time > timeout:
-    #                          raise TimeoutError(f"Image generation timed out after {timeout} seconds")
-
-    #                      status_request = infer_pb2.InferenceTxId(id=response_id.id)
-    #                      try:
-    #                          status = stub.GetInferenceStatus(
-    #                              status_request,
-    #                              timeout=min(5, timeout),  # Status check timeout
-    #                          ).status
-    #                      except grpc.RpcError as e:
-    #                          logging.warning(f"Status check failed (attempt {attempt}): {str(e)}")
-    #                          exponential_backoff(attempt)
-    #                          attempt += 1
-    #                          continue
-
-    #                      if status == infer_pb2.InferenceStatus.STATUS_COMPLETED:
-    #                          break
-    #                      elif status == infer_pb2.InferenceStatus.STATUS_ERROR:
-    #                          raise OpenGradientError("Image generation failed on server")
-    #                      elif status != infer_pb2.InferenceStatus.STATUS_IN_PROGRESS:
-    #                          raise OpenGradientError(f"Unexpected status: {status}")
-
-    #                      exponential_backoff(attempt)
-    #                      attempt += 1
-
-    #                  # Get result
-    #                  result = stub.GetInferenceResult(
-    #                      response_id,
-    #                      timeout=min(30, timeout),  # Result fetch timeout
-    #                  )
-    #                  return result.image_generation_result.image_data
-
-    #              except (grpc.RpcError, TimeoutError) as e:
-    #                  retry_count += 1
-    #                  if retry_count >= max_retries:
-    #                      raise OpenGradientError(f"Image generation failed after {max_retries} retries: {str(e)}")
-
-    #                  logging.warning(f"Attempt {retry_count} failed: {str(e)}. Retrying...")
-    #                  exponential_backoff(retry_count)
-
-    #      except grpc.RpcError as e:
-    #          logging.error(f"gRPC error: {str(e)}")
-    #          raise OpenGradientError(f"Image generation failed: {str(e)}")
-    #      except TimeoutError as e:
-    #          logging.error(f"Timeout error: {str(e)}")
-    #          raise
-    #      except Exception as e:
-    #          logging.error(f"Error in generate image method: {str(e)}", exc_info=True)
-    #          raise OpenGradientError(f"Image generation failed: {str(e)}")
-    #      finally:
-    #          if channel:
-    #              channel.close()
 
     def _get_abi(self, abi_name) -> str:
         """
@@ -1521,17 +1012,13 @@ class Client:
                     return None
 
             else:
-                error_message = f"Failed to get inference result: HTTP {response.status_code}"
-                if response.text:
-                    error_message += f" - {response.text}"
-                logging.error(error_message)
-                raise OpenGradientError(error_message)
+                raise OpenGradientError(f"Failed to get inference result: HTTP {response.status_code}")
 
         except requests.RequestException as e:
-            logging.error(f"Request exception when getting inference result: {str(e)}")
             raise OpenGradientError(f"Failed to get inference result: {str(e)}")
+        except OpenGradientError:
+            raise
         except Exception as e:
-            logging.error(f"Unexpected error when getting inference result: {str(e)}", exc_info=True)
             raise OpenGradientError(f"Failed to get inference result: {str(e)}")
 
 

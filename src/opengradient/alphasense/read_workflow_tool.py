@@ -3,6 +3,7 @@ from typing import Callable
 from langchain_core.tools import BaseTool, StructuredTool
 
 import opengradient as og
+
 from .types import ToolType
 
 

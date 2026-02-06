@@ -4,28 +4,26 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from . import alphasense, llm
+from .alpha import _AlphaNamespace
 from .client import Client
-from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL, DEFAULT_API_URL
+from .defaults import DEFAULT_API_URL, DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL
 from .types import (
     LLM,
     TEE_LLM,
-    HistoricalInputQuery,
-    SchedulerParams,
-    CandleType,
     CandleOrder,
+    CandleType,
+    FileUploadResult,
+    HistoricalInputQuery,
     InferenceMode,
     InferenceResult,
-    LlmInferenceMode,
-    TextGenerationOutput,
-    TextGenerationStream,
     ModelOutput,
     ModelRepository,
-    FileUploadResult,
+    SchedulerParams,
+    TextGenerationOutput,
+    TextGenerationStream,
     x402SettlementMode,
 )
-from .alpha import _AlphaNamespace
-
-from . import llm, alphasense
 
 # Module-level alpha namespace for workflow/ML execution features (Alpha Testnet only)
 alpha = _AlphaNamespace()
@@ -49,7 +47,7 @@ def new_client(
         email: User's email address for authentication with Model Hub
         password: User's password for authentication with Model Hub
         private_key: Private key for OpenGradient transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
+        rpc_url: Optional RPC URL for the blockchain network, defaults to testnet
         contract_address: Optional inference contract address
     """
 
@@ -78,8 +76,8 @@ def init(
         email: User's email address for authentication
         password: User's password for authentication
         private_key: Ethereum private key for blockchain transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
-        api_url: Optional API URL for the OpenGradient API, defaults to mainnet
+        rpc_url: Optional RPC URL for the blockchain network, defaults to testnet
+        api_url: Optional API URL for the OpenGradient API, defaults to testnet
         contract_address: Optional inference contract address
     """
     global _client
@@ -178,25 +176,21 @@ def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = N
 
 
 def llm_completion(
-    model_cid: LLM,
+    model: TEE_LLM,
     prompt: str,
-    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
-    max_retries: Optional[int] = None,
     x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
 ) -> TextGenerationOutput:
-    """Generate text completion using an LLM.
+    """Generate text completion using an LLM via TEE.
 
     Args:
-        model_cid: CID of the LLM model to use
+        model_cid: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
         prompt: Text prompt for completion
-        inference_mode: Mode of inference, defaults to VANILLA
         max_tokens: Maximum tokens to generate
         stop_sequence: Optional list of sequences where generation should stop
         temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-        max_retries: Maximum number of retries for failed transactions
         x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
     Returns:
@@ -208,42 +202,36 @@ def llm_completion(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_completion(
-        model_cid=model_cid,
-        inference_mode=inference_mode,
+        model=model,
         prompt=prompt,
         max_tokens=max_tokens,
         stop_sequence=stop_sequence,
         temperature=temperature,
-        max_retries=max_retries,
-        x402_settlement_mode=x402_settlement_mode
+        x402_settlement_mode=x402_settlement_mode,
     )
 
 
 def llm_chat(
-    model_cid: LLM,
+    model: TEE_LLM,
     messages: List[Dict],
-    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
     max_tokens: int = 100,
     stop_sequence: Optional[List[str]] = None,
     temperature: float = 0.0,
     tools: Optional[List[Dict]] = None,
     tool_choice: Optional[str] = None,
-    max_retries: Optional[int] = None,
     x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     stream: Optional[bool] = False,
 ) -> Union[TextGenerationOutput, TextGenerationStream]:
-    """Have a chat conversation with an LLM.
+    """Have a chat conversation with an LLM via TEE.
 
     Args:
-        model_cid: CID of the LLM model to use
+        model_cid: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
         messages: List of chat messages, each with 'role' and 'content'
-        inference_mode: Mode of inference, defaults to VANILLA
         max_tokens: Maximum tokens to generate
         stop_sequence: Optional list of sequences where generation should stop
         temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
         tools: Optional list of tools the model can use
         tool_choice: Optional specific tool to use
-        max_retries: Maximum number of retries for failed transactions
         x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
         stream: Optional boolean to enable streaming
 
@@ -256,15 +244,13 @@ def llm_chat(
     if _client is None:
         raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
     return _client.llm_chat(
-        model_cid=model_cid,
-        inference_mode=inference_mode,
+        model=model,
         messages=messages,
         max_tokens=max_tokens,
         stop_sequence=stop_sequence,
         temperature=temperature,
         tools=tools,
         tool_choice=tool_choice,
-        max_retries=max_retries,
         x402_settlement_mode=x402_settlement_mode,
         stream=stream,
     )
@@ -290,7 +276,6 @@ def list_files(model_name: str, version: str) -> List[Dict]:
 
 __all__ = [
     "list_files",
-    "login",
     "llm_chat",
     "llm_completion",
     "infer",
@@ -302,12 +287,10 @@ __all__ = [
     "TEE_LLM",
     "alpha",
     "InferenceMode",
-    "LlmInferenceMode",
     "HistoricalInputQuery",
     "SchedulerParams",
     "CandleType",
     "CandleOrder",
-    "InferenceMode",
     "llm",
     "alphasense",
 ]

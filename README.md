@@ -25,6 +25,14 @@ pip install opengradient
 
 Note: Windows users should temporarily enable WSL when installing `opengradient` (fix in progress).
 
+## Network Configuration
+
+OpenGradient runs on two networks:
+- **Testnet**: The main public testnet for general use
+- **Alpha Testnet**: For alpha features like workflow execution (see [Alpha Testnet Features](#alpha-testnet-features))
+
+For the latest network RPCs, contract addresses, and deployment information, see the [Network Deployment Documentation](https://docs.opengradient.ai/learn/network/deployment.html).
+
 ## Getting Started
 
 ### 1. Account Setup
@@ -55,9 +63,8 @@ og_client = og.new_client(
 #### LLM Chat
 ```python
 completion = og_client.llm_chat(
-    model_cid=og.TEE_LLM.GPT_4O,
+    model=og.TEE_LLM.GPT_4O,
     messages=[{"role": "user", "content": "Hello!"}],
-    inference_mode=og.LlmInferenceMode.TEE,
 )
 print(f"Response: {completion.chat_output['content']}")
 print(f"Tx hash: {completion.transaction_hash}")
@@ -80,9 +87,8 @@ OpenGradient supports secure, verifiable inference through TEE for leading LLM p
 ```python
 # Use TEE mode for verifiable AI execution
 completion = og_client.llm_chat(
-    model_cid=og.TEE_LLM.CLAUDE_3_7_SONNET,
+    model=og.TEE_LLM.CLAUDE_3_7_SONNET,
     messages=[{"role": "user", "content": "Your message here"}],
-    inference_mode=og.LlmInferenceMode.TEE,
 )
 print(f"Response: {completion.chat_output['content']}")
 ```
@@ -96,7 +102,56 @@ The SDK includes models from multiple providers accessible via the `og.TEE_LLM` 
 
 For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API documentation](https://docs.opengradient.ai/).
 
-### 5. Examples
+### 5. Alpha Testnet Features
+
+The Alpha Testnet provides access to experimental features, including **workflow deployment and execution**. Workflows allow you to deploy on-chain AI pipelines that connect models with data sources and can be scheduled for automated execution.
+
+**Note:** Alpha features require connecting to the Alpha Testnet. See [Network Configuration](#network-configuration) for details.
+
+#### Deploy a Workflow
+```python
+import opengradient as og
+
+og.init(
+    email="your-email",
+    password="your-password",
+    private_key="your-private-key",
+)
+
+# Define input query for historical price data
+input_query = og.HistoricalInputQuery(
+    base="ETH",
+    quote="USD",
+    total_candles=10,
+    candle_duration_in_mins=60,
+    order=og.CandleOrder.DESCENDING,
+    candle_types=[og.CandleType.CLOSE],
+)
+
+# Deploy a workflow (optionally with scheduling)
+contract_address = og.alpha.new_workflow(
+    model_cid="your-model-cid",
+    input_query=input_query,
+    input_tensor_name="input",
+    scheduler_params=og.SchedulerParams(frequency=3600, duration_hours=24),  # Optional
+)
+print(f"Workflow deployed at: {contract_address}")
+```
+
+#### Execute and Read Results
+```python
+# Manually trigger workflow execution
+result = og.alpha.run_workflow(contract_address)
+print(f"Inference output: {result}")
+
+# Read the latest result
+latest = og.alpha.read_workflow_result(contract_address)
+
+# Get historical results
+history = og.alpha.read_workflow_history(contract_address, num_results=5)
+```
+
+### 6. Examples
 
 See code examples under [examples](./examples).
 

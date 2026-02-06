@@ -9,8 +9,9 @@
 # - SETTLE_BATCH: Batch settlement for multiple inferences (most cost-efficient, default)
 # - SETTLE_METADATA: Full model info, complete input/output data, and all inference metadata
 
-import opengradient as og
 import os
+
+import opengradient as og
 
 client = og.new_client(
     email=None,
@@ -25,8 +26,7 @@ messages = [
 ]
 
 result = client.llm_chat(
-    model_cid=og.LLM.GPT_4_1_2025_04_14,
-    inference_mode=og.LlmInferenceMode.TEE,
+    model=og.TEE_LLM.GPT_4_1_2025_04_14,
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
 )

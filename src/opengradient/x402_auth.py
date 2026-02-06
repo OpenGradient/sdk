@@ -5,12 +5,12 @@ This module provides an httpx Auth class that handles x402 payment protocol
 authentication for streaming responses.
 """
 
-import httpx
-import typing
 import logging
+import typing
 
+import httpx
 from x402.clients.base import x402Client
-from x402.types import x402PaymentRequiredResponse, PaymentRequirements
+from x402.types import PaymentRequirements, x402PaymentRequiredResponse
 
 
 class X402Auth(httpx.Auth):
@@ -60,9 +60,7 @@ class X402Auth(httpx.Auth):
         )
         self.network_filter = network_filter
 
-    async def async_auth_flow(
-        self, request: httpx.Request
-    ) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
+    async def async_auth_flow(self, request: httpx.Request) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
         """
         Handle authentication flow for x402 payment protocol.
 
@@ -86,9 +84,7 @@ class X402Auth(httpx.Auth):
                     self.network_filter,
                 )
 
-                payment_header = self.x402_client.create_payment_header(
-                    selected_requirements, payment_response.x402_version
-                )
+                payment_header = self.x402_client.create_payment_header(selected_requirements, payment_response.x402_version)
 
                 request.headers["X-Payment"] = payment_header
                 request.headers["Access-Control-Expose-Headers"] = "X-Payment-Response"

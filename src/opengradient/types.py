@@ -1,11 +1,12 @@
 import time
 from dataclasses import dataclass
-from enum import Enum, IntEnum, StrEnum
-from typing import Dict, List, Optional, Tuple, Union, DefaultDict, Iterator, AsyncIterator
+from enum import Enum, IntEnum
+from typing import AsyncIterator, Dict, Iterator, List, Optional, Tuple, Union
+
 import numpy as np
 
 
-class x402SettlementMode(StrEnum):
+class x402SettlementMode(str, Enum):
     """
     Settlement modes for x402 payment protocol transactions.
 
@@ -15,26 +16,41 @@ class x402SettlementMode(StrEnum):
 
     Attributes:
         SETTLE: Individual settlement with input/output hashes only.
+            Also known as SETTLE_INDIVIDUAL in some documentation.
             Records cryptographic hashes of the inference input and output.
             Most privacy-preserving option - actual data is not stored on-chain.
             Suitable for applications where only proof of execution is needed.
+            CLI usage: --settlement-mode settle
 
         SETTLE_METADATA: Individual settlement with full metadata.
+            Also known as SETTLE_INDIVIDUAL_WITH_METADATA in some documentation.
             Records complete model information, full input and output data,
             and all inference metadata on-chain.
             Provides maximum transparency and auditability.
             Higher gas costs due to larger data storage.
+            CLI usage: --settlement-mode settle-metadata
 
         SETTLE_BATCH: Batch settlement for multiple inferences.
             Aggregates multiple inference requests into a single settlement transaction
             using batch hashes.
             Most cost-efficient for high-volume applications.
             Reduced per-inference transaction overhead.
+            CLI usage: --settlement-mode settle-batch
+
+    Examples:
+        >>> from opengradient import x402SettlementMode
+        >>> mode = x402SettlementMode.SETTLE
+        >>> print(mode.value)
+        'settle'
     """
 
     SETTLE = "settle"
     SETTLE_METADATA = "settle-metadata"
     SETTLE_BATCH = "settle-batch"
+
+    # Aliases for backward compatibility with glossary naming
+    SETTLE_INDIVIDUAL = SETTLE
+    SETTLE_INDIVIDUAL_WITH_METADATA = SETTLE_METADATA
 
 
 class CandleOrder(IntEnum):
@@ -133,13 +149,6 @@ class InferenceMode(Enum):
     TEE = 2
 
 
-class LlmInferenceMode(Enum):
-    """Enum for different inference modes available for LLM inference (VANILLA, TEE)"""
-
-    VANILLA = 0
-    TEE = 1
-
-
 @dataclass
 class ModelOutput:
     """
@@ -169,12 +178,13 @@ class InferenceResult:
 class StreamDelta:
     """
     Represents a delta (incremental change) in a streaming response.
-    
+
     Attributes:
         content: Incremental text content (if any)
         role: Message role (appears in first chunk)
         tool_calls: Tool call information (if function calling is used)
     """
+
     content: Optional[str] = None
     role: Optional[str] = None
     tool_calls: Optional[List[Dict]] = None
@@ -184,12 +194,13 @@ class StreamDelta:
 class StreamChoice:
     """
     Represents a choice in a streaming response.
-    
+
     Attributes:
         delta: The incremental changes in this chunk
         index: Choice index (usually 0)
         finish_reason: Reason for completion (appears in final chunk)
     """
+
     delta: StreamDelta
     index: int = 0
     finish_reason: Optional[str] = None
@@ -199,12 +210,13 @@ class StreamChoice:
 class StreamUsage:
     """
     Token usage information for a streaming response.
-    
+
     Attributes:
         prompt_tokens: Number of tokens in the prompt
         completion_tokens: Number of tokens in the completion
         total_tokens: Total tokens used
     """
+
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
@@ -214,140 +226,129 @@ class StreamUsage:
 class StreamChunk:
     """
     Represents a single chunk in a streaming LLM response.
-    
+
     This follows the OpenAI streaming format but is provider-agnostic.
     Each chunk contains incremental data, with the final chunk including
     usage information.
-    
+
     Attributes:
         choices: List of streaming choices (usually contains one choice)
         model: Model identifier
         usage: Token usage information (only in final chunk)
         is_final: Whether this is the final chunk (before [DONE])
     """
+
     choices: List[StreamChoice]
     model: str
     usage: Optional[StreamUsage] = None
     is_final: bool = False
-    
+
     @classmethod
     def from_sse_data(cls, data: Dict) -> "StreamChunk":
         """
         Parse a StreamChunk from SSE data dictionary.
-        
+
         Args:
             data: Dictionary parsed from SSE data line
-            
+
         Returns:
             StreamChunk instance
         """
         choices = []
         for choice_data in data.get("choices", []):
             delta_data = choice_data.get("delta", {})
-            delta = StreamDelta(
-                content=delta_data.get("content"),
-                role=delta_data.get("role"),
-                tool_calls=delta_data.get("tool_calls")
-            )
-            choice = StreamChoice(
-                delta=delta,
-                index=choice_data.get("index", 0),
-                finish_reason=choice_data.get("finish_reason")
-            )
+            delta = StreamDelta(content=delta_data.get("content"), role=delta_data.get("role"), tool_calls=delta_data.get("tool_calls"))
+            choice = StreamChoice(delta=delta, index=choice_data.get("index", 0), finish_reason=choice_data.get("finish_reason"))
             choices.append(choice)
-        
+
         usage = None
         if "usage" in data:
             usage_data = data["usage"]
             usage = StreamUsage(
                 prompt_tokens=usage_data.get("prompt_tokens", 0),
                 completion_tokens=usage_data.get("completion_tokens", 0),
-                total_tokens=usage_data.get("total_tokens", 0)
+                total_tokens=usage_data.get("total_tokens", 0),
             )
-        
+
         is_final = any(c.finish_reason is not None for c in choices) or usage is not None
-        
-        return cls(
-            choices=choices,
-            model=data.get("model", "unknown"),
-            usage=usage,
-            is_final=is_final
-        )
+
+        return cls(choices=choices, model=data.get("model", "unknown"), usage=usage, is_final=is_final)
 
 
 @dataclass
 class TextGenerationStream:
     """
     Iterator wrapper for streaming text generation responses.
-    
+
     Provides a clean interface for iterating over stream chunks with
     automatic parsing of SSE format.
-    
+
     Usage:
         stream = client.llm_chat(..., stream=True)
         for chunk in stream:
             if chunk.choices[0].delta.content:
                 print(chunk.choices[0].delta.content, end="")
     """
+
     _iterator: Union[Iterator[str], AsyncIterator[str]]
     _is_async: bool = False
-    
+
     def __iter__(self):
         """Iterate over stream chunks."""
         return self
-    
+
     def __next__(self) -> StreamChunk:
         """Get next stream chunk."""
         import json
-        
+
         while True:
             try:
                 line = next(self._iterator)
             except StopIteration:
                 raise
-            
+
             if not line or not line.strip():
                 continue
-            
+
             if not line.startswith("data: "):
                 continue
-            
+
             data_str = line[6:]  # Remove "data: " prefix
-            
+
             if data_str.strip() == "[DONE]":
                 raise StopIteration
-            
+
             try:
                 data = json.loads(data_str)
                 return StreamChunk.from_sse_data(data)
             except json.JSONDecodeError:
                 # Skip malformed chunks
                 continue
-    
+
     async def __anext__(self) -> StreamChunk:
         """Get next stream chunk (async version)."""
         import json
-        
+
         if not self._is_async:
             raise TypeError("Use __next__ for sync iterators")
-        
+
         while True:
             try:
                 line = await self._iterator.__anext__()
             except StopAsyncIteration:
                 raise
-            
+
             if not line or not line.strip():
                 continue
-            
+
             if not line.startswith("data: "):
                 continue
-            
+
             data_str = line[6:]
-            
+
             if data_str.strip() == "[DONE]":
                 raise StopAsyncIteration
-            
+
             try:
                 data = json.loads(data_str)
                 return StreamChunk.from_sse_data(data)
@@ -413,7 +414,30 @@ class Abi:
 
 
 class LLM(str, Enum):
-    """Enum for available LLM models"""
+    """
+    Enum for available LLM models in OpenGradient.
+
+    These models can be used with llm_chat() and llm_completion() methods.
+    You can use either the enum value or the string identifier directly.
+
+    Usage:
+        # Using enum (recommended)
+        result = client.llm_chat(model_cid=og.LLM.GPT_4O, messages=[...])
+
+        # Using string directly
+        result = client.llm_chat(model_cid="openai/gpt-4o", messages=[...])
+
+    Model Identifier Format:
+        Models use the format: "{provider}/{model-name}"
+        - OpenAI: "openai/gpt-4o", "openai/gpt-4.1-2025-04-14"
+        - Anthropic: "anthropic/claude-3.7-sonnet", "anthropic/claude-4.0-sonnet"
+        - Google: "google/gemini-2.5-flash", "google/gemini-2.5-pro"
+        - xAI: "x-ai/grok-3-beta", "x-ai/grok-4.1-fast"
+
+    Note:
+        TEE_LLM enum contains the same models but is specifically for
+        Trusted Execution Environment (TEE) verified inference.
+    """
 
     # # Existing open-source OG hosted models
     # META_LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
@@ -449,7 +473,25 @@ class LLM(str, Enum):
 
 
 class TEE_LLM(str, Enum):
-    """Enum for LLM models available for TEE execution"""
+    """
+    Enum for LLM models available for TEE (Trusted Execution Environment) execution.
+
+    TEE mode provides cryptographic verification that inference was performed
+    correctly in a secure enclave. Use this for applications requiring
+    auditability and tamper-proof AI inference.
+
+    Usage:
+        # TEE-verified inference
+        result = client.llm_chat(
+            model_cid=og.TEE_LLM.GPT_4O,
+            messages=[{"role": "user", "content": "Hello"}],
+            inference_mode=og.LlmInferenceMode.TEE
+        )
+
+    Note:
+        The models in TEE_LLM are the same as LLM, but this enum explicitly
+        indicates support for TEE execution.
+    """
 
     # Existing (Currently turned off)
     # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"

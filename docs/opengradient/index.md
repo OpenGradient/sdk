@@ -130,8 +130,8 @@ Initialize the OpenGradient SDK with authentication and network settings.
 * **`email`**: User's email address for authentication
 * **`password`**: User's password for authentication
 * **`private_key`**: Ethereum private key for blockchain transactions
-* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to mainnet
-* **`api_url`**: Optional API URL for the OpenGradient API, defaults to mainnet
+* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to testnet
+* **`api_url`**: Optional API URL for the OpenGradient API, defaults to testnet
 * **`contract_address`**: Optional inference contract address
   
 
@@ -169,26 +169,24 @@ List[Dict]: List of file metadata dictionaries
 ### Llm chat 
 
 ```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, max_retries: Optional[int] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
+def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
 ```
 
   
 
   
-Have a chat conversation with an LLM.
+Have a chat conversation with an LLM via TEE.
   
 
 **Arguments**
 
-* **`model_cid`**: CID of the LLM model to use
+* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
 * **`messages`**: List of chat messages, each with 'role' and 'content'
-* **`inference_mode`**: Mode of inference, defaults to VANILLA
 * **`max_tokens`**: Maximum tokens to generate
 * **`stop_sequence`**: Optional list of sequences where generation should stop
 * **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
 * **`tools`**: Optional list of tools the model can use
 * **`tool_choice`**: Optional specific tool to use
-* **`max_retries`**: Maximum number of retries for failed transactions
 * **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 * **`stream`**: Optional boolean to enable streaming
 
@@ -207,59 +205,28 @@ TextGenerationOutput or TextGenerationStream
 ### Llm completion 
 
 ```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, inference_mode: opengradient.types.LlmInferenceMode = LlmInferenceMode.VANILLA, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, max_retries: Optional[int] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
+def llm_completion(model_cid: opengradient.types.LLM, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
 ```
 
   
 
   
-Generate text completion using an LLM.
+Generate text completion using an LLM via TEE.
   
 
 **Arguments**
 
-* **`model_cid`**: CID of the LLM model to use
+* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
 * **`prompt`**: Text prompt for completion
-* **`inference_mode`**: Mode of inference, defaults to VANILLA
 * **`max_tokens`**: Maximum tokens to generate
 * **`stop_sequence`**: Optional list of sequences where generation should stop
 * **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-* **`max_retries`**: Maximum number of retries for failed transactions
 * **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
 
   
 **Returns**
 
 TextGenerationOutput: Transaction hash and generated text
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Login 
-
-```python
-def login(model_name: str, version: str) ‑> List[Dict]
-```
-
-  
-
-  
-List files in a model repository version.
-  
-
-**Arguments**
-
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string to list files from
-
-  
-**Returns**
-
-List[Dict]: List of file metadata dictionaries
 
 **Raises**
 
@@ -420,8 +387,16 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
   
 
   
-Enum for available LLM models
+Enum for available LLM models in OpenGradient.
+
+These models can be used with llm_chat() and llm_completion() methods.
+You can use either the enum value or the string identifier directly.
   
+
+**Note**
+
+TEE_LLM enum contains the same models but is specifically for
+Trusted Execution Environment (TEE) verified inference.
 
 #### Variables
 
@@ -458,27 +433,6 @@ Enum for available LLM models
 * static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
     
 * static `O4_MINI` - The type of the None singleton.
-
-      
-    
-
-###  LlmInferenceMode
-
-<code>class <b>LlmInferenceMode</b>(*args, **kwds)</code>
-
-  
-
-  
-Enum for different inference modes available for LLM inference (VANILLA, TEE)
-  
-
-#### Variables
-
-  
-    
-* static `TEE` - The type of the None singleton.
-    
-* static `VANILLA` - The type of the None singleton.
 
       
     
@@ -529,8 +483,17 @@ def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.type
   
 
   
-Enum for LLM models available for TEE execution
+Enum for LLM models available for TEE (Trusted Execution Environment) execution.
+
+TEE mode provides cryptographic verification that inference was performed
+correctly in a secure enclave. Use this for applications requiring
+auditability and tamper-proof AI inference.
   
+
+**Note**
+
+The models in TEE_LLM are the same as LLM, but this enum explicitly
+indicates support for TEE execution.
 
 #### Variables
 
