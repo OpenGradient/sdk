@@ -1,4 +1,5 @@
 """On-chain ONNX model inference via blockchain smart contracts."""
+
 import base64
 import json
 import urllib.parse

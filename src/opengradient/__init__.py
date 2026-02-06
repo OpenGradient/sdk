@@ -77,7 +77,6 @@ from typing import Optional
 from . import agents, alphasense
 from .client import Client
 from .types import (
-    LLM,
     TEE_LLM,
     CandleOrder,
     CandleType,
@@ -131,7 +130,6 @@ __all__ = [
     "Client",
     "global_client",
     "init",
-    "LLM",
     "TEE_LLM",
     "InferenceMode",
     "HistoricalInputQuery",

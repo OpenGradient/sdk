@@ -39,6 +39,7 @@ client = og.init(private_key="0x...", email="you@example.com", password="...")
 repo = client.model_hub.create_model("my-model", "A price prediction model")
 ```
 """
+
 from .client import Client
 
 __all__ = ["Client"]

@@ -137,37 +137,6 @@ def __init__(transaction_hash: str, model_output: Dict[str, `ndarray`])
 * static `model_output` : Dict[str, `ndarray`]
 * static `transaction_hash` : str
 
-### `LLM`
-
-Enum for available LLM models in OpenGradient.
-
-These models can be used with llm_chat() and llm_completion() methods.
-You can use either the enum value or the string identifier directly.
-
-**Note**
-
-TEE_LLM enum contains the same models but is specifically for
-Trusted Execution Environment (TEE) verified inference.
-
-#### Variables
-
-* static `CLAUDE_3_5_HAIKU`
-* static `CLAUDE_3_7_SONNET`
-* static `CLAUDE_4_0_SONNET`
-* static `GEMINI_2_0_FLASH`
-* static `GEMINI_2_5_FLASH`
-* static `GEMINI_2_5_FLASH_LITE`
-* static `GEMINI_2_5_PRO`
-* static `GPT_4O`
-* static `GPT_4_1_2025_04_14`
-* static `GROK_2_1212`
-* static `GROK_2_VISION_LATEST`
-* static `GROK_3_BETA`
-* static `GROK_3_MINI_BETA`
-* static `GROK_4_1_FAST`
-* static `GROK_4_1_FAST_NON_REASONING`
-* static `O4_MINI`
-
 ### `ModelInput`
 
 A collection of tensor inputs required for ONNX model inference.
@@ -415,11 +384,6 @@ Enum for LLM models available for TEE (Trusted Execution Environment) execution.
 TEE mode provides cryptographic verification that inference was performed
 correctly in a secure enclave. Use this for applications requiring
 auditability and tamper-proof AI inference.
-
-**Note**
-
-The models in TEE_LLM are the same as LLM, but this enum explicitly
-indicates support for TEE execution.
 
 #### Variables
 

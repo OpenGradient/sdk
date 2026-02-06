@@ -6,10 +6,11 @@ like LangChain. These adapters allow seamless integration of OpenGradient models
 into existing applications and agent frameworks.
 """
 
+from ..types import TEE_LLM
 from .og_langchain import *
 
 
-def langchain_adapter(private_key: str, model_cid: LLM, max_tokens: int = 300) -> OpenGradientChatModel:
+def langchain_adapter(private_key: str, model_cid: TEE_LLM, max_tokens: int = 300) -> OpenGradientChatModel:
     """
     Returns an OpenGradient LLM that implements LangChain's LLM interface
     and can be plugged into LangChain agents.
