@@ -2,26 +2,13 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient.types
 
 OpenGradient Specific Types
 
 ## Classes
-    
 
-### Abi
-
-```python
-class Abi
-```
-
-  
-
-  
-Abi(functions: List[opengradient.types.AbiFunction])
-  
+### `Abi`
 
 #### Constructor
 
@@ -31,36 +18,17 @@ def __init__(functions: List[`AbiFunction`])
 
 #### Static methods
 
-  
-
-##### from_json
+##### `from_json()`
 
 ```python
 static def from_json(abi_json)
 ```
 
-  
-
 #### Variables
 
-  
-    
-* static `functions  : List[opengradient.types.AbiFunction]`
+* static `functions` : List[`AbiFunction`]
 
-      
-    
-
-### AbiFunction
-
-```python
-class AbiFunction
-```
-
-  
-
-  
-AbiFunction(name: str, inputs: List[Union[str, ForwardRef('AbiFunction')]], outputs: List[Union[str, ForwardRef('AbiFunction')]], state_mutability: str)
-  
+### `AbiFunction`
 
 #### Constructor
 
@@ -70,82 +38,33 @@ def __init__(name: str, inputs: List[Union[str, ForwardRef('`AbiFunction`')]]
 
 #### Variables
 
-  
-    
-* static `inputs  : List[Union[str, opengradient.types.AbiFunction]]`
-    
-* static `name  : str`
-    
-* static `outputs  : List[Union[str, opengradient.types.AbiFunction]]`
-    
-* static `state_mutability  : str`
+* static `inputs` : List[Union[str, `AbiFunction`]]
+* static `name` : str
+* static `outputs` : List[Union[str, `AbiFunction`]]
+* static `state_mutability` : str
 
-      
-    
+### `CandleOrder`
 
-### CandleOrder
-
-```python
-class CandleOrder
-```
-
-  
-
-  
 Enum where members are also (and must be) ints
-  
 
 #### Variables
 
-  
-    
 * static `ASCENDING`
-    
 * static `DESCENDING`
 
-      
-    
+### `CandleType`
 
-### CandleType
-
-```python
-class CandleType
-```
-
-  
-
-  
 Enum where members are also (and must be) ints
-  
 
 #### Variables
 
-  
-    
 * static `CLOSE`
-    
 * static `HIGH`
-    
 * static `LOW`
-    
 * static `OPEN`
-    
 * static `VOLUME`
 
-      
-    
-
-### FileUploadResult
-
-```python
-class FileUploadResult
-```
-
-  
-
-  
-FileUploadResult(modelCid: str, size: int)
-  
+### `FileUploadResult`
 
 #### Constructor
 
@@ -155,26 +74,10 @@ def __init__(modelCid: str, size: int)
 
 #### Variables
 
-  
-    
-* static `modelCid  : str`
-    
-* static `size  : int`
+* static `modelCid` : str
+* static `size` : int
 
-      
-    
-
-### HistoricalInputQuery
-
-```python
-class HistoricalInputQuery
-```
-
-  
-
-  
-HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: opengradient.types.CandleOrder, candle_types: List[opengradient.types.CandleType])
-  
+### `HistoricalInputQuery`
 
 #### Constructor
 
@@ -184,78 +87,38 @@ def __init__(base: str, quote: str, total_candles: int, candle_duration_in_mi
 
 #### Methods
 
-  
-
-##### to_abi_format
+##### `to_abi_format()`
 
 ```python
 def to_abi_format(self) ‑> tuple
 ```
-
-  
-
-  
 Convert to format expected by contract ABI
-  
 
 #### Variables
 
-  
-    
-* static `base  : str`
-    
-* static `candle_duration_in_mins  : int`
-    
-* static `candle_types  : List[opengradient.types.CandleType]`
-    
-* static `order  : opengradient.types.CandleOrder`
-    
-* static `quote  : str`
-    
-* static `total_candles  : int`
+* static `base` : str
+* static `candle_duration_in_mins` : int
+* static `candle_types` : List[`CandleType`]
+* static `order` : `CandleOrder`
+* static `quote` : str
+* static `total_candles` : int
 
-      
-    
+### `InferenceMode`
 
-### InferenceMode
-
-```python
-class InferenceMode
-```
-
-  
-
-  
 Enum for the different inference modes available for inference (VANILLA, ZKML, TEE)
-  
 
 #### Variables
 
-  
-    
 * static `TEE`
-    
 * static `VANILLA`
-    
 * static `ZKML`
 
-      
-    
+### `InferenceResult`
 
-### InferenceResult
-
-```python
-class InferenceResult
-```
-
-  
-
-  
 Output for ML inference requests.
 This class has two fields
     transaction_hash (str): Blockchain hash for the transaction
     model_output (Dict[str, np.ndarray]): Output of the ONNX model
-  
 
 #### Constructor
 
@@ -265,29 +128,15 @@ def __init__(transaction_hash: str, model_output: Dict[str, `ndarray`])
 
 #### Variables
 
-  
-    
-* static `model_output  : Dict[str, numpy.ndarray]`
-    
-* static `transaction_hash  : str`
+* static `model_output` : Dict[str, `ndarray`]
+* static `transaction_hash` : str
 
-      
-    
+### `LLM`
 
-### LLM
-
-```python
-class LLM
-```
-
-  
-
-  
 Enum for available LLM models in OpenGradient.
 
 These models can be used with llm_chat() and llm_completion() methods.
 You can use either the enum value or the string identifier directly.
-  
 
 **Note**
 
@@ -296,60 +145,31 @@ Trusted Execution Environment (TEE) verified inference.
 
 #### Variables
 
-  
-    
 * static `CLAUDE_3_5_HAIKU`
-    
 * static `CLAUDE_3_7_SONNET`
-    
 * static `CLAUDE_4_0_SONNET`
-    
 * static `GEMINI_2_0_FLASH`
-    
 * static `GEMINI_2_5_FLASH`
-    
 * static `GEMINI_2_5_FLASH_LITE`
-    
 * static `GEMINI_2_5_PRO`
-    
 * static `GPT_4O`
-    
 * static `GPT_4_1_2025_04_14`
-    
 * static `GROK_2_1212`
-    
 * static `GROK_2_VISION_LATEST`
-    
 * static `GROK_3_BETA`
-    
 * static `GROK_3_MINI_BETA`
-    
 * static `GROK_4_1_FAST`
-    
 * static `GROK_4_1_FAST_NON_REASONING`
-    
 * static `O4_MINI`
 
-      
-    
+### `ModelInput`
 
-### ModelInput
-
-```python
-class ModelInput
-```
-
-  
-
-  
 A collection of tensor inputs required for ONNX model inference.
-  
 
 **Attributes**
 
 * **`numbers`**: Collection of numeric tensors for the model.
 * **`strings`**: Collection of string tensors for the model.
-  
 
 #### Constructor
 
@@ -359,26 +179,12 @@ def __init__(numbers: List[`NumberTensor`], strings: List[`StringTensor`])
 
 #### Variables
 
-  
-    
-* static `numbers  : List[opengradient.types.NumberTensor]`
-    
-* static `strings  : List[opengradient.types.StringTensor]`
+* static `numbers` : List[`NumberTensor`]
+* static `strings` : List[`StringTensor`]
 
-      
-    
+### `ModelOutput`
 
-### ModelOutput
-
-```python
-class ModelOutput
-```
-
-  
-
-  
 Model output struct based on translations from smart contract.
-  
 
 #### Constructor
 
@@ -388,30 +194,12 @@ def __init__(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray`], j
 
 #### Variables
 
-  
-    
-* static `is_simulation_result  : bool`
-    
-* static `jsons  : Dict[str, numpy.ndarray]`
-    
-* static `numbers  : Dict[str, numpy.ndarray]`
-    
-* static `strings  : Dict[str, numpy.ndarray]`
+* static `is_simulation_result` : bool
+* static `jsons` : Dict[str, `ndarray`]
+* static `numbers` : Dict[str, `ndarray`]
+* static `strings` : Dict[str, `ndarray`]
 
-      
-    
-
-### ModelRepository
-
-```python
-class ModelRepository
-```
-
-  
-
-  
-ModelRepository(name: str, initialVersion: str)
-  
+### `ModelRepository`
 
 #### Constructor
 
@@ -421,26 +209,10 @@ def __init__(name: str, initialVersion: str)
 
 #### Variables
 
-  
-    
-* static `initialVersion  : str`
-    
-* static `name  : str`
+* static `initialVersion` : str
+* static `name` : str
 
-      
-    
-
-### Number
-
-```python
-class Number
-```
-
-  
-
-  
-Number(value: int, decimals: int)
-  
+### `Number`
 
 #### Constructor
 
@@ -450,32 +222,17 @@ def __init__(value: int, decimals: int)
 
 #### Variables
 
-  
-    
-* static `decimals  : int`
-    
-* static `value  : int`
+* static `decimals` : int
+* static `value` : int
 
-      
-    
+### `NumberTensor`
 
-### NumberTensor
-
-```python
-class NumberTensor
-```
-
-  
-
-  
 A container for numeric tensor data used as input for ONNX models.
-  
 
 **Attributes**
 
 * **`name`**: Identifier for this tensor in the model.
 * **`values`**: List of integer tuples representing the tensor data.
-  
 
 #### Constructor
 
@@ -485,26 +242,10 @@ def __init__(name: str, values: List[Tuple[int, int]])
 
 #### Variables
 
-  
-    
-* static `name  : str`
-    
-* static `values  : List[Tuple[int, int]]`
+* static `name` : str
+* static `values` : List[Tuple[int, int]]
 
-      
-    
-
-### SchedulerParams
-
-```python
-class SchedulerParams
-```
-
-  
-
-  
-SchedulerParams(frequency: int, duration_hours: int)
-  
+### `SchedulerParams`
 
 #### Constructor
 
@@ -514,49 +255,27 @@ def __init__(frequency: int, duration_hours: int)
 
 #### Static methods
 
-  
-
-##### from_dict
+##### `from_dict()`
 
 ```python
-static def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.types.SchedulerParams]
+static def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[`SchedulerParams`]
 ```
-
-  
 
 #### Variables
 
-  
-    
-* static `duration_hours  : int`
-    
-* static `frequency  : int`
+* static `duration_hours` : int
+* static `frequency` : int
+* `end_time` : int
 
-  
-    
-* `end_time  : int`
+### `StreamChoice`
 
-      
-    
-
-### StreamChoice
-
-```python
-class StreamChoice
-```
-
-  
-
-  
 Represents a choice in a streaming response.
-  
 
 **Attributes**
 
 * **`delta`**: The incremental changes in this chunk
 * **`index`**: Choice index (usually 0)
 * **`finish_reason`**: Reason for completion (appears in final chunk)
-  
 
 #### Constructor
 
@@ -566,32 +285,17 @@ def __init__(delta: `StreamDelta`, index: int = 0, finish_reason: Optional[
 
 #### Variables
 
-  
-    
-* static `delta  : opengradient.types.StreamDelta`
-    
-* static `finish_reason  : Optional[str]`
-    
-* static `index  : int`
+* static `delta` : `StreamDelta`
+* static `finish_reason` : Optional[str]
+* static `index` : int
 
-      
-    
+### `StreamChunk`
 
-### StreamChunk
-
-```python
-class StreamChunk
-```
-
-  
-
-  
 Represents a single chunk in a streaming LLM response.
 
 This follows the OpenAI streaming format but is provider-agnostic.
 Each chunk contains incremental data, with the final chunk including
 usage information.
-  
 
 **Attributes**
 
@@ -599,7 +303,6 @@ usage information.
 * **`model`**: Model identifier
 * **`usage`**: Token usage information (only in final chunk)
 * **`is_final`**: Whether this is the final chunk (before [DONE])
-  
 
 #### Constructor
 
@@ -609,62 +312,37 @@ def __init__(choices: List[`StreamChoice`], model: str, usage: Optional[`Stre
 
 #### Static methods
 
-  
-
-##### from_sse_data
+##### `from_sse_data()`
 
 ```python
-static def from_sse_data(data: Dict) ‑> opengradient.types.StreamChunk
+static def from_sse_data(data: Dict) ‑> `StreamChunk`
 ```
-
-  
-
-  
 Parse a StreamChunk from SSE data dictionary.
-  
 
 **Arguments**
 
 * **`data`**: Dictionary parsed from SSE data line
 
-  
 **Returns**
 
 StreamChunk instance
 
 #### Variables
 
-  
-    
-* static `choices  : List[opengradient.types.StreamChoice]`
-    
-* static `is_final  : bool`
-    
-* static `model  : str`
-    
-* static `usage  : Optional[opengradient.types.StreamUsage]`
+* static `choices` : List[`StreamChoice`]
+* static `is_final` : bool
+* static `model` : str
+* static `usage` : Optional[`StreamUsage`]
 
-      
-    
+### `StreamDelta`
 
-### StreamDelta
-
-```python
-class StreamDelta
-```
-
-  
-
-  
 Represents a delta (incremental change) in a streaming response.
-  
 
 **Attributes**
 
 * **`content`**: Incremental text content (if any)
 * **`role`**: Message role (appears in first chunk)
 * **`tool_calls`**: Tool call information (if function calling is used)
-  
 
 #### Constructor
 
@@ -674,35 +352,19 @@ def __init__(content: Optional[str] = None, role: Optional[str] = None, to
 
 #### Variables
 
-  
-    
-* static `content  : Optional[str]`
-    
-* static `role  : Optional[str]`
-    
-* static `tool_calls  : Optional[List[Dict]]`
+* static `content` : Optional[str]
+* static `role` : Optional[str]
+* static `tool_calls` : Optional[List[Dict]]
 
-      
-    
+### `StreamUsage`
 
-### StreamUsage
-
-```python
-class StreamUsage
-```
-
-  
-
-  
 Token usage information for a streaming response.
-  
 
 **Attributes**
 
 * **`prompt_tokens`**: Number of tokens in the prompt
 * **`completion_tokens`**: Number of tokens in the completion
 * **`total_tokens`**: Total tokens used
-  
 
 #### Constructor
 
@@ -712,34 +374,18 @@ def __init__(prompt_tokens: int, completion_tokens: int, total_tokens: int)
 
 #### Variables
 
-  
-    
-* static `completion_tokens  : int`
-    
-* static `prompt_tokens  : int`
-    
-* static `total_tokens  : int`
+* static `completion_tokens` : int
+* static `prompt_tokens` : int
+* static `total_tokens` : int
 
-      
-    
+### `StringTensor`
 
-### StringTensor
-
-```python
-class StringTensor
-```
-
-  
-
-  
 A container for string tensor data used as input for ONNX models.
-  
 
 **Attributes**
 
 * **`name`**: Identifier for this tensor in the model.
 * **`values`**: List of strings representing the tensor data.
-  
 
 #### Constructor
 
@@ -749,30 +395,16 @@ def __init__(name: str, values: List[str])
 
 #### Variables
 
-  
-    
-* static `name  : str`
-    
-* static `values  : List[str]`
+* static `name` : str
+* static `values` : List[str]
 
-      
-    
+### `TEE_LLM`
 
-### TEE_LLM
-
-```python
-class TEE_LLM
-```
-
-  
-
-  
 Enum for LLM models available for TEE (Trusted Execution Environment) execution.
 
 TEE mode provides cryptographic verification that inference was performed
 correctly in a secure enclave. Use this for applications requiring
 auditability and tamper-proof AI inference.
-  
 
 **Note**
 
@@ -781,54 +413,26 @@ indicates support for TEE execution.
 
 #### Variables
 
-  
-    
 * static `CLAUDE_3_5_HAIKU`
-    
 * static `CLAUDE_3_7_SONNET`
-    
 * static `CLAUDE_4_0_SONNET`
-    
 * static `GEMINI_2_0_FLASH`
-    
 * static `GEMINI_2_5_FLASH`
-    
 * static `GEMINI_2_5_FLASH_LITE`
-    
 * static `GEMINI_2_5_PRO`
-    
 * static `GPT_4O`
-    
 * static `GPT_4_1_2025_04_14`
-    
 * static `GROK_2_1212`
-    
 * static `GROK_2_VISION_LATEST`
-    
 * static `GROK_3_BETA`
-    
 * static `GROK_3_MINI_BETA`
-    
 * static `GROK_4_1_FAST`
-    
 * static `GROK_4_1_FAST_NON_REASONING`
-    
 * static `O4_MINI`
 
-      
-    
+### `TextGenerationOutput`
 
-### TextGenerationOutput
-
-```python
-class TextGenerationOutput
-```
-
-  
-
-  
 Output structure for text generation requests.
-  
 
 #### Constructor
 
@@ -838,59 +442,32 @@ def __init__(transaction_hash: str, finish_reason: Optional[str] = None, cha
 
 #### Variables
 
-  
-    
-* static `chat_output  : Optional[Dict]` - Dictionary of chat response containing role, message content, tool call parameters, etc.. Empty dict if not applicable.
-    
-* static `completion_output  : Optional[str]` - Raw text output from completion-style generation. Empty string if not applicable.
-    
-* static `finish_reason  : Optional[str]` - Reason for completion (e.g., 'tool_call', 'stop', 'error'). Empty string if not applicable.
-    
-* static `payment_hash  : Optional[str]` - Payment hash for x402 transaction
-    
-* static `transaction_hash  : str` - Blockchain hash for the transaction.
+* static `chat_output` : Optional[Dict] - Dictionary of chat response containing role, message content, tool call parameters, etc.. Empty dict if not applicable.
+* static `completion_output` : Optional[str] - Raw text output from completion-style generation. Empty string if not applicable.
+* static `finish_reason` : Optional[str] - Reason for completion (e.g., 'tool_call', 'stop', 'error'). Empty string if not applicable.
+* static `payment_hash` : Optional[str] - Payment hash for x402 transaction
+* static `transaction_hash` : str - Blockchain hash for the transaction.
 
-      
-    
+### `TextGenerationStream`
 
-### TextGenerationStream
-
-```python
-class TextGenerationStream
-```
-
-  
-
-  
 Iterator wrapper for streaming text generation responses.
 
 Provides a clean interface for iterating over stream chunks with
 automatic parsing of SSE format.
-  
 
 #### Constructor
 
 ```python
 def __init__(_iterator: Union[Iterator[str], AsyncIterator[str]])
 ```
-      
-    
 
-### x402SettlementMode
+### `x402SettlementMode`
 
-```python
-class x402SettlementMode
-```
-
-  
-
-  
 Settlement modes for x402 payment protocol transactions.
 
 These modes control how inference data is recorded on-chain for payment settlement
 and auditability. Each mode offers different trade-offs between data completeness,
 privacy, and transaction costs.
-  
 
 **Attributes**
 
@@ -914,18 +491,10 @@ privacy, and transaction costs.
         Reduced per-inference transaction overhead.
         CLI usage: --settlement-mode settle-batch
 
-  
-
 #### Variables
 
-  
-    
 * static `SETTLE`
-    
 * static `SETTLE_BATCH`
-    
 * static `SETTLE_INDIVIDUAL`
-    
 * static `SETTLE_INDIVIDUAL_WITH_METADATA`
-    
 * static `SETTLE_METADATA`

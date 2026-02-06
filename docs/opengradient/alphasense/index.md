@@ -2,31 +2,22 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient.alphasense
 
 OpenGradient AlphaSense Tools
 
 ## Functions
 
-  
-
-### create_read_workflow_tool
+### `create_read_workflow_tool()`
 
 ```python
-def create_read_workflow_tool(tool_type: opengradient.alphasense.types.ToolType, workflow_contract_address: str, tool_name: str, tool_description: str, alpha: Optional[opengradient.client.alpha.Alpha] = None, output_formatter: Callable[..., str] = <function <lambda>>) ‑> Union[langchain_core.tools.base.BaseTool, Callable]
+def create_read_workflow_tool(tool_type: [ToolType](./types), workflow_contract_address: str, tool_name: str, tool_description: str, alpha: Optional[`Alpha`] = None, output_formatter: Callable[..., str] = &lt;function &lt;lambda&gt;&gt;) ‑> Union[`BaseTool`, Callable]
 ```
-
-  
-
-  
 Creates a tool that reads results from a workflow contract on OpenGradient.
 
 This function generates a tool that can be integrated into either a LangChain pipeline
 or a Swarm system, allowing the workflow results to be retrieved and formatted as part
 of a chain of operations.
-  
 
 **Arguments**
 
@@ -45,7 +36,6 @@ of a chain of operations.
         and formats it into a string. This ensures the output is compatible with
         the tool framework. Default returns string as is.
 
-  
 **Returns**
 
 BaseTool: For ToolType.LANGCHAIN, returns a LangChain StructuredTool.
@@ -55,26 +45,17 @@ Callable: For ToolType.SWARM, returns a decorated function with appropriate meta
 
 * **`ValueError`**: If an invalid tool_type is provided.
 
-  
-
-  
-
-### create_run_model_tool
+### `create_run_model_tool()`
 
 ```python
-def create_run_model_tool(tool_type: opengradient.alphasense.types.ToolType, model_cid: str, tool_name: str, model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, numpy.ndarray]]], model_output_formatter: Callable[[opengradient.types.InferenceResult], str], inference: Optional[opengradient.client.onchain_inference.Inference] = None, tool_input_schema: Optional[Type[pydantic.main.BaseModel]] = None, tool_description: str = 'Executes the given ML model', inference_mode: opengradient.types.InferenceMode = InferenceMode.VANILLA) ‑> Union[langchain_core.tools.base.BaseTool, Callable]
+def create_run_model_tool(tool_type: [ToolType](./types), model_cid: str, tool_name: str, model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, `ndarray`]]], model_output_formatter: Callable[[`InferenceResult`], str], inference: Optional[`Inference`] = None, tool_input_schema: Optional[Type[`BaseModel`]] = None, tool_description: str = 'Executes the given ML model', inference_mode: `InferenceMode` = InferenceMode.VANILLA) ‑> Union[`BaseTool`, Callable]
 ```
-
-  
-
-  
 Creates a tool that wraps an OpenGradient model for inference.
 
 This function generates a tool that can be integrated into either a LangChain pipeline
 or a Swarm system, allowing the model to be executed as part of a chain of operations.
 The tool uses the provided input_getter function to obtain the necessary input data and
 runs inference using the specified OpenGradient model.
-  
 
 **Arguments**
 
@@ -115,7 +96,6 @@ runs inference using the specified OpenGradient model.
 * **`inference_mode (InferenceMode, optional)`**: The inference mode to use when running
         the model. Defaults to VANILLA.
 
-  
 **Returns**
 
 BaseTool: For ToolType.LANGCHAIN, returns a LangChain StructuredTool.
@@ -125,27 +105,13 @@ Callable: For ToolType.SWARM, returns a decorated function with appropriate meta
 
 * **`ValueError`**: If an invalid tool_type is provided.
 
-  
-
 ## Classes
-    
 
-### ToolType
+### `ToolType`
 
-```python
-class ToolType
-```
-
-  
-
-  
 Indicates the framework the tool is compatible with.
-  
 
 #### Variables
 
-  
-    
 * static `LANGCHAIN`
-    
 * static `SWARM`

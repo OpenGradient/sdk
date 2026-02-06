@@ -2,30 +2,19 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient.client.llm
 
 LLM chat and completion via TEE-verified execution with x402 payments.
 
 ## Classes
-    
 
-### LLM
+### `LLM`
 
-```python
-class LLM
-```
-
-  
-
-  
 LLM inference namespace.
 
 Provides access to large language model completions and chat via TEE
 (Trusted Execution Environment) with x402 payment protocol support.
 Supports both streaming and non-streaming responses.
-  
 
 #### Constructor
 
@@ -35,19 +24,12 @@ def __init__(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_st
 
 #### Methods
 
-  
-
-##### chat
+##### `chat()`
 
 ```python
-def chat(self, model: opengradient.types.TEE_LLM, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
+def chat(self, model: `TEE_LLM`, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[`TextGenerationOutput`, `TextGenerationStream`]
 ```
-
-  
-
-  
 Perform inference on an LLM model using chat via TEE.
-  
 
 **Arguments**
 
@@ -65,7 +47,6 @@ Perform inference on an LLM model using chat via TEE.
         Defaults to SETTLE_BATCH.
 * **`stream (bool, optional)`**: Whether to stream the response. Default is False.
 
-  
 **Returns**
 
 Union[TextGenerationOutput, TextGenerationStream]:
@@ -75,21 +56,13 @@ Union[TextGenerationOutput, TextGenerationStream]:
 **Raises**
 
 * **`OpenGradientError`**: If the inference fails.
-  
 
-  
-
-##### completion
+##### `completion()`
 
 ```python
-def completion(self, model: opengradient.types.TEE_LLM, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = x402SettlementMode.SETTLE_BATCH) ‑> opengradient.types.TextGenerationOutput
+def completion(self, model: `TEE_LLM`, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH) ‑> `TextGenerationOutput`
 ```
-
-  
-
-  
 Perform inference on an LLM model using completions via TEE.
-  
 
 **Arguments**
 
@@ -104,7 +77,6 @@ Perform inference on an LLM model using completions via TEE.
         - SETTLE_METADATA: Records full model info, complete input/output data, and all metadata.
         Defaults to SETTLE_BATCH.
 
-  
 **Returns**
 
 TextGenerationOutput: Generated text results including:

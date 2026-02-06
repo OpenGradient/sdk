@@ -2,29 +2,18 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient.client.onchain_inference
 
 On-chain ONNX model inference via blockchain smart contracts.
 
 ## Classes
-    
 
-### Inference
+### `Inference`
 
-```python
-class Inference
-```
-
-  
-
-  
 On-chain model inference namespace.
 
 Provides access to decentralized ONNX model inference via blockchain smart contracts.
 Supports multiple inference modes including VANILLA, TEE, and ZKML.
-  
 
 #### Constructor
 
@@ -34,19 +23,12 @@ def __init__(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub
 
 #### Methods
 
-  
-
-##### infer
+##### `infer()`
 
 ```python
-def infer(self, model_cid: str, inference_mode: opengradient.types.InferenceMode, model_input: Dict[str, Union[str, int, float, List, numpy.ndarray]], max_retries: Optional[int] = None) ‑> opengradient.types.InferenceResult
+def infer(self, model_cid: str, inference_mode: `InferenceMode`, model_input: Dict[str, Union[str, int, float, List, `ndarray`]], max_retries: Optional[int] = None) ‑> `InferenceResult`
 ```
-
-  
-
-  
 Perform inference on a model.
-  
 
 **Arguments**
 
@@ -55,7 +37,6 @@ Perform inference on a model.
 * **`model_input (Dict[str, Union[str, int, float, List, np.ndarray]])`**: The input data for the model.
 * **`max_retries (int, optional)`**: Maximum number of retry attempts. Defaults to 5.
 
-  
 **Returns**
 
 InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
@@ -65,12 +46,8 @@ InferenceResult (InferenceResult): A dataclass object containing the transaction
 **Raises**
 
 * **`OpenGradientError`**: If the inference fails.
-  
 
 #### Variables
 
-  
-    
-* `inference_abi  : dict`
-    
-* `precompile_abi  : dict`
+* `inference_abi` : dict
+* `precompile_abi` : dict

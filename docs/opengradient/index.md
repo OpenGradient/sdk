@@ -2,8 +2,6 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient
 
 **Version: 0.6.0**
@@ -90,22 +88,15 @@ The SDK includes adapters for popular AI frameworks -- see the `agents` submodul
 
 ## Functions
 
-  
-
-### init
+### `init()`
 
 ```python
-def init(private_key: str, email: Optional[str] = None, password: Optional[str] = None, **kwargs) ‑> opengradient.client.client.Client
+def init(private_key: str, email: Optional[str] = None, password: Optional[str] = None, **kwargs) ‑> `Client`
 ```
-
-  
-
-  
 Initialize the global OpenGradient client.
 
 This is the recommended way to get started. It creates a `Client` instance
 and stores it as the global client for convenience.
-  
 
 **Arguments**
 
@@ -114,29 +105,25 @@ and stores it as the global client for convenience.
 * **`password`**: Password for Model Hub authentication. Optional.
     **kwargs: Additional arguments forwarded to `Client`.
 
-  
 **Returns**
 
 The newly created `Client` instance.
 
 ## Classes
-    
 
-### Client
+### `Client`
 
-```python
-class Client
-```
-
-  
-
-  
 Main OpenGradient SDK client.
 
 Provides unified access to all OpenGradient services including LLM inference,
 on-chain model inference, and the Model Hub. Handles authentication via
 blockchain private key and optional Model Hub credentials.
-  
+
+#### Constructor
+
+```python
+def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+```
 
 **Arguments**
 
@@ -148,26 +135,12 @@ blockchain private key and optional Model Hub credentials.
 * **`contract_address`**: Inference contract address.
 * **`og_llm_server_url`**: OpenGradient LLM server URL.
 * **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
-  
-
-#### Constructor
-
-```python
-def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
-```
 
 #### Variables
 
-  
-    
-* static `inference  : opengradient.client.onchain_inference.Inference`
-    
-* static `llm  : opengradient.client.llm.LLM`
-    
-* static `model_hub  : opengradient.client.model_hub.ModelHub`
-
-  
-    
+* static `inference` : `Inference`
+* static `llm` : `LLM`
+* static `model_hub` : `ModelHub`
 * `alpha` - Access Alpha Testnet features.
 
   Returns:
@@ -177,48 +150,22 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
     client = og.Client(...)
     result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
 
-      
-    
+### `InferenceMode`
 
-### InferenceMode
-
-```python
-class InferenceMode
-```
-
-  
-
-  
 Enum for the different inference modes available for inference (VANILLA, ZKML, TEE)
-  
 
 #### Variables
 
-  
-    
 * static `TEE`
-    
 * static `VANILLA`
-    
 * static `ZKML`
 
-      
-    
+### `LLM`
 
-### LLM
-
-```python
-class LLM
-```
-
-  
-
-  
 Enum for available LLM models in OpenGradient.
 
 These models can be used with llm_chat() and llm_completion() methods.
 You can use either the enum value or the string identifier directly.
-  
 
 **Note**
 
@@ -227,58 +174,30 @@ Trusted Execution Environment (TEE) verified inference.
 
 #### Variables
 
-  
-    
 * static `CLAUDE_3_5_HAIKU`
-    
 * static `CLAUDE_3_7_SONNET`
-    
 * static `CLAUDE_4_0_SONNET`
-    
 * static `GEMINI_2_0_FLASH`
-    
 * static `GEMINI_2_5_FLASH`
-    
 * static `GEMINI_2_5_FLASH_LITE`
-    
 * static `GEMINI_2_5_PRO`
-    
 * static `GPT_4O`
-    
 * static `GPT_4_1_2025_04_14`
-    
 * static `GROK_2_1212`
-    
 * static `GROK_2_VISION_LATEST`
-    
 * static `GROK_3_BETA`
-    
 * static `GROK_3_MINI_BETA`
-    
 * static `GROK_4_1_FAST`
-    
 * static `GROK_4_1_FAST_NON_REASONING`
-    
 * static `O4_MINI`
 
-      
-    
+### `TEE_LLM`
 
-### TEE_LLM
-
-```python
-class TEE_LLM
-```
-
-  
-
-  
 Enum for LLM models available for TEE (Trusted Execution Environment) execution.
 
 TEE mode provides cryptographic verification that inference was performed
 correctly in a secure enclave. Use this for applications requiring
 auditability and tamper-proof AI inference.
-  
 
 **Note**
 
@@ -287,36 +206,19 @@ indicates support for TEE execution.
 
 #### Variables
 
-  
-    
 * static `CLAUDE_3_5_HAIKU`
-    
 * static `CLAUDE_3_7_SONNET`
-    
 * static `CLAUDE_4_0_SONNET`
-    
 * static `GEMINI_2_0_FLASH`
-    
 * static `GEMINI_2_5_FLASH`
-    
 * static `GEMINI_2_5_FLASH_LITE`
-    
 * static `GEMINI_2_5_PRO`
-    
 * static `GPT_4O`
-    
 * static `GPT_4_1_2025_04_14`
-    
 * static `GROK_2_1212`
-    
 * static `GROK_2_VISION_LATEST`
-    
 * static `GROK_3_BETA`
-    
 * static `GROK_3_MINI_BETA`
-    
 * static `GROK_4_1_FAST`
-    
 * static `GROK_4_1_FAST_NON_REASONING`
-    
 * static `O4_MINI`

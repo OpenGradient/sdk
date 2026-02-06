@@ -2,8 +2,6 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient.workflow_models
 
 OpenGradient Hardcoded Models

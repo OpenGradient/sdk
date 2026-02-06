@@ -1,195 +1,179 @@
 ---
 outline: [2,3]
 ---
-
 <%
-  import pdoc
-  import re
-  import textwrap
-  import inspect
-  import tomllib
+import pdoc
+import re
+import textwrap
+import inspect
+import tomllib
 
-  with open('pyproject.toml', 'rb') as _f:
-    _project_version = tomllib.load(_f)['project']['version']
+with open('pyproject.toml', 'rb') as _f:
+  _project_version = tomllib.load(_f)['project']['version']
 
-  def firstline(ds):
-    return ds.split('\n\n', 1)[0]
+def firstline(ds):
+  return ds.split('\n\n', 1)[0]
 
-  def link(dobj, name=None):
-    parts = dobj.qualname.split('.')
+def link(dobj, name=None):
+  parts = dobj.qualname.split('.')
+  if name is None:
+    display = parts[-1]
+    if isinstance(dobj, pdoc.Function):
+      display += '()'
+  else:
+    display = name
+  if len(parts) >= 2 and parts[0] != 'opengradient':
+    return '`{}`'.format(display)
+  if len(parts) < 2:
+    return '`{}`'.format(display)
+  module = parts[1]
+  if len(parts) > 2:
+    return '[{}](./{})'.format(display, parts[2])
+  if isinstance(dobj, pdoc.Module) and dobj.is_package:
+    return '[**{}**](./{}/index)'.format(display, module)
+  return '[**{}**](./{})'.format(display, module)
 
-    if name is None:
-      display = parts[-1]
-      if isinstance(dobj, pdoc.Function):
-        display += '()'
+def get_annotation(bound_method, sep=':', link=None):
+  annot = show_type_annotations and bound_method(link=link) or ''
+  if annot:
+    annot = ' ' + sep + '\N{NBSP}' + annot
+  return annot
+
+def header(text, level):
+  return '\n{} {}'.format('#' * level, text)
+
+def breakdown_google(text):
+  def get_terms(body):
+    parts = re.compile(r'\n+\s+(\w+(?:\s*\([^)]*\))?):\s+', re.MULTILINE).split('\n' + body)
+    return list(map(textwrap.dedent, parts[1:]))
+  matches = re.compile(r'([A-Z]\w+):$\n', re.MULTILINE).split(inspect.cleandoc(text))
+  if not matches:
+    return None
+  body = textwrap.dedent(matches[0].strip())
+  sections = {}
+  for i in range(1, len(matches), 2):
+    title = matches[i].title()
+    section = matches[i+1]
+    if title in ('Args', 'Attributes', 'Raises'):
+      sections[title] = get_terms(section)
     else:
-      display = name
+      sections[title] = textwrap.dedent(section)
+  return (body, sections)
 
-    # External types (not from opengradient) - render as plain code
-    if len(parts) >= 2 and parts[0] != 'opengradient':
-      return '`{}`'.format(display)
+def format_for_list(docstring, depth=1):
+  spaces = depth * 2 * ' '
+  return re.compile(r'\n\n', re.MULTILINE).sub('\n\n' + spaces, docstring)
+%>\
+<%def name="show_term_list(terms)">\
+% for i in range(0, len(terms), 2):
+* **`${terms[i]}`**: ${terms[i+1]}
+% endfor
+</%def>\
+<%def name="show_sections(sections)">\
+% if sections.get('Args'):
 
-    if len(parts) < 2:
-      return '`{}`'.format(display)
+**Arguments**
 
-    module = parts[1]
+${show_term_list(sections['Args'])}\
+% endif
+% if sections.get('Attributes'):
 
-    # 3+ parts: submodule or nested object within a submodule
-    if len(parts) > 2:
-      target = parts[2]
-      return '[{}](./{})'.format(display, target)
+**Attributes**
 
-    # 2 parts: top-level module/package reference
-    if isinstance(dobj, pdoc.Module) and dobj.is_package:
-      return '[**{}**](./{}/index)'.format(display, module)
-    return '[**{}**](./{})'.format(display, module)
+${show_term_list(sections['Attributes'])}\
+% endif
+% if sections.get('Returns'):
 
-  def get_annotation(bound_method, sep=':'):
-    annot = show_type_annotations and bound_method() or ''
-    if annot:
-        annot = ' ' + sep + '\N{NBSP}' + annot
-    return annot
+**Returns**
 
-  def header(text, level):
-    hashes = '#' * level
-    return '\n{} {}'.format(hashes, text)
-
-  def breakdown_google(text):
-    """
-    Break down Google-style docstring format.
-    """
-    def get_terms(body):
-      breakdown = re.compile(r'\n+\s+(\w+(?:\s*\([^)]*\))?):\s+', re.MULTILINE).split('\n' + body)
-
-      # first match is blank (or could be section name if it was still there)
-      return list(map(lambda x: textwrap.dedent(x), breakdown[1:]))
-
-    # what we want to do is return the body, before any of the below is
-    # matched, and then a list of sections and their terms
-    matches = re.compile(r'([A-Z]\w+):$\n', re.MULTILINE).split(inspect.cleandoc(text))
-    if not matches:
-      return
-    body = textwrap.dedent(matches[0].strip())
-    sections = {}
-    for i in range(1, len(matches), 2):
-      title = matches[i].title()
-      section = matches[i+1]
-      if title in ('Args', 'Attributes', 'Raises'):
-        sections[title] = get_terms(section)
-      else:
-        sections[title] = textwrap.dedent(section)
-    return (body, sections)
-
-  def format_for_list(docstring, depth=1):
-    spaces = depth * 2 * ' '
-    return re.compile(r'\n\n', re.MULTILINE).sub('\n\n' + spaces, docstring)
-%>
-
-<%def name="show_breakdown(breakdown)">
-  <%
-    body = breakdown[0]
-    sections = breakdown[1]
-    def docsection(text):
-      return "**{}**\n\n".format(text)
-  %>
-${body}
-  <%def name="show_args(args)">
-    % for i in range(0, len(args), 2):
-* **`${args[i]}`**: ${args[i+1]}
-    % endfor
-  </%def>
-
-  % if sections.get('Args', None):
-${docsection('Arguments')}
-${show_args(sections['Args'])}
-  % endif
-  % if sections.get('Attributes', None):
-${docsection('Attributes')}
-${show_args(sections['Attributes'])}
-  % endif
-  % if sections.get('Returns', None):
-${docsection('Returns')}
 ${sections['Returns']}
-  % endif
-  % if sections.get('Raises', None):
-${docsection('Raises')}
-${show_args(sections['Raises'])}
-  % endif
-  % if sections.get('Note', None):
-${docsection('Note')}
-${sections['Note']}
-  % endif
-  % if sections.get('Notes', None):
-${docsection('Notes')}
-${sections['Notes']}
-  % endif
-</%def>
+% endif
+% if sections.get('Raises'):
 
-<%def name="show_desc(d, short=False)">
-  <%
-  inherits = ' inherited' if d.inherits else ''
-  %>
-  % if d.inherits:
-    _Inherited from:_
-    % if hasattr(d.inherits, 'cls'):
-`${link(d.inherits.cls)}`.`${link(d.inherits, d.name)}`
-    % else:
-`${link(d.inherits)}`
-    % endif
-  % endif
+**Raises**
+
+${show_term_list(sections['Raises'])}\
+% endif
+% if sections.get('Note'):
+
+**Note**
+
+${sections['Note']}
+% endif
+% if sections.get('Notes'):
+
+**Notes**
+
+${sections['Notes']}
+% endif
+</%def>\
+<%def name="show_desc(d, short=False)">\
+<%
+inherits = d.inherits
+%>\
+% if inherits:
+_Inherited from:_
+% if hasattr(inherits, 'cls'):
+`${link(inherits.cls)}`.`${link(inherits, d.name)}`
+% else:
+`${link(inherits)}`
+% endif
+% endif
 % if short or inherits:
 ${firstline(d.docstring)}
-% elif d.docstring and breakdown_google(d.docstring):
-${show_breakdown(breakdown_google(d.docstring))}
+% elif d.docstring:
+<%
+bd = breakdown_google(d.docstring)
+%>\
+% if bd:
+${bd[0]}
+${show_sections(bd[1])}\
+% else:
+${d.docstring}
 % endif
-</%def>
-
-<%def name="show_func(f, qual='', level=3)">
-  <%
-    params = ', '.join(f.params(annotate=show_type_annotations))
-    return_type = get_annotation(f.return_annotation, '\N{non-breaking hyphen}>')
-    qual = qual + ' ' if qual else ''
-  %>
-${header(f.name, level)}
+% endif
+</%def>\
+<%def name="show_func(f, qual='', level=3)">\
+<%
+params = ', '.join(f.params(annotate=show_type_annotations, link=link))
+return_type = get_annotation(f.return_annotation, '\N{non-breaking hyphen}>', link=link)
+prefix = qual + ' ' if qual else ''
+%>
+${header('`' + f.name + '()`', level)}
 
 ```python
-${qual}${f.funcdef()} ${f.name}(${params})${return_type}
+${prefix}${f.funcdef()} ${f.name}(${params})${return_type}
 ```
-${show_desc(f)}
-</%def>
-
-<%def name="show_funcs(fs, qual='', level=3)">
-  % for f in fs:
+${show_desc(f)}\
+</%def>\
+<%def name="show_funcs(fs, qual='', level=3)">\
+% for f in fs:
 ${show_func(f, qual, level)}
-  % endfor
-</%def>
-
-<%def name="show_vars(vs, qual='')">
-  <%
-    qual = qual + ' ' if qual else ''
-  %>
-  % for v in vs:
-    <%
-      return_type = get_annotation(v.type_annotation)
-      return_type_d = ' ' + return_type if return_type else ''
-      raw_desc = v.docstring.strip() if v.docstring else ''
-      # Filter out pdoc's garbage placeholder for unset docstrings
-      if raw_desc == 'The type of the None singleton.':
-        raw_desc = ''
-      desc = ' - ' + format_for_list(raw_desc, 1) if raw_desc else ''
-    %>
-* ${qual}`${v.name}${return_type_d}`${desc}
-  % endfor
-</%def>
-
-<%def name="show_module(module)">
-  <%
-  variables = module.variables(sort=sort_identifiers)
-  classes = module.classes(sort=sort_identifiers)
-  functions = module.functions(sort=sort_identifiers)
-  submodules = module.submodules()
-  %>
-
+% endfor
+</%def>\
+<%def name="show_vars(vs, qual='')">\
+<%
+prefix = qual + ' ' if qual else ''
+%>\
+% for v in vs:
+<%
+return_type = get_annotation(v.type_annotation, link=link)
+type_str = return_type if return_type else ''
+raw_desc = v.docstring.strip() if v.docstring else ''
+if raw_desc == 'The type of the None singleton.':
+  raw_desc = ''
+desc = ' - ' + format_for_list(raw_desc, 1) if raw_desc else ''
+%>\
+* ${prefix}`${v.name}`${type_str}${desc}
+% endfor
+</%def>\
+<%def name="show_module(module)">\
+<%
+variables = module.variables(sort=sort_identifiers)
+classes = module.classes(sort=sort_identifiers)
+functions = module.functions(sort=sort_identifiers)
+submodules = module.submodules()
+%>
 ${header('Package ' + module.name, 1)}
 % if not module.supermodule:
 
@@ -197,100 +181,121 @@ ${header('Package ' + module.name, 1)}
 % endif
 
 ${module.docstring}
+% if submodules:
 
-%if submodules or variables or functions:
-
-  % if submodules:
 ${header('Submodules', 2)}
 
-  % for m in submodules:
+% for m in submodules:
 * ${link(m)}: ${firstline(m.docstring)}
-  % endfor
-  % endif
+% endfor
+% endif
+% if functions:
 
-  % if functions:
 ${header('Functions', 2)}
 
-${show_funcs(functions)}
-  % endif
+${show_funcs(functions)}\
 % endif
+% if variables:
 
-  % if variables:
 ${header('Global variables', 2)}
-${show_vars(variables)}
-  % endif
 
-  % if classes:
+${show_vars(variables)}\
+% endif
+% if classes:
+
 ${header('Classes', 2)}
-  % for c in classes:
-    <%
-    class_vars = c.class_variables(show_inherited_members, sort=sort_identifiers)
-    smethods = c.functions(show_inherited_members, sort=sort_identifiers)
-    inst_vars = c.instance_variables(show_inherited_members, sort=sort_identifiers)
-    all_methods = c.methods(show_inherited_members, sort=sort_identifiers)
-    init_method = c.doc.get('__init__')
-    methods = [m for m in all_methods if m.name != '__init__']
-    mro = c.mro()
-    subclasses = c.subclasses()
-    is_enum = any(m.qualname.split('.')[-1] in ('Enum', 'IntEnum', 'StrEnum', 'Flag', 'IntFlag') for m in mro)
-    init_params = ', '.join(c.params(annotate=show_type_annotations, link=link))
-    %>
-${header(c.name, 3)}
+% for c in classes:
+<%
+class_vars = c.class_variables(show_inherited_members, sort=sort_identifiers)
+smethods = c.functions(show_inherited_members, sort=sort_identifiers)
+inst_vars = c.instance_variables(show_inherited_members, sort=sort_identifiers)
+all_methods = c.methods(show_inherited_members, sort=sort_identifiers)
+methods = [m for m in all_methods if m.name != '__init__']
+subclasses = c.subclasses()
+is_enum = any(cls.qualname.split('.')[-1] in ('Enum', 'IntEnum', 'StrEnum', 'Flag', 'IntFlag') for cls in c.mro())
+init_params = ', '.join(c.params(annotate=show_type_annotations, link=link))
 
-```python
-class ${c.name}
-```
+_bd = breakdown_google(c.docstring) if c.docstring else None
+_class_args = None
+if _bd:
+  _class_body = _bd[0]
+  _class_sections = dict(_bd[1])
+  _class_args = _class_sections.pop('Args', None)
+else:
+  _class_body = c.docstring or ''
+  _class_sections = {}
 
-${show_desc(c)}
-    % if not is_enum and init_params:
+if _class_body.strip().startswith(c.name + '('):
+  _class_body = ''
+%>
+${header('`' + c.name + '`', 3)}
+% if _class_body:
+
+${_class_body}
+% endif
+${show_sections(_class_sections)}\
+% if not is_enum and init_params:
+
 ${header('Constructor', 4)}
 
 ```python
 def __init__(${init_params})
 ```
-      % if init_method and init_method.docstring and init_method.docstring != c.docstring:
-${show_desc(init_method)}
-      % endif
-    % endif
-    % if subclasses:
-${header('Subclasses', 4)}
-      % for sub in subclasses:
-  * ${link(sub)}
-      % endfor
-    % endif
-    % if smethods:
-${header('Static methods', 4)}
-${show_funcs(smethods, 'static', 5)}
-    % endif
-    % if methods:
-${header('Methods', 4)}
-${show_funcs(methods, '', 5)}
-    % endif
-    % if class_vars or inst_vars:
-${header('Variables', 4)}
-      % if class_vars:
-${show_vars(class_vars, 'static')}
-      % endif
-      % if inst_vars:
-${show_vars(inst_vars)}
-      % endif
-    % endif
-    % if not show_inherited_members:
-      <%
-        members = c.inherited_members()
-      %>
-      % if members:
-${header('Inherited members', 4)}
-        % for cls, mems in members:
-* `${link(cls)}`:
-            % for m in mems:
-  * `${link(m, name=m.name)}`
-            % endfor
-        % endfor
-      % endif
-    % endif
-  % endfor
-  % endif
-</%def>
+% if _class_args:
 
+**Arguments**
+
+${show_term_list(_class_args)}\
+% endif
+% endif
+% if subclasses:
+
+${header('Subclasses', 4)}
+
+% for sub in subclasses:
+* ${link(sub)}
+% endfor
+% endif
+% if smethods:
+
+${header('Static methods', 4)}
+
+${show_funcs(smethods, 'static', 5)}\
+% endif
+% if methods:
+
+${header('Methods', 4)}
+
+${show_funcs(methods, '', 5)}\
+% endif
+% if class_vars or inst_vars:
+
+${header('Variables', 4)}
+
+% if class_vars:
+${show_vars(class_vars, 'static')}\
+% endif
+% if inst_vars:
+${show_vars(inst_vars)}\
+% endif
+% endif
+% if not show_inherited_members:
+<%
+members = c.inherited_members()
+%>\
+% if members:
+
+${header('Inherited members', 4)}
+
+% for cls, mems in members:
+* `${link(cls)}`:
+% for m in mems:
+  * `${link(m, name=m.name)}`
+% endfor
+% endfor
+% endif
+% endif
+% endfor
+% endif
+</%def>\
 ${show_module(module)}

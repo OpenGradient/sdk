@@ -2,8 +2,6 @@
 outline: [2,3]
 ---
 
-  
-
 # Package opengradient.agents
 
 OpenGradient Agent Framework Adapters
@@ -14,32 +12,19 @@ into existing applications and agent frameworks.
 
 ## Functions
 
-  
-
-### langchain_adapter
+### `langchain_adapter()`
 
 ```python
-def langchain_adapter(private_key: str, model_cid: opengradient.types.LLM, max_tokens: int = 300) ‑> opengradient.agents.og_langchain.OpenGradientChatModel
+def langchain_adapter(private_key: str, model_cid: `LLM`, max_tokens: int = 300) ‑> [OpenGradientChatModel](./og_langchain)
 ```
-
-  
-
-  
 Returns an OpenGradient LLM that implements LangChain's LLM interface
 and can be plugged into LangChain agents.
-  
 
-  
-
-### openai_adapter
+### `openai_adapter()`
 
 ```python
-def openai_adapter(private_key: str) ‑> opengradient.agents.og_openai.OpenGradientOpenAIClient
+def openai_adapter(private_key: str) ‑> [OpenGradientOpenAIClient](./og_openai)
 ```
-
-  
-
-  
 Returns an generic OpenAI LLM client that can be plugged into Swarm and can
 be used with any LLM model on OpenGradient. The LLM is usually defined in the
 agent.
