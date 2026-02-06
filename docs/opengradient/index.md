@@ -14,6 +14,37 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 * [**llm**](./llm): OpenGradient LLM Adapters
 * [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
 
+## Functions
+
+  
+
+### Init 
+
+```python
+def init(private_key: str, email: Optional[str] = None, password: Optional[str] = None, **kwargs) ‑> opengradient.client.client.Client
+```
+
+  
+
+  
+Initialize the global OpenGradient client.
+
+This creates a :class:`Client` and stores it as ``opengradient.client``
+so that tools and other SDK helpers can use it without explicit passing.
+  
+
+**Arguments**
+
+* **`private_key`**: Private key for OpenGradient transactions.
+* **`email`**: Email for Model Hub authentication. Optional.
+* **`password`**: Password for Model Hub authentication. Optional.
+* **`**kwargs`**: Additional arguments forwarded to :class:`Client`.
+
+  
+**Returns**
+
+The newly created :class:`Client` instance.
+
 ## Classes
     
 
