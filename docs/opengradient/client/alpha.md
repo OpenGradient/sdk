@@ -27,6 +27,8 @@ This class provides access to features that are only available on the Alpha Test
 including workflow deployment and execution.
   
 
+#### Methods
+
   
 
 ### New workflow 
@@ -47,6 +49,17 @@ the specified model, evaluate the input query to get data, and perform inference
 The workflow can be set to execute manually or automatically via a scheduler.
   
 
+**Arguments**
+
+* **`model_cid (str)`**: CID of the model to be executed from the Model Hub
+* **`input_query (HistoricalInputQuery)`**: Input definition for the model inference,
+        will be evaluated at runtime for each inference
+* **`input_tensor_name (str)`**: Name of the input tensor expected by the model
+* **`scheduler_params (Optional[SchedulerParams])`**: Scheduler configuration for automated execution:
+        - frequency: Execution frequency in seconds
+        - duration_hours: How long the schedule should live for
+
+  
 **Returns**
 
 str: Deployed contract address. If scheduler_params was provided, the workflow
@@ -74,6 +87,12 @@ Retrieves the specified number of most recent inference results from the contrac
 storage, with the most recent result first.
   
 
+**Arguments**
+
+* **`contract_address (str)`**: Address of the deployed workflow contract
+* **`num_results (int)`**: Number of historical results to retrieve
+
+  
 **Returns**
 
 List[ModelOutput]: List of historical inference results
@@ -92,6 +111,11 @@ def read_workflow_result(self, contract_address: str) ‑> opengradient.types.
 Reads the latest inference result from a deployed workflow contract.
   
 
+**Arguments**
+
+* **`contract_address (str)`**: Address of the deployed workflow contract
+
+  
 **Returns**
 
 ModelOutput: The inference result from the contract
@@ -116,6 +140,11 @@ def run_workflow(self, contract_address: str) ‑> opengradient.types.ModelOut
 Triggers the run() function on a deployed workflow contract and returns the result.
   
 
+**Arguments**
+
+* **`contract_address (str)`**: Address of the deployed workflow contract
+
+  
 **Returns**
 
 ModelOutput: The inference result from the contract

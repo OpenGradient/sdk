@@ -25,6 +25,8 @@ Provides access to large language model completions and chat via TEE
 Supports both streaming and non-streaming responses.
   
 
+#### Methods
+
   
 
 ### Chat 
@@ -39,6 +41,23 @@ def chat(self, model: opengradient.types.TEE_LLM, messages: List[Dict], max_to
 Perform inference on an LLM model using chat via TEE.
   
 
+**Arguments**
+
+* **`model (TEE_LLM)`**: The model to use (e.g., TEE_LLM.CLAUDE_3_5_HAIKU).
+* **`messages (List[Dict])`**: The messages that will be passed into the chat.
+* **`max_tokens (int)`**: Maximum number of tokens for LLM output. Default is 100.
+* **`stop_sequence (List[str], optional)`**: List of stop sequences for LLM.
+* **`temperature (float)`**: Temperature for LLM inference, between 0 and 1.
+* **`tools (List[dict], optional)`**: Set of tools for function calling.
+* **`tool_choice (str, optional)`**: Sets a specific tool to choose.
+* **`x402_settlement_mode (x402SettlementMode, optional)`**: Settlement mode for x402 payments.
+        - SETTLE: Records input/output hashes only (most privacy-preserving).
+        - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
+        - SETTLE_METADATA: Records full model info, complete input/output data, and all metadata.
+        Defaults to SETTLE_BATCH.
+* **`stream (bool, optional)`**: Whether to stream the response. Default is False.
+
+  
 **Returns**
 
 Union[TextGenerationOutput, TextGenerationStream]:
@@ -64,6 +83,20 @@ def completion(self, model: opengradient.types.TEE_LLM, prompt: str, max_token
 Perform inference on an LLM model using completions via TEE.
   
 
+**Arguments**
+
+* **`model (TEE_LLM)`**: The model to use (e.g., TEE_LLM.CLAUDE_3_5_HAIKU).
+* **`prompt (str)`**: The input prompt for the LLM.
+* **`max_tokens (int)`**: Maximum number of tokens for LLM output. Default is 100.
+* **`stop_sequence (List[str], optional)`**: List of stop sequences for LLM. Default is None.
+* **`temperature (float)`**: Temperature for LLM inference, between 0 and 1. Default is 0.0.
+* **`x402_settlement_mode (x402SettlementMode, optional)`**: Settlement mode for x402 payments.
+        - SETTLE: Records input/output hashes only (most privacy-preserving).
+        - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
+        - SETTLE_METADATA: Records full model info, complete input/output data, and all metadata.
+        Defaults to SETTLE_BATCH.
+
+  
 **Returns**
 
 TextGenerationOutput: Generated text results including:

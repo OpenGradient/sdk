@@ -24,6 +24,8 @@ Provides access to decentralized ONNX model inference via blockchain smart contr
 Supports multiple inference modes including VANILLA, TEE, and ZKML.
   
 
+#### Methods
+
   
 
 ### Infer 
@@ -38,6 +40,14 @@ def infer(self, model_cid: str, inference_mode: opengradient.types.InferenceMo
 Perform inference on a model.
   
 
+**Arguments**
+
+* **`model_cid (str)`**: The unique content identifier for the model from IPFS.
+* **`inference_mode (InferenceMode)`**: The inference mode.
+* **`model_input (Dict[str, Union[str, int, float, List, np.ndarray]])`**: The input data for the model.
+* **`max_retries (int, optional)`**: Maximum number of retry attempts. Defaults to 5.
+
+  
 **Returns**
 
 InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.

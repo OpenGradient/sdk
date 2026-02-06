@@ -50,3 +50,10 @@ def read_workflow_wrapper(alpha: opengradient.client.alpha.Alpha, contract_addr
 
   
 Wrapper function for reading from models through workflows.
+  
+
+**Arguments**
+
+* **`alpha (Alpha)`**: The alpha namespace from an initialized OpenGradient client (client.alpha).
+* **`contract_address (str)`**: Smart contract address of the workflow
+* **`format_function (Callable)`**: Function for formatting the result returned by read_workflow

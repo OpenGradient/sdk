@@ -77,7 +77,7 @@ outline: [2,3]
     Break down Google-style docstring format.
     """
     def get_terms(body):
-      breakdown = re.compile(r'\n+\s+(\S+):\s+', re.MULTILINE).split('\n' + body)
+      breakdown = re.compile(r'\n+\s+(\w+(?:\s*\([^)]*\))?):\s+', re.MULTILINE).split('\n' + body)
 
       # first match is blank (or could be section name if it was still there)
       return list(map(lambda x: textwrap.dedent(x), breakdown[1:]))
@@ -276,11 +276,11 @@ ${header('Subclasses', 4)}
       % endfor
     % endif
     % if smethods:
-## ${header('Static methods', 4)}
+${header('Static methods', 4)}
 ${show_funcs(smethods, 'static')}
     % endif
     % if methods:
-## ${header('Methods', 4)}
+${header('Methods', 4)}
 ${show_funcs(methods)}
     % endif
     % if class_vars or inst_vars:

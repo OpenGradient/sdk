@@ -21,6 +21,8 @@ OpenGradient Specific Types
 Abi(functions: List[opengradient.types.AbiFunction])
   
 
+#### Static methods
+
   
 
 ### From json 
@@ -147,6 +149,8 @@ FileUploadResult(modelCid: str, size: int)
   
 HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: opengradient.types.CandleOrder, candle_types: List[opengradient.types.CandleType])
   
+
+#### Methods
 
   
 
@@ -416,6 +420,8 @@ A container for numeric tensor data used as input for ONNX models.
 SchedulerParams(frequency: int, duration_hours: int)
   
 
+#### Static methods
+
   
 
 ### From dict 
@@ -496,6 +502,8 @@ usage information.
 * **`usage`**: Token usage information (only in final chunk)
 * **`is_final`**: Whether this is the final chunk (before [DONE])
   
+
+#### Static methods
 
   
 

@@ -112,7 +112,7 @@ and stores it as the global client for convenience.
 * **`private_key`**: Private key for OpenGradient transactions.
 * **`email`**: Email for Model Hub authentication. Optional.
 * **`password`**: Password for Model Hub authentication. Optional.
-* **`**kwargs`**: Additional arguments forwarded to `Client`.
+    **kwargs: Additional arguments forwarded to `Client`.
 
   
 **Returns**

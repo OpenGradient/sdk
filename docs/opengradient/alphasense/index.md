@@ -28,6 +28,24 @@ or a Swarm system, allowing the workflow results to be retrieved and formatted a
 of a chain of operations.
   
 
+**Arguments**
+
+* **`tool_type (ToolType)`**: Specifies the framework to create the tool for. Use
+        ToolType.LANGCHAIN for LangChain integration or ToolType.SWARM for Swarm
+        integration.
+* **`workflow_contract_address (str)`**: The address of the workflow contract from which
+        to read results.
+* **`tool_name (str)`**: The name to assign to the created tool. This will be used to
+        identify and invoke the tool within the agent.
+* **`tool_description (str)`**: A description of what the tool does and how it processes
+        the workflow results.
+* **`alpha (Alpha, optional)`**: The alpha namespace from an initialized OpenGradient client
+        (client.alpha). If not provided, falls back to the global client set via ``opengradient.init()``.
+* **`output_formatter (Callable[..., str], optional)`**: A function that takes the workflow output
+        and formats it into a string. This ensures the output is compatible with
+        the tool framework. Default returns string as is.
+
+  
 **Returns**
 
 BaseTool: For ToolType.LANGCHAIN, returns a LangChain StructuredTool.
@@ -58,6 +76,46 @@ The tool uses the provided input_getter function to obtain the necessary input d
 runs inference using the specified OpenGradient model.
   
 
+**Arguments**
+
+* **`tool_type (ToolType)`**: Specifies the framework to create the tool for. Use
+        ToolType.LANGCHAIN for LangChain integration or ToolType.SWARM for Swarm
+        integration.
+* **`model_cid (str)`**: The CID of the OpenGradient model to be executed.
+* **`tool_name (str)`**: The name to assign to the created tool. This will be used to identify
+        and invoke the tool within the agent.
+* **`model_input_provider (Callable)`**: A function that takes in the tool_input_schema with arguments
+        filled by the agent and returns input data required by the model.
+
+        The function should return data in a format compatible with the model's expectations.
+* **`model_output_formatter (Callable[..., str])`**: A function that takes the output of
+        the OpenGradient infer method (with type InferenceResult) and formats it into a string.
+
+        This is required to ensure the output is compatible with the tool framework.
+
+        Default returns the InferenceResult object.
+
+        InferenceResult has attributes:
+            * transaction_hash (str): Blockchain hash for the transaction
+            * model_output (Dict[str, np.ndarray]): Output of the ONNX model
+* **`inference (Inference, optional)`**: The inference namespace from an initialized OpenGradient client
+        (client.inference). If not provided, falls back to the global client set via ``opengradient.init()``.
+* **`tool_input_schema (Type[BaseModel], optional)`**: A Pydantic BaseModel class defining the
+        input schema.
+
+        For LangChain tools the schema will be used directly. The defined schema will be used as
+        input keyword arguments for the `model_input_provider` function. If no arguments are required
+        for the `model_input_provider` function then this schema can be unspecified.
+
+        For Swarm tools the schema will be converted to appropriate annotations.
+
+        Default is None -- an empty schema will be provided for LangChain.
+* **`tool_description (str, optional)`**: A description of what the tool does. Defaults to
+        "Executes the given ML model".
+* **`inference_mode (InferenceMode, optional)`**: The inference mode to use when running
+        the model. Defaults to VANILLA.
+
+  
 **Returns**
 
 BaseTool: For ToolType.LANGCHAIN, returns a LangChain StructuredTool.
