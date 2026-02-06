@@ -74,6 +74,30 @@ print(f"Response: {completion.chat_output['content']}")
 print(f"Tx hash: {completion.transaction_hash}")
 ```
 
+#### Verifiable LangChain Agent
+
+Use OpenGradient as a drop-in LLM for LangChain agents - every decision and reasoning is verified through the OpenGradient network:
+
+```python
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+import opengradient as og
+
+llm = og.agents.langchain_adapter(
+    private_key=os.environ.get("OG_PRIVATE_KEY"),
+    model_cid=og.TEE_LLM.GPT_4O,
+)
+
+@tool
+def get_weather(city: str) -> str:
+    """Returns the current weather for a city."""
+    return f"Sunny, 72°F in {city}"
+
+agent = create_react_agent(llm, [get_weather])
+result = agent.invoke({"messages": [("user", "What's the weather in San Francisco?")]})
+print(result["messages"][-1].content)
+```
+
 **Available TEE Models:**
 The SDK includes models from multiple providers accessible via the `og.TEE_LLM` enum:
 - **OpenAI**: GPT-4.1, GPT-4o, o4-mini
