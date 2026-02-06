@@ -22,7 +22,7 @@ from langchain_core.tools import BaseTool
 from pydantic import PrivateAttr
 
 from ..client import Client
-from ..types import TEE_LLM
+from ..types import TEE_LLM, x402SettlementMode
 
 __all__ = ["OpenGradientChatModel"]
 
@@ -71,12 +71,25 @@ class OpenGradientChatModel(BaseChatModel):
 
     model_cid: str
     max_tokens: int = 300
+    x402_settlement_mode: Optional[str] = x402SettlementMode.SETTLE_BATCH
 
     _client: Client = PrivateAttr()
     _tools: List[Dict] = PrivateAttr(default_factory=list)
 
-    def __init__(self, private_key: str, model_cid: TEE_LLM, max_tokens: int = 300, **kwargs):
-        super().__init__(model_cid=model_cid, max_tokens=max_tokens, **kwargs)
+    def __init__(
+        self,
+        private_key: str,
+        model_cid: TEE_LLM,
+        max_tokens: int = 300,
+        x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
+        **kwargs,
+    ):
+        super().__init__(
+            model_cid=model_cid,
+            max_tokens=max_tokens,
+            x402_settlement_mode=x402_settlement_mode,
+            **kwargs,
+        )
         self._client = Client(private_key=private_key)
 
     @property
@@ -156,6 +169,7 @@ class OpenGradientChatModel(BaseChatModel):
             stop_sequence=stop,
             max_tokens=self.max_tokens,
             tools=self._tools,
+            x402_settlement_mode=self.x402_settlement_mode,
         )
 
         finish_reason = chat_output.finish_reason or ""

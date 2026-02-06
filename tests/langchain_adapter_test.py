@@ -11,7 +11,7 @@ from langchain_core.tools import tool
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.opengradient.agents.og_langchain import OpenGradientChatModel, _extract_content, _parse_tool_call
-from src.opengradient.types import TEE_LLM, TextGenerationOutput
+from src.opengradient.types import TEE_LLM, TextGenerationOutput, x402SettlementMode
 
 
 @pytest.fixture
@@ -34,12 +34,22 @@ class TestOpenGradientChatModel:
         """Test model initializes with correct fields."""
         assert model.model_cid == TEE_LLM.GPT_4O
         assert model.max_tokens == 300
+        assert model.x402_settlement_mode == x402SettlementMode.SETTLE_BATCH
         assert model._llm_type == "opengradient"
 
     def test_initialization_custom_max_tokens(self, mock_client):
         """Test model initializes with custom max_tokens."""
         model = OpenGradientChatModel(private_key="0x" + "a" * 64, model_cid=TEE_LLM.CLAUDE_3_5_HAIKU, max_tokens=1000)
         assert model.max_tokens == 1000
+
+    def test_initialization_custom_settlement_mode(self, mock_client):
+        """Test model initializes with custom settlement mode."""
+        model = OpenGradientChatModel(
+            private_key="0x" + "a" * 64,
+            model_cid=TEE_LLM.GPT_4O,
+            x402_settlement_mode=x402SettlementMode.SETTLE,
+        )
+        assert model.x402_settlement_mode == x402SettlementMode.SETTLE
 
     def test_identifying_params(self, model):
         """Test _identifying_params returns model name."""
@@ -205,6 +215,7 @@ class TestMessageConversion:
             stop_sequence=["END"],
             max_tokens=300,
             tools=[],
+            x402_settlement_mode=x402SettlementMode.SETTLE_BATCH,
         )
 
 
