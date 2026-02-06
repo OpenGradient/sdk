@@ -173,9 +173,9 @@ opengradient infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ \
 
 1. **Off-chain Applications**: Use OpenGradient as a decentralized alternative to centralized AI providers like HuggingFace and OpenAI.
 
-2. **Verifiable AI Execution**: Leverage TEE inference for cryptographically attested AI outputs, enabling trustless AI applications.
+2. **Verifiable AI Execution**: Leverage TEE inference for cryptographically attested AI outputs, enabling trustless AI applications and agents.
 
-3. **Model Development**: Manage models on the Model Hub and integrate directly into your development workflow.
+3. **Model Hosting**: Manage, hosy and execute models on the Model Hub and integrate directly into your development workflow.
 
 ## Documentation
 
