@@ -71,6 +71,5 @@ __pdoc__ = {
     "defaults": False,
     "agents": True,
     "alphasense": True,
-    "proto": False,
-    "types": False,
+    "types": True,
 }

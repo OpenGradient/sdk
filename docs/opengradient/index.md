@@ -10,8 +10,10 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 ## Submodules
 
+* [**agents**](./agents): OpenGradient LLM Adapters
 * [**alphasense**](./alphasense): OpenGradient AlphaSense Tools
-* [**llm**](./llm): OpenGradient LLM Adapters
+* [**client**](./client): 
+* [**types**](./types): 
 * [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
 
 ## Functions
@@ -28,9 +30,6 @@ def init(private_key: str, email: Optional[str] = None, password: Optional[
 
   
 Initialize the global OpenGradient client.
-
-This creates a :class:`Client` and stores it as ``opengradient.client``
-so that tools and other SDK helpers can use it without explicit passing.
   
 
 **Arguments**
@@ -44,6 +43,12 @@ so that tools and other SDK helpers can use it without explicit passing.
 **Returns**
 
 The newly created :class:`Client` instance.
+
+## Global variables
+
+  
+    
+* `global_client  : Optional[opengradient.client.client.Client]` - Global client instance. Set by calling :func:`init`.
 
 ## Classes
     
@@ -144,7 +149,7 @@ Initialize the OpenGradient client.
 
 ###  HistoricalInputQuery
 
-<code>class <b>HistoricalInputQuery</b>(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: [CandleOrder](docs/types.md#CandleOrder), candle_types: List[[CandleType](docs/types.md#CandleType)])</code>
+<code>class <b>HistoricalInputQuery</b>(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: `CandleOrder`, candle_types: List[`CandleType`])</code>
 
   
 

@@ -34,6 +34,8 @@ outline: [2,3]
 
     # dobj.module is None so pull module name from qualname
     parts = dobj.qualname.split('.')
+    if len(parts) < 2:
+      return '`{}`'.format(parts[0])
     app = parts[0]
     module = parts[1]
     if len(parts) > 2:
