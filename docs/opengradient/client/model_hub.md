@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient.client.model_hub
 
+Model Hub for creating, versioning, and uploading ML models.
+
 ## Classes
     
 

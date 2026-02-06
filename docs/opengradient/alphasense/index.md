@@ -86,6 +86,6 @@ Indicates the framework the tool is compatible with.
 
   
     
-* static `LANGCHAIN` - The type of the None singleton.
+* static `LANGCHAIN`
     
-* static `SWARM` - The type of the None singleton.
+* static `SWARM`

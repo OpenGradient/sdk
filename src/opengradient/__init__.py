@@ -1,5 +1,75 @@
 """
-OpenGradient Python SDK for interacting with AI models and infrastructure.
+OpenGradient Python SDK for decentralized AI inference with end-to-end verification.
+
+## Overview
+
+The OpenGradient SDK provides programmatic access to decentralized AI infrastructure, including:
+
+- **LLM Inference** -- Chat and completion with major LLM providers (OpenAI, Anthropic, Google, xAI) through TEE-verified execution
+- **On-chain Model Inference** -- Run ONNX models via blockchain smart contracts with VANILLA, TEE, or ZKML verification
+- **Model Hub** -- Create, version, and upload ML models to the OpenGradient Model Hub
+
+All LLM inference runs inside Trusted Execution Environments (TEEs) and settles on-chain via the x402 payment protocol, giving you cryptographic proof that inference was performed correctly.
+
+## Quick Start
+
+```python
+import opengradient as og
+
+# Initialize the client
+client = og.init(private_key="0x...")
+
+# Chat with an LLM (TEE-verified)
+response = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
+    messages=[{"role": "user", "content": "Hello!"}],
+    max_tokens=200,
+)
+print(response.chat_output)
+
+# Stream a response
+for chunk in client.llm.chat(
+    model=og.TEE_LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Explain TEE in one paragraph."}],
+    max_tokens=300,
+    stream=True,
+):
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+
+# Run on-chain ONNX model inference
+result = client.inference.infer(
+    model_cid="your_model_cid",
+    inference_mode=og.InferenceMode.VANILLA,
+    model_input={"input": [1.0, 2.0, 3.0]},
+)
+print(result.model_output)
+```
+
+## Client Namespaces
+
+The `Client` object exposes three namespaces:
+
+- **`client.llm`** -- LLM chat and completion (see `client.llm`)
+- **`client.inference`** -- On-chain ONNX model inference (see `client.inference`)
+- **`client.model_hub`** -- Model repository management (see `client.model_hub`)
+
+## Model Hub (requires email auth)
+
+```python
+client = og.init(
+    private_key="0x...",
+    email="you@example.com",
+    password="...",
+)
+
+repo = client.model_hub.create_model("my-model", "A price prediction model")
+client.model_hub.upload("model.onnx", repo.name, repo.initialVersion)
+```
+
+## Framework Integrations
+
+The SDK includes adapters for popular AI frameworks -- see the `agents` submodule for LangChain and OpenAI integration.
 """
 
 from typing import Optional
@@ -24,7 +94,7 @@ from .types import (
 )
 
 global_client: Optional[Client] = None
-"""Global client instance. Set by calling :func:`init`."""
+"""Global client instance. Set by calling `init()`."""
 
 
 def init(
@@ -35,14 +105,22 @@ def init(
 ) -> Client:
     """Initialize the global OpenGradient client.
 
+    This is the recommended way to get started. It creates a `Client` instance
+    and stores it as the global client for convenience.
+
     Args:
         private_key: Private key for OpenGradient transactions.
         email: Email for Model Hub authentication. Optional.
         password: Password for Model Hub authentication. Optional.
-        **kwargs: Additional arguments forwarded to :class:`Client`.
+        **kwargs: Additional arguments forwarded to `Client`.
 
     Returns:
-        The newly created :class:`Client` instance.
+        The newly created `Client` instance.
+
+    Usage:
+        import opengradient as og
+        client = og.init(private_key="0x...")
+        response = client.llm.chat(model=og.TEE_LLM.GPT_4O, messages=[...])
     """
     global global_client
     global_client = Client(private_key=private_key, email=email, password=password, **kwargs)
@@ -72,4 +150,10 @@ __pdoc__ = {
     "agents": True,
     "alphasense": True,
     "types": True,
+    # Hide niche types from the top-level page -- they are documented under the types submodule
+    "CandleOrder": False,
+    "CandleType": False,
+    "HistoricalInputQuery": False,
+    "SchedulerParams": False,
+    "global_client": False,
 }

@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient.client.exceptions
 
+Exception types for OpenGradient SDK errors.
+
 ## Classes
     
 

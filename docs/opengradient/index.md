@@ -8,13 +8,83 @@ outline: [2,3]
 
 **Version: 0.6.0**
 
-OpenGradient Python SDK for interacting with AI models and infrastructure.
+OpenGradient Python SDK for decentralized AI inference with end-to-end verification.
+
+## Overview
+
+The OpenGradient SDK provides programmatic access to decentralized AI infrastructure, including:
+
+- **LLM Inference** -- Chat and completion with major LLM providers (OpenAI, Anthropic, Google, xAI) through TEE-verified execution
+- **On-chain Model Inference** -- Run ONNX models via blockchain smart contracts with VANILLA, TEE, or ZKML verification
+- **Model Hub** -- Create, version, and upload ML models to the OpenGradient Model Hub
+
+All LLM inference runs inside Trusted Execution Environments (TEEs) and settles on-chain via the x402 payment protocol, giving you cryptographic proof that inference was performed correctly.
+
+## Quick Start
+
+```python
+import opengradient as og
+
+# Initialize the client
+client = og.init(private_key="0x...")
+
+# Chat with an LLM (TEE-verified)
+response = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
+    messages=[{"role": "user", "content": "Hello!"}],
+    max_tokens=200,
+)
+print(response.chat_output)
+
+# Stream a response
+for chunk in client.llm.chat(
+    model=og.TEE_LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Explain TEE in one paragraph."}],
+    max_tokens=300,
+    stream=True,
+):
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+
+# Run on-chain ONNX model inference
+result = client.inference.infer(
+    model_cid="your_model_cid",
+    inference_mode=og.InferenceMode.VANILLA,
+    model_input={"input": [1.0, 2.0, 3.0]},
+)
+print(result.model_output)
+```
+
+## Client Namespaces
+
+The `Client` object exposes three namespaces:
+
+- **`client.llm`** -- LLM chat and completion (see `client.llm`)
+- **`client.inference`** -- On-chain ONNX model inference (see `client.inference`)
+- **`client.model_hub`** -- Model repository management (see `client.model_hub`)
+
+## Model Hub (requires email auth)
+
+```python
+client = og.init(
+    private_key="0x...",
+    email="you@example.com",
+    password="...",
+)
+
+repo = client.model_hub.create_model("my-model", "A price prediction model")
+client.model_hub.upload("model.onnx", repo.name, repo.initialVersion)
+```
+
+## Framework Integrations
+
+The SDK includes adapters for popular AI frameworks -- see the `agents` submodule for LangChain and OpenAI integration.
 
 ## Submodules
 
 * [**agents**](./agents/index): OpenGradient Agent Framework Adapters
 * [**alphasense**](./alphasense/index): OpenGradient AlphaSense Tools
-* [**client**](./client/index): OpenGradient Client
+* [**client**](./client/index): OpenGradient Client -- the central entry point to all SDK services.
 * [**types**](./types): OpenGradient Specific Types
 * [**workflow_models**](./workflow_models/index): OpenGradient Hardcoded Models
 
@@ -32,6 +102,9 @@ def init(private_key: str, email: Optional[str] = None, password: Optional[
 
   
 Initialize the global OpenGradient client.
+
+This is the recommended way to get started. It creates a `Client` instance
+and stores it as the global client for convenience.
   
 
 **Arguments**
@@ -39,68 +112,14 @@ Initialize the global OpenGradient client.
 * **`private_key`**: Private key for OpenGradient transactions.
 * **`email`**: Email for Model Hub authentication. Optional.
 * **`password`**: Password for Model Hub authentication. Optional.
-* **`**kwargs`**: Additional arguments forwarded to :class:`Client`.
+* **`**kwargs`**: Additional arguments forwarded to `Client`.
 
   
 **Returns**
 
-The newly created :class:`Client` instance.
-
-## Global variables
-
-  
-    
-* `global_client  : Optional[opengradient.client.client.Client]` - Global client instance. Set by calling :func:`init`.
+The newly created `Client` instance.
 
 ## Classes
-    
-
-###  CandleOrder
-
-<code>class <b>CandleOrder</b>(*args, **kwds)</code>
-
-  
-
-  
-Enum where members are also (and must be) ints
-  
-
-#### Variables
-
-  
-    
-* static `ASCENDING` - The type of the None singleton.
-    
-* static `DESCENDING` - The type of the None singleton.
-
-      
-    
-
-###  CandleType
-
-<code>class <b>CandleType</b>(*args, **kwds)</code>
-
-  
-
-  
-Enum where members are also (and must be) ints
-  
-
-#### Variables
-
-  
-    
-* static `CLOSE` - The type of the None singleton.
-    
-* static `HIGH` - The type of the None singleton.
-    
-* static `LOW` - The type of the None singleton.
-    
-* static `OPEN` - The type of the None singleton.
-    
-* static `VOLUME` - The type of the None singleton.
-
-      
     
 
 ###  Client
@@ -133,11 +152,11 @@ blockchain private key and optional Model Hub credentials.
 
   
     
-* static `inference  : opengradient.client.onchain_inference.Inference` - The type of the None singleton.
+* static `inference  : opengradient.client.onchain_inference.Inference`
     
-* static `llm  : opengradient.client.llm.LLM` - The type of the None singleton.
+* static `llm  : opengradient.client.llm.LLM`
     
-* static `model_hub  : opengradient.client.model_hub.ModelHub` - The type of the None singleton.
+* static `model_hub  : opengradient.client.model_hub.ModelHub`
 
   
     
@@ -149,49 +168,6 @@ blockchain private key and optional Model Hub credentials.
   Example:
     client = og.Client(...)
     result = client.alpha.new_workflow(model_cid, input_query, input_tensor_name)
-
-      
-    
-
-###  HistoricalInputQuery
-
-<code>class <b>HistoricalInputQuery</b>(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: `CandleOrder`, candle_types: List[`CandleType`])</code>
-
-  
-
-  
-HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: opengradient.types.CandleOrder, candle_types: List[opengradient.types.CandleType])
-  
-
-  
-
-### To abi format 
-
-```python
-def to_abi_format(self) ‑> tuple
-```
-
-  
-
-  
-Convert to format expected by contract ABI
-  
-
-#### Variables
-
-  
-    
-* static `base  : str` - The type of the None singleton.
-    
-* static `candle_duration_in_mins  : int` - The type of the None singleton.
-    
-* static `candle_types  : List[opengradient.types.CandleType]` - The type of the None singleton.
-    
-* static `order  : opengradient.types.CandleOrder` - The type of the None singleton.
-    
-* static `quote  : str` - The type of the None singleton.
-    
-* static `total_candles  : int` - The type of the None singleton.
 
       
     
@@ -210,11 +186,11 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
 
   
     
-* static `TEE` - The type of the None singleton.
+* static `TEE`
     
-* static `VANILLA` - The type of the None singleton.
+* static `VANILLA`
     
-* static `ZKML` - The type of the None singleton.
+* static `ZKML`
 
       
     
@@ -241,76 +217,37 @@ Trusted Execution Environment (TEE) verified inference.
 
   
     
-* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU`
     
-* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
+* static `CLAUDE_3_7_SONNET`
     
-* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
+* static `CLAUDE_4_0_SONNET`
     
-* static `GEMINI_2_0_FLASH` - The type of the None singleton.
+* static `GEMINI_2_0_FLASH`
     
-* static `GEMINI_2_5_FLASH` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH`
     
-* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH_LITE`
     
-* static `GEMINI_2_5_PRO` - The type of the None singleton.
+* static `GEMINI_2_5_PRO`
     
-* static `GPT_4O` - The type of the None singleton.
+* static `GPT_4O`
     
-* static `GPT_4_1_2025_04_14` - The type of the None singleton.
+* static `GPT_4_1_2025_04_14`
     
-* static `GROK_2_1212` - The type of the None singleton.
+* static `GROK_2_1212`
     
-* static `GROK_2_VISION_LATEST` - The type of the None singleton.
+* static `GROK_2_VISION_LATEST`
     
-* static `GROK_3_BETA` - The type of the None singleton.
+* static `GROK_3_BETA`
     
-* static `GROK_3_MINI_BETA` - The type of the None singleton.
+* static `GROK_3_MINI_BETA`
     
-* static `GROK_4_1_FAST` - The type of the None singleton.
+* static `GROK_4_1_FAST`
     
-* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
+* static `GROK_4_1_FAST_NON_REASONING`
     
-* static `O4_MINI` - The type of the None singleton.
-
-      
-    
-
-###  SchedulerParams
-
-<code>class <b>SchedulerParams</b>(frequency: int, duration_hours: int)</code>
-
-  
-
-  
-SchedulerParams(frequency: int, duration_hours: int)
-  
-
-  
-
-### From dict 
-
-```python
-def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.types.SchedulerParams]
-```
-
-  
-
-  
-
-  
-
-#### Variables
-
-  
-    
-* static `duration_hours  : int` - The type of the None singleton.
-    
-* static `frequency  : int` - The type of the None singleton.
-
-  
-    
-* `end_time  : int`
+* static `O4_MINI`
 
       
     
@@ -338,34 +275,34 @@ indicates support for TEE execution.
 
   
     
-* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU`
     
-* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
+* static `CLAUDE_3_7_SONNET`
     
-* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
+* static `CLAUDE_4_0_SONNET`
     
-* static `GEMINI_2_0_FLASH` - The type of the None singleton.
+* static `GEMINI_2_0_FLASH`
     
-* static `GEMINI_2_5_FLASH` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH`
     
-* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH_LITE`
     
-* static `GEMINI_2_5_PRO` - The type of the None singleton.
+* static `GEMINI_2_5_PRO`
     
-* static `GPT_4O` - The type of the None singleton.
+* static `GPT_4O`
     
-* static `GPT_4_1_2025_04_14` - The type of the None singleton.
+* static `GPT_4_1_2025_04_14`
     
-* static `GROK_2_1212` - The type of the None singleton.
+* static `GROK_2_1212`
     
-* static `GROK_2_VISION_LATEST` - The type of the None singleton.
+* static `GROK_2_VISION_LATEST`
     
-* static `GROK_3_BETA` - The type of the None singleton.
+* static `GROK_3_BETA`
     
-* static `GROK_3_MINI_BETA` - The type of the None singleton.
+* static `GROK_3_MINI_BETA`
     
-* static `GROK_4_1_FAST` - The type of the None singleton.
+* static `GROK_4_1_FAST`
     
-* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
+* static `GROK_4_1_FAST_NON_REASONING`
     
-* static `O4_MINI` - The type of the None singleton.
+* static `O4_MINI`

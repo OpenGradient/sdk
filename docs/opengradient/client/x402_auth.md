@@ -59,4 +59,4 @@ Handle authentication flow for x402 payment protocol.
 
   
     
-* static `requires_response_body` - The type of the None singleton.
+* static `requires_response_body`

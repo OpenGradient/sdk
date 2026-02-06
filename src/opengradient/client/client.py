@@ -1,3 +1,4 @@
+"""Main Client class that unifies all OpenGradient service namespaces."""
 from typing import Optional
 
 from web3 import Web3

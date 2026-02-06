@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient.client.onchain_inference
 
+On-chain ONNX model inference via blockchain smart contracts.
+
 ## Classes
     
 

@@ -39,7 +39,7 @@ def from_json(abi_json)
 
   
     
-* static `functions  : List[opengradient.types.AbiFunction]` - The type of the None singleton.
+* static `functions  : List[opengradient.types.AbiFunction]`
 
       
     
@@ -58,13 +58,13 @@ AbiFunction(name: str, inputs: List[Union[str, ForwardRef('AbiFunction')]], outp
 
   
     
-* static `inputs  : List[Union[str, opengradient.types.AbiFunction]]` - The type of the None singleton.
+* static `inputs  : List[Union[str, opengradient.types.AbiFunction]]`
     
-* static `name  : str` - The type of the None singleton.
+* static `name  : str`
     
-* static `outputs  : List[Union[str, opengradient.types.AbiFunction]]` - The type of the None singleton.
+* static `outputs  : List[Union[str, opengradient.types.AbiFunction]]`
     
-* static `state_mutability  : str` - The type of the None singleton.
+* static `state_mutability  : str`
 
       
     
@@ -83,9 +83,9 @@ Enum where members are also (and must be) ints
 
   
     
-* static `ASCENDING` - The type of the None singleton.
+* static `ASCENDING`
     
-* static `DESCENDING` - The type of the None singleton.
+* static `DESCENDING`
 
       
     
@@ -104,15 +104,15 @@ Enum where members are also (and must be) ints
 
   
     
-* static `CLOSE` - The type of the None singleton.
+* static `CLOSE`
     
-* static `HIGH` - The type of the None singleton.
+* static `HIGH`
     
-* static `LOW` - The type of the None singleton.
+* static `LOW`
     
-* static `OPEN` - The type of the None singleton.
+* static `OPEN`
     
-* static `VOLUME` - The type of the None singleton.
+* static `VOLUME`
 
       
     
@@ -131,9 +131,9 @@ FileUploadResult(modelCid: str, size: int)
 
   
     
-* static `modelCid  : str` - The type of the None singleton.
+* static `modelCid  : str`
     
-* static `size  : int` - The type of the None singleton.
+* static `size  : int`
 
       
     
@@ -166,17 +166,17 @@ Convert to format expected by contract ABI
 
   
     
-* static `base  : str` - The type of the None singleton.
+* static `base  : str`
     
-* static `candle_duration_in_mins  : int` - The type of the None singleton.
+* static `candle_duration_in_mins  : int`
     
-* static `candle_types  : List[opengradient.types.CandleType]` - The type of the None singleton.
+* static `candle_types  : List[opengradient.types.CandleType]`
     
-* static `order  : opengradient.types.CandleOrder` - The type of the None singleton.
+* static `order  : opengradient.types.CandleOrder`
     
-* static `quote  : str` - The type of the None singleton.
+* static `quote  : str`
     
-* static `total_candles  : int` - The type of the None singleton.
+* static `total_candles  : int`
 
       
     
@@ -195,11 +195,11 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
 
   
     
-* static `TEE` - The type of the None singleton.
+* static `TEE`
     
-* static `VANILLA` - The type of the None singleton.
+* static `VANILLA`
     
-* static `ZKML` - The type of the None singleton.
+* static `ZKML`
 
       
     
@@ -221,9 +221,9 @@ This class has two fields
 
   
     
-* static `model_output  : Dict[str, numpy.ndarray]` - The type of the None singleton.
+* static `model_output  : Dict[str, numpy.ndarray]`
     
-* static `transaction_hash  : str` - The type of the None singleton.
+* static `transaction_hash  : str`
 
       
     
@@ -250,37 +250,37 @@ Trusted Execution Environment (TEE) verified inference.
 
   
     
-* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU`
     
-* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
+* static `CLAUDE_3_7_SONNET`
     
-* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
+* static `CLAUDE_4_0_SONNET`
     
-* static `GEMINI_2_0_FLASH` - The type of the None singleton.
+* static `GEMINI_2_0_FLASH`
     
-* static `GEMINI_2_5_FLASH` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH`
     
-* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH_LITE`
     
-* static `GEMINI_2_5_PRO` - The type of the None singleton.
+* static `GEMINI_2_5_PRO`
     
-* static `GPT_4O` - The type of the None singleton.
+* static `GPT_4O`
     
-* static `GPT_4_1_2025_04_14` - The type of the None singleton.
+* static `GPT_4_1_2025_04_14`
     
-* static `GROK_2_1212` - The type of the None singleton.
+* static `GROK_2_1212`
     
-* static `GROK_2_VISION_LATEST` - The type of the None singleton.
+* static `GROK_2_VISION_LATEST`
     
-* static `GROK_3_BETA` - The type of the None singleton.
+* static `GROK_3_BETA`
     
-* static `GROK_3_MINI_BETA` - The type of the None singleton.
+* static `GROK_3_MINI_BETA`
     
-* static `GROK_4_1_FAST` - The type of the None singleton.
+* static `GROK_4_1_FAST`
     
-* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
+* static `GROK_4_1_FAST_NON_REASONING`
     
-* static `O4_MINI` - The type of the None singleton.
+* static `O4_MINI`
 
       
     
@@ -305,9 +305,9 @@ A collection of tensor inputs required for ONNX model inference.
 
   
     
-* static `numbers  : List[opengradient.types.NumberTensor]` - The type of the None singleton.
+* static `numbers  : List[opengradient.types.NumberTensor]`
     
-* static `strings  : List[opengradient.types.StringTensor]` - The type of the None singleton.
+* static `strings  : List[opengradient.types.StringTensor]`
 
       
     
@@ -326,13 +326,13 @@ Model output struct based on translations from smart contract.
 
   
     
-* static `is_simulation_result  : bool` - The type of the None singleton.
+* static `is_simulation_result  : bool`
     
-* static `jsons  : Dict[str, numpy.ndarray]` - The type of the None singleton.
+* static `jsons  : Dict[str, numpy.ndarray]`
     
-* static `numbers  : Dict[str, numpy.ndarray]` - The type of the None singleton.
+* static `numbers  : Dict[str, numpy.ndarray]`
     
-* static `strings  : Dict[str, numpy.ndarray]` - The type of the None singleton.
+* static `strings  : Dict[str, numpy.ndarray]`
 
       
     
@@ -351,9 +351,9 @@ ModelRepository(name: str, initialVersion: str)
 
   
     
-* static `initialVersion  : str` - The type of the None singleton.
+* static `initialVersion  : str`
     
-* static `name  : str` - The type of the None singleton.
+* static `name  : str`
 
       
     
@@ -372,9 +372,9 @@ Number(value: int, decimals: int)
 
   
     
-* static `decimals  : int` - The type of the None singleton.
+* static `decimals  : int`
     
-* static `value  : int` - The type of the None singleton.
+* static `value  : int`
 
       
     
@@ -399,9 +399,9 @@ A container for numeric tensor data used as input for ONNX models.
 
   
     
-* static `name  : str` - The type of the None singleton.
+* static `name  : str`
     
-* static `values  : List[Tuple[int, int]]` - The type of the None singleton.
+* static `values  : List[Tuple[int, int]]`
 
       
     
@@ -434,9 +434,9 @@ def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.type
 
   
     
-* static `duration_hours  : int` - The type of the None singleton.
+* static `duration_hours  : int`
     
-* static `frequency  : int` - The type of the None singleton.
+* static `frequency  : int`
 
   
     
@@ -466,11 +466,11 @@ Represents a choice in a streaming response.
 
   
     
-* static `delta  : opengradient.types.StreamDelta` - The type of the None singleton.
+* static `delta  : opengradient.types.StreamDelta`
     
-* static `finish_reason  : Optional[str]` - The type of the None singleton.
+* static `finish_reason  : Optional[str]`
     
-* static `index  : int` - The type of the None singleton.
+* static `index  : int`
 
       
     
@@ -524,13 +524,13 @@ StreamChunk instance
 
   
     
-* static `choices  : List[opengradient.types.StreamChoice]` - The type of the None singleton.
+* static `choices  : List[opengradient.types.StreamChoice]`
     
-* static `is_final  : bool` - The type of the None singleton.
+* static `is_final  : bool`
     
-* static `model  : str` - The type of the None singleton.
+* static `model  : str`
     
-* static `usage  : Optional[opengradient.types.StreamUsage]` - The type of the None singleton.
+* static `usage  : Optional[opengradient.types.StreamUsage]`
 
       
     
@@ -556,11 +556,11 @@ Represents a delta (incremental change) in a streaming response.
 
   
     
-* static `content  : Optional[str]` - The type of the None singleton.
+* static `content  : Optional[str]`
     
-* static `role  : Optional[str]` - The type of the None singleton.
+* static `role  : Optional[str]`
     
-* static `tool_calls  : Optional[List[Dict]]` - The type of the None singleton.
+* static `tool_calls  : Optional[List[Dict]]`
 
       
     
@@ -586,11 +586,11 @@ Token usage information for a streaming response.
 
   
     
-* static `completion_tokens  : int` - The type of the None singleton.
+* static `completion_tokens  : int`
     
-* static `prompt_tokens  : int` - The type of the None singleton.
+* static `prompt_tokens  : int`
     
-* static `total_tokens  : int` - The type of the None singleton.
+* static `total_tokens  : int`
 
       
     
@@ -615,9 +615,9 @@ A container for string tensor data used as input for ONNX models.
 
   
     
-* static `name  : str` - The type of the None singleton.
+* static `name  : str`
     
-* static `values  : List[str]` - The type of the None singleton.
+* static `values  : List[str]`
 
       
     
@@ -645,37 +645,37 @@ indicates support for TEE execution.
 
   
     
-* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU`
     
-* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
+* static `CLAUDE_3_7_SONNET`
     
-* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
+* static `CLAUDE_4_0_SONNET`
     
-* static `GEMINI_2_0_FLASH` - The type of the None singleton.
+* static `GEMINI_2_0_FLASH`
     
-* static `GEMINI_2_5_FLASH` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH`
     
-* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
+* static `GEMINI_2_5_FLASH_LITE`
     
-* static `GEMINI_2_5_PRO` - The type of the None singleton.
+* static `GEMINI_2_5_PRO`
     
-* static `GPT_4O` - The type of the None singleton.
+* static `GPT_4O`
     
-* static `GPT_4_1_2025_04_14` - The type of the None singleton.
+* static `GPT_4_1_2025_04_14`
     
-* static `GROK_2_1212` - The type of the None singleton.
+* static `GROK_2_1212`
     
-* static `GROK_2_VISION_LATEST` - The type of the None singleton.
+* static `GROK_2_VISION_LATEST`
     
-* static `GROK_3_BETA` - The type of the None singleton.
+* static `GROK_3_BETA`
     
-* static `GROK_3_MINI_BETA` - The type of the None singleton.
+* static `GROK_3_MINI_BETA`
     
-* static `GROK_4_1_FAST` - The type of the None singleton.
+* static `GROK_4_1_FAST`
     
-* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
+* static `GROK_4_1_FAST_NON_REASONING`
     
-* static `O4_MINI` - The type of the None singleton.
+* static `O4_MINI`
 
       
     
@@ -765,12 +765,12 @@ privacy, and transaction costs.
 
   
     
-* static `SETTLE` - The type of the None singleton.
+* static `SETTLE`
     
-* static `SETTLE_BATCH` - The type of the None singleton.
+* static `SETTLE_BATCH`
     
-* static `SETTLE_INDIVIDUAL` - The type of the None singleton.
+* static `SETTLE_INDIVIDUAL`
     
-* static `SETTLE_INDIVIDUAL_WITH_METADATA` - The type of the None singleton.
+* static `SETTLE_INDIVIDUAL_WITH_METADATA`
     
-* static `SETTLE_METADATA` - The type of the None singleton.
+* static `SETTLE_METADATA`

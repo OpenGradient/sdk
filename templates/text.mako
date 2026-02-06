@@ -200,7 +200,11 @@ ${show_func(f, qual)}
     <%
       return_type = get_annotation(v.type_annotation)
       return_type_d = ' ' + return_type if return_type else ''
-      desc = ' - ' + format_for_list(v.docstring, 1) if v.docstring else ''
+      raw_desc = v.docstring.strip() if v.docstring else ''
+      # Filter out pdoc's garbage placeholder for unset docstrings
+      if raw_desc == 'The type of the None singleton.':
+        raw_desc = ''
+      desc = ' - ' + format_for_list(raw_desc, 1) if raw_desc else ''
     %>
 * ${qual}`${v.name}${return_type_d}`${desc}
   % endfor

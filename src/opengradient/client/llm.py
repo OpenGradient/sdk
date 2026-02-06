@@ -1,3 +1,4 @@
+"""LLM chat and completion via TEE-verified execution with x402 payments."""
 import asyncio
 import json
 from typing import Dict, List, Optional, Union

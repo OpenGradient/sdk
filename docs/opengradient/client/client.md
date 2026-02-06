@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient.client.client
 
+Main Client class that unifies all OpenGradient service namespaces.
+
 ## Classes
     
 
@@ -39,11 +41,11 @@ blockchain private key and optional Model Hub credentials.
 
   
     
-* static `inference  : opengradient.client.onchain_inference.Inference` - The type of the None singleton.
+* static `inference  : opengradient.client.onchain_inference.Inference`
     
-* static `llm  : opengradient.client.llm.LLM` - The type of the None singleton.
+* static `llm  : opengradient.client.llm.LLM`
     
-* static `model_hub  : opengradient.client.model_hub.ModelHub` - The type of the None singleton.
+* static `model_hub  : opengradient.client.model_hub.ModelHub`
 
   
     
