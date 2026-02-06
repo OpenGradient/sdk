@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 from langchain_core.tools import BaseTool, StructuredTool
 
@@ -12,7 +12,7 @@ def create_read_workflow_tool(
     workflow_contract_address: str,
     tool_name: str,
     tool_description: str,
-    alpha: Alpha,
+    alpha: Optional[Alpha] = None,
     output_formatter: Callable[..., str] = lambda x: x,
 ) -> BaseTool | Callable:
     """
@@ -32,7 +32,8 @@ def create_read_workflow_tool(
             identify and invoke the tool within the agent.
         tool_description (str): A description of what the tool does and how it processes
             the workflow results.
-        alpha (Alpha): The alpha namespace from an initialized OpenGradient client (client.alpha).
+        alpha (Alpha, optional): The alpha namespace from an initialized OpenGradient client
+            (client.alpha). If not provided, falls back to the global client set via ``opengradient.init()``.
         output_formatter (Callable[..., str], optional): A function that takes the workflow output
             and formats it into a string. This ensures the output is compatible with
             the tool framework. Default returns string as is.
@@ -57,6 +58,16 @@ def create_read_workflow_tool(
         ...     tool_description="Reads and formats workflow execution results"
         ... )
     """
+
+    if alpha is None:
+        import opengradient as og
+
+        if og.client is None:
+            raise ValueError(
+                "No alpha instance provided and no global client initialized. "
+                "Either pass alpha=client.alpha or call opengradient.init() first."
+            )
+        alpha = og.client.alpha
 
     # define runnable
     def read_workflow():
