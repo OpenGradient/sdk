@@ -93,65 +93,21 @@ Examples for features only available on the **Alpha Testnet** are located in the
 
 See [`alpha/README.md`](./alpha/README.md) for details.
 
-## LangChain Agent Examples
+## LangChain Agent Example
 
-These examples demonstrate integrating OpenGradient models and workflows into LangChain agents for building AI applications.
-
-#### `agents/langchain_llm.py`
-Creates a basic LangChain agent using an OpenGradient LLM.
+#### `langchain_agent.py`
+Creates a basic LangChain ReAct agent powered by an OpenGradient LLM.
 
 ```bash
-python examples/agents/langchain_llm.py
+python examples/langchain_agent.py
 ```
 
 **What it does:**
-- Sets up a LangGraph ReAct agent with an OpenGradient LLM
-- Demonstrates basic agent functionality
-- Shows how to stream agent responses
+- Uses `og.agents.langchain_adapter` to create a LangChain-compatible LLM
+- Sets up a LangGraph ReAct agent with a custom tool
+- Demonstrates tool calling via x402 payment processing
 
-**Example use case:** Building conversational agents, task automation.
-
-#### `agents/langchain_run_model.py`
-Creates a LangChain agent with a custom model inference tool.
-
-```bash
-python examples/agents/langchain_run_model.py
-```
-
-**What it does:**
-- Integrates a custom model (e.g., volatility forecaster) as a LangChain tool
-- Agent can call the model tool to answer questions
-- Demonstrates model input providers and output formatters
-
-**Example use case:** Agents that need to run predictions, financial analysis agents.
-
-#### `agents/langchain_run_model_with_schema.py`
-Creates a LangChain agent with a model tool that accepts structured input.
-
-```bash
-python examples/agents/langchain_run_model_with_schema.py
-```
-
-**What it does:**
-- Defines a Pydantic schema for tool inputs
-- Agent can pass structured parameters to the model tool
-- Demonstrates dynamic model input based on agent decisions
-
-**Example use case:** Multi-parameter models, conditional inference, complex agent workflows.
-
-#### `agents/langchain_use_workflow.py`
-Creates a LangChain agent that reads from deployed workflows.
-
-```bash
-python examples/agents/langchain_use_workflow.py
-```
-
-**What it does:**
-- Integrates workflow results as a LangChain tool
-- Agent can query workflow predictions
-- Demonstrates reading from on-chain workflows
-
-**Example use case:** Agents that monitor automated systems, reporting agents.
+**Example use case:** Building conversational agents with tool access, task automation.
 
 ## Common Patterns
 
