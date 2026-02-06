@@ -427,10 +427,9 @@ class TEE_LLM(str, Enum):
 
     Usage:
         # TEE-verified inference
-        result = client.llm_chat(
-            model_cid=og.TEE_LLM.GPT_4O,
+        result = client.llm.chat(
+            model=og.TEE_LLM.GPT_4O,
             messages=[{"role": "user", "content": "Hello"}],
-            inference_mode=og.LlmInferenceMode.TEE
         )
     """
 
