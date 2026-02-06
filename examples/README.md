@@ -175,7 +175,7 @@ og_client = og.Client(
 Basic inference pattern:
 
 ```python
-result = og_client.inference.infer(
+result = og_client.alpha.infer(
     model_cid="your-model-cid",
     model_input={"input_key": "input_value"},
     inference_mode=og.InferenceMode.VANILLA

@@ -155,11 +155,13 @@ class OpenGradientChatModel(BaseChatModel):
                     ]
                 sdk_messages.append(msg)
             elif isinstance(message, ToolMessage):
-                sdk_messages.append({
-                    "role": "tool",
-                    "content": _extract_content(message.content),
-                    "tool_call_id": message.tool_call_id,
-                })
+                sdk_messages.append(
+                    {
+                        "role": "tool",
+                        "content": _extract_content(message.content),
+                        "tool_call_id": message.tool_call_id,
+                    }
+                )
             else:
                 raise ValueError(f"Unexpected message type: {message}")
 
@@ -181,9 +183,7 @@ class OpenGradientChatModel(BaseChatModel):
         else:
             ai_message = AIMessage(content=_extract_content(chat_response.get("content", "")))
 
-        return ChatResult(
-            generations=[ChatGeneration(message=ai_message, generation_info={"finish_reason": finish_reason})]
-        )
+        return ChatResult(generations=[ChatGeneration(message=ai_message, generation_info={"finish_reason": finish_reason})])
 
     @property
     def _identifying_params(self) -> Dict[str, Any]:

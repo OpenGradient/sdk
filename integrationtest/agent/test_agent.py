@@ -87,12 +87,12 @@ class TestLLM(unittest.TestCase):
             tool_name="One_hour_volatility_ETH_USDT",
             model_input_provider=model_input_provider,
             model_output_formatter=output_formatter,
-            inference=self.client.inference,
+            inference=self.client.alpha,
             tool_description="This tool measures the live 1 hour volatility for the trading pair ETH/USDT.",
             inference_mode=og.InferenceMode.VANILLA,
         )
 
-        expected_result = self.client.inference.infer(
+        expected_result = self.client.alpha.infer(
             inference_mode=og.InferenceMode.VANILLA, model_cid="QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N", model_input=model_input
         )
         formatted_expected_result = format(float(expected_result.model_output["Y"].item()), ".3%")
@@ -193,14 +193,14 @@ class TestLLM(unittest.TestCase):
             tool_name="Return_volatility_tool",
             model_input_provider=model_input_provider,
             model_output_formatter=output_formatter,
-            inference=self.client.inference,
+            inference=self.client.alpha,
             tool_input_schema=InputSchema,
             tool_description="This tool takes a token and measures the return volatility (standard deviation of returns).",
             inference_mode=og.InferenceMode.VANILLA,
         )
 
         # Test option ETH
-        expected_result_eth = self.client.inference.infer(
+        expected_result_eth = self.client.alpha.infer(
             inference_mode=og.InferenceMode.VANILLA, model_cid="QmZdSfHWGJyzBiB2K98egzu3MypPcv4R1ASypUxwZ1MFUG", model_input=eth_model_input
         )
         formatted_expected_result_eth = format(float(expected_result_eth.model_output["std"].item()), ".3%")
@@ -215,7 +215,7 @@ class TestLLM(unittest.TestCase):
         self.assertIn(formatted_expected_result_eth, list(events)[-1]["messages"][-1].content)
 
         # Test option BTC
-        expected_result_btc = self.client.inference.infer(
+        expected_result_btc = self.client.alpha.infer(
             inference_mode=og.InferenceMode.VANILLA, model_cid="QmZdSfHWGJyzBiB2K98egzu3MypPcv4R1ASypUxwZ1MFUG", model_input=btc_model_input
         )
         formatted_expected_result_btc = format(float(expected_result_btc.model_output["std"].item()), ".3%")

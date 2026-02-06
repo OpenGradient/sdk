@@ -88,7 +88,7 @@ result = client.llm.completion(
 ### ONNX Model Inference
 
 ```python
-result = client.inference.infer(
+result = client.alpha.infer(
     model_cid: str,                    # IPFS CID of model
     inference_mode: og.InferenceMode,  # VANILLA, TEE, or ZKML
     model_input: Dict[str, Any],       # Input tensors

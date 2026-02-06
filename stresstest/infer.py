@@ -14,7 +14,7 @@ def main(private_key: str):
     client = og.Client(private_key=private_key)
 
     def run_inference(input_data: dict):
-        client.inference.infer(MODEL, og.InferenceMode.VANILLA, input_data)
+        client.alpha.infer(MODEL, og.InferenceMode.VANILLA, input_data)
 
     latencies, failures = stress_test_wrapper(run_inference, num_requests=NUM_REQUESTS)
 

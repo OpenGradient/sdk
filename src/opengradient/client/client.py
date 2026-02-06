@@ -14,7 +14,6 @@ from ..defaults import (
 from .alpha import Alpha
 from .llm import LLM
 from .model_hub import ModelHub
-from .onchain_inference import Inference
 
 
 class Client:
@@ -28,7 +27,7 @@ class Client:
     Usage:
         client = og.Client(private_key="0x...")
         result = client.llm.chat(model=TEE_LLM.CLAUDE_3_5_HAIKU, messages=[...])
-        result = client.inference.infer(model_cid, InferenceMode.VANILLA, input_data)
+        result = client.alpha.infer(model_cid, InferenceMode.VANILLA, input_data)
         client.model_hub.upload(model_path, model_name, version)
     """
 
@@ -38,8 +37,8 @@ class Client:
     llm: LLM
     """LLM chat and completion via TEE-verified execution."""
 
-    inference: Inference
-    """On-chain ONNX model inference via blockchain smart contracts."""
+    alpha: Alpha
+    """Alpha Testnet features including on-chain inference, workflow management, and ML model execution."""
 
     def __init__(
         self,
@@ -72,10 +71,6 @@ class Client:
         if email is not None:
             hub_user = ModelHub._login_to_hub(email, password)
 
-        # Store shared state needed by alpha namespace
-        self._blockchain = blockchain
-        self._wallet_account = wallet_account
-
         # Create namespaces
         self.model_hub = ModelHub(hub_user=hub_user)
 
@@ -85,18 +80,10 @@ class Client:
             og_llm_streaming_server_url=og_llm_streaming_server_url,
         )
 
-        self.inference = Inference(
+        self.alpha = Alpha(
             blockchain=blockchain,
             wallet_account=wallet_account,
             inference_hub_contract_address=contract_address,
             api_url=api_url,
         )
 
-        self._alpha = None  # Lazy initialization for alpha namespace
-
-    @property
-    def alpha(self) -> Alpha:
-        """Alpha Testnet features including workflow management and ML model execution."""
-        if self._alpha is None:
-            self._alpha = Alpha(self._blockchain, self._wallet_account)
-        return self._alpha

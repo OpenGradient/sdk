@@ -38,7 +38,7 @@ for chunk in client.llm.chat(
         print(chunk.choices[0].delta.content, end="")
 
 # Run on-chain ONNX model inference
-result = client.inference.infer(
+result = client.alpha.infer(
     model_cid="your_model_cid",
     inference_mode=og.InferenceMode.VANILLA,
     model_input={"input": [1.0, 2.0, 3.0]},
@@ -51,7 +51,7 @@ print(result.model_output)
 The `opengradient.client.Client` object exposes three namespaces:
 
 - **`opengradient.client.llm`** -- LLM chat and completion
-- **`opengradient.client.onchain_inference`** -- On-chain ONNX model inference
+- **`opengradient.client.alpha`** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution
 - **`opengradient.client.model_hub`** -- Model repository management
 
 ## Model Hub (requires email auth)

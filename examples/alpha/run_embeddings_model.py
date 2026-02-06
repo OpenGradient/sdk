@@ -14,7 +14,7 @@ passages = [
     "Since you're reading this, you are probably someone from a judo background or someone who is just wondering how judo techniques can be applied under wrestling rules. So without further ado, let's get to the question. Are Judo throws allowed in wrestling? Yes, judo throws are allowed in freestyle and folkstyle wrestling. You only need to be careful to follow the slam rules when executing judo throws. In wrestling, a slam is lifting and returning an opponent to the mat with unnecessary force.",
 ]
 
-model_embeddings = og_client.inference.infer(
+model_embeddings = og_client.alpha.infer(
     model_cid="intfloat/multilingual-e5-large-instruct",
     model_input={"queries": queries, "instruction": instruction, "passages": passages},
     inference_mode=og.InferenceMode.VANILLA,

@@ -121,30 +121,13 @@ class TestClientInitialization:
 
 
 class TestAlphaProperty:
-    def test_alpha_lazy_initialization(self, client):
-        """Test that alpha property is lazily initialized."""
-        assert client._alpha is None
+    def test_alpha_initialized_on_client_creation(self, client):
+        """Test that alpha is initialized during client creation."""
+        assert client.alpha is not None
 
-        with patch("src.opengradient.client.client.Alpha") as mock_alpha:
-            mock_alpha_instance = MagicMock()
-            mock_alpha.return_value = mock_alpha_instance
-
-            alpha = client.alpha
-
-            assert alpha is mock_alpha_instance
-            assert client._alpha is mock_alpha_instance
-
-    def test_alpha_returns_same_instance(self, client):
-        """Test that alpha property returns the same instance on subsequent calls."""
-        with patch("src.opengradient.client.client.Alpha") as mock_alpha:
-            mock_alpha_instance = MagicMock()
-            mock_alpha.return_value = mock_alpha_instance
-
-            alpha1 = client.alpha
-            alpha2 = client.alpha
-
-            assert alpha1 is alpha2
-            mock_alpha.assert_called_once()
+    def test_alpha_has_infer_method(self, client):
+        """Test that alpha namespace has the infer method."""
+        assert hasattr(client.alpha, "infer")
 
 
 # --- Authentication Tests ---

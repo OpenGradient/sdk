@@ -295,11 +295,13 @@ class TestParseToolCall:
         assert tc["args"] == {"x": 1}
 
     def test_nested_function_format(self):
-        tc = _parse_tool_call({
-            "id": "2",
-            "type": "function",
-            "function": {"name": "bar", "arguments": '{"y": 2}'},
-        })
+        tc = _parse_tool_call(
+            {
+                "id": "2",
+                "type": "function",
+                "function": {"name": "bar", "arguments": '{"y": 2}'},
+            }
+        )
         assert tc["name"] == "bar"
         assert tc["args"] == {"y": 2}
         assert tc["id"] == "2"

@@ -4,7 +4,7 @@ import numpy as np
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel
 
-from ..client.onchain_inference import Inference
+from ..client.alpha import Alpha
 from ..types import InferenceMode, InferenceResult
 from .types import ToolType
 
@@ -15,7 +15,7 @@ def create_run_model_tool(
     tool_name: str,
     model_input_provider: Callable[..., Dict[str, Union[str, int, float, List, np.ndarray]]],
     model_output_formatter: Callable[[InferenceResult], str],
-    inference: Optional[Inference] = None,
+    inference: Optional[Alpha] = None,
     tool_input_schema: Optional[Type[BaseModel]] = None,
     tool_description: str = "Executes the given ML model",
     inference_mode: InferenceMode = InferenceMode.VANILLA,
@@ -49,8 +49,8 @@ def create_run_model_tool(
             InferenceResult has attributes:
                 * transaction_hash (str): Blockchain hash for the transaction
                 * model_output (Dict[str, np.ndarray]): Output of the ONNX model
-        inference (Inference, optional): The inference namespace from an initialized OpenGradient client
-            (client.inference). If not provided, falls back to the global client set via ``opengradient.init()``.
+        inference (Alpha, optional): The alpha namespace from an initialized OpenGradient client
+            (client.alpha). If not provided, falls back to the global client set via ``opengradient.init()``.
         tool_input_schema (Type[BaseModel], optional): A Pydantic BaseModel class defining the
             input schema.
 
@@ -104,7 +104,7 @@ def create_run_model_tool(
         ...     tool_name="Return_volatility_tool",
         ...     model_input_provider=model_input_provider,
         ...     model_output_formatter=output_formatter,
-        ...     inference=client.inference,
+        ...     inference=client.alpha,
         ...     tool_input_schema=InputSchema,
         ...     tool_description="This tool takes a token and measures the return volatility (standard deviation of returns).",
         ...     inference_mode=og.InferenceMode.VANILLA,
@@ -117,9 +117,9 @@ def create_run_model_tool(
         if og.global_client is None:
             raise ValueError(
                 "No inference instance provided and no global client initialized. "
-                "Either pass inference=client.inference or call opengradient.init() first."
+                "Either pass inference=client.alpha or call opengradient.init() first."
             )
-        inference = og.global_client.inference
+        inference = og.global_client.alpha
 
     def model_executor(**llm_input):
         # Pass LLM input arguments (formatted based on tool_input_schema) as parameters into model_input_provider

@@ -74,7 +74,7 @@ print(f"Tx hash: {completion.transaction_hash}")
 #### Custom Model Inference
 Browse models on our [Model Hub](https://hub.opengradient.ai/) or upload your own:
 ```python
-result = client.inference.infer(
+result = client.alpha.infer(
     model_cid="your-model-cid",
     model_input={"input": [1.0, 2.0, 3.0]},
     inference_mode=og.InferenceMode.VANILLA,
