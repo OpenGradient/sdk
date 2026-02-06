@@ -8,7 +8,7 @@ A Python SDK for decentralized model management and inference services on the Op
 - Decentralized model inference
 - Support for LLM inference with various models
 - **Trusted Execution Environment (TEE) inference** with cryptographic attestation
-- Drop-in replacement for OpenAI and Anthropic APIs — add verifiable inference to your existing LLM application with minimal code changes
+- Drop-in replacement for OpenAI and Anthropic LLM APIs - add verifiable inference to your existing AI application or agent with minimal code changes
 - End-to-end verified AI execution
 - Command-line interface (CLI) for direct access
 
