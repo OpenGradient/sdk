@@ -8,6 +8,10 @@ outline: [2,3]
   import re
   import textwrap
   import inspect
+  import tomllib
+
+  with open('pyproject.toml', 'rb') as _f:
+    _project_version = tomllib.load(_f)['project']['version']
 
   def convert_to_sentence(text):
     # First, handle snake_case by replacing underscores with spaces
@@ -215,6 +219,10 @@ ${show_func(f, qual)}
   ##                    'Module'} <code>${module.name}</code></h1>
 
 ${header('Package ' + module.name, 1)}
+% if not module.supermodule:
+
+**Version: ${_project_version}**
+% endif
 
 ${module.docstring}
 

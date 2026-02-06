@@ -6,6 +6,8 @@ outline: [2,3]
 
 # Package opengradient
 
+**Version: 0.6.0**
+
 OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 ## Submodules
