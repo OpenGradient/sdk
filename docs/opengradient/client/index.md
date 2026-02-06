@@ -8,13 +8,13 @@ outline: [2,3]
 
 ## Submodules
 
-* [alpha](docs/client.md#alpha): Alpha Testnet features for OpenGradient SDK.
-* [client](docs/client.md#client): 
-* [exceptions](docs/client.md#exceptions): 
-* [llm](docs/client.md#llm): 
-* [model_hub](docs/client.md#model_hub): 
-* [onchain_inference](docs/client.md#onchain_inference): 
-* [x402_auth](docs/client.md#x402_auth): X402 Authentication handler for httpx streaming requests.
+* [alpha](./alpha): Alpha Testnet features for OpenGradient SDK.
+* [client](./client): 
+* [exceptions](./exceptions): 
+* [llm](./llm): 
+* [model_hub](./model_hub): 
+* [onchain_inference](./onchain_inference): 
+* [x402_auth](./x402_auth): X402 Authentication handler for httpx streaming requests.
 
 ## Classes
     

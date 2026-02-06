@@ -10,11 +10,11 @@ OpenGradient Python SDK for interacting with AI models and infrastructure.
 
 ## Submodules
 
-* [**agents**](./agents): OpenGradient LLM Adapters
-* [**alphasense**](./alphasense): OpenGradient AlphaSense Tools
-* [**client**](./client): 
+* [**agents**](./agents/index): OpenGradient LLM Adapters
+* [**alphasense**](./alphasense/index): OpenGradient AlphaSense Tools
+* [**client**](./client/index): 
 * [**types**](./types): 
-* [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
+* [**workflow_models**](./workflow_models/index): OpenGradient Hardcoded Models
 
 ## Functions
 

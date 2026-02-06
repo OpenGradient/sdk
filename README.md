@@ -51,7 +51,7 @@ opengradient config init
 import os
 import opengradient as og
 
-client = og.init(
+client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
     email=None,  # Optional: only needed for model uploads
     password=None,

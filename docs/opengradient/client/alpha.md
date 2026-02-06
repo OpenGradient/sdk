@@ -16,7 +16,7 @@ including workflow management and ML model execution.
 
 ###  Alpha
 
-<code>class <b>Alpha</b>(blockchain: [Web3](docs/main.md#Web3), wallet_account: [local](docs/signers.md#local))</code>
+<code>class <b>Alpha</b>(blockchain: `Web3`, wallet_account: `LocalAccount`)</code>
 
   
 

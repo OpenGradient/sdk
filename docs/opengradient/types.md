@@ -204,7 +204,7 @@ Enum for the different inference modes available for inference (VANILLA, ZKML, T
 
 ###  InferenceResult
 
-<code>class <b>InferenceResult</b>(transaction_hash: str, model_output: Dict[str, [**ndarray**](./ndarray)])</code>
+<code>class <b>InferenceResult</b>(transaction_hash: str, model_output: Dict[str, `ndarray`])</code>
 
   
 
@@ -312,7 +312,7 @@ A collection of tensor inputs required for ONNX model inference.
 
 ###  ModelOutput
 
-<code>class <b>ModelOutput</b>(numbers: Dict[str, [**ndarray**](./ndarray)], strings: Dict[str, [**ndarray**](./ndarray)], jsons: Dict[str, [**ndarray**](./ndarray)], is_simulation_result: bool)</code>
+<code>class <b>ModelOutput</b>(numbers: Dict[str, `ndarray`], strings: Dict[str, `ndarray`], jsons: Dict[str, `ndarray`], is_simulation_result: bool)</code>
 
   
 

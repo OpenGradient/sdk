@@ -11,7 +11,7 @@ outline: [2,3]
 
 ###  Inference
 
-<code>class <b>Inference</b>(blockchain: [Web3](docs/main.md#Web3), wallet_account: [local](docs/signers.md#local), inference_hub_contract_address: str, api_url: str)</code>
+<code>class <b>Inference</b>(blockchain: `Web3`, wallet_account: `LocalAccount`, inference_hub_contract_address: str, api_url: str)</code>
 
   
 

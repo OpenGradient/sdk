@@ -29,19 +29,34 @@ outline: [2,3]
   def firstline(ds):
     return ds.split('\n\n', 1)[0]
 
-  def link(dobj: pdoc.Doc, name=None):
-    name = name or dobj.qualname + ('()' if isinstance(dobj, pdoc.Function) else '')
-
-    # dobj.module is None so pull module name from qualname
+  def link(dobj, name=None):
     parts = dobj.qualname.split('.')
+
+    if name is None:
+      display = parts[-1]
+      if isinstance(dobj, pdoc.Function):
+        display += '()'
+    else:
+      display = name
+
+    # External types (not from opengradient) - render as plain code
+    if len(parts) >= 2 and parts[0] != 'opengradient':
+      return '`{}`'.format(display)
+
     if len(parts) < 2:
-      return '`{}`'.format(parts[0])
-    app = parts[0]
+      return '`{}`'.format(display)
+
     module = parts[1]
+
+    # 3+ parts: submodule or nested object within a submodule
     if len(parts) > 2:
-      obj = parts[2]
-      return '[{}](docs/{}.md#{})'.format(obj, module, obj)
-    return '[**{}**](./{})'.format(module, module)
+      target = parts[2]
+      return '[{}](./{})'.format(display, target)
+
+    # 2 parts: top-level module/package reference
+    if isinstance(dobj, pdoc.Module) and dobj.is_package:
+      return '[**{}**](./{}/index)'.format(display, module)
+    return '[**{}**](./{})'.format(display, module)
 
   def get_annotation(bound_method, sep=':'):
     annot = show_type_annotations and bound_method() or ''

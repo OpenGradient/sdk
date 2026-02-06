@@ -16,7 +16,7 @@ authentication for streaming responses.
 
 ###  X402Auth
 
-<code>class <b>X402Auth</b>(account: Any, max_value: Optional[int] = None, payment_requirements_selector: Optional[Callable[[list[[PaymentRequirements](docs/types.md#PaymentRequirements)], Optional[str], Optional[str], Optional[int]], [PaymentRequirements](docs/types.md#PaymentRequirements)]] = None, network_filter: Optional[str] = None)</code>
+<code>class <b>X402Auth</b>(account: Any, max_value: Optional[int] = None, payment_requirements_selector: Optional[Callable[[list[`PaymentRequirements`], Optional[str], Optional[str], Optional[int]], `PaymentRequirements`]] = None, network_filter: Optional[str] = None)</code>
 
   
 

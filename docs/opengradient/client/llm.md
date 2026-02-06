@@ -11,7 +11,7 @@ outline: [2,3]
 
 ###  LLM
 
-<code>class <b>LLM</b>(wallet_account: [local](docs/signers.md#local), og_llm_server_url: str, og_llm_streaming_server_url: str)</code>
+<code>class <b>LLM</b>(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_streaming_server_url: str)</code>
 
   
 
