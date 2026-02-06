@@ -60,7 +60,7 @@ print(result.model_output)
 The [Client](./client/index) object exposes three namespaces:
 
 - **[llm](./client/llm)** -- LLM chat and completion
-- **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution
+- **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
 - **[model_hub](./client/model_hub)** -- Model repository management
 
 ## Model Hub (requires email auth)
