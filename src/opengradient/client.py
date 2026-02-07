@@ -113,7 +113,7 @@ class Client:
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            
+
         self._inference_hub_contract_address = contract_address
         self._blockchain = Web3(Web3.HTTPProvider(rpc_url))
         self._api_url = api_url
@@ -794,7 +794,11 @@ try:
             limits=LIMITS,
             http2=False,
             follow_redirects=False,
-            auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
+            auth=X402Auth(
+                account=self._wallet_account, 
+                network_filter=DEFAULT_NETWORK_FILTER,
+                scheme_filter="ethereum-sepolia" 
+            ),  # type: ignore
             verify=True,
         ) as client:
             headers = {
