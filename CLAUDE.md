@@ -106,6 +106,29 @@ User configuration stored via `opengradient config init` wizard.
 - Integration tests: `integrationtest/` for agent and workflow models
 - CLI command testing via Makefile targets
 
+## Documentation (pdoc)
+
+Docs are generated with `pdoc3` using a custom Mako template at `templates/text.mako`. Run `make docs` to regenerate into `docs/`.
+
+### Cross-referencing in docstrings
+
+To link to another module or class from a docstring, use fully qualified names in backticks:
+
+```python
+"""
+- **`opengradient.client.llm`** -- description here
+- **`opengradient.client.onchain_inference`** -- description here
+"""
+```
+
+The template's `linkify` function automatically converts `` `opengradient.x.y.z` `` references into relative markdown links. Always use fully qualified names starting with `opengradient.` — never hardcode relative URLs in docstrings.
+
+### Docstring style
+
+- Use Google-style docstrings (Args, Returns, Raises, Note, Attributes sections)
+- The template parses these sections and renders them as structured markdown
+- For classes, Args in the `__init__` docstring are rendered under the Constructor heading
+
 ## Dependencies
 
 Key dependencies (Python >=3.10):

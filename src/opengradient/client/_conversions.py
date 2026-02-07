@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 from web3.datastructures import AttributeDict
 
-from .types import ModelOutput
+from ..types import ModelOutput
 
 
 def convert_to_fixed_point(number: float) -> Tuple[int, int]:

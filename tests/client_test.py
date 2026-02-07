@@ -8,14 +8,12 @@ import pytest
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.opengradient.client import Client
-from src.opengradient.exceptions import OpenGradientError
 from src.opengradient.types import (
-    StreamChunk,
     TEE_LLM,
+    StreamChunk,
     TextGenerationOutput,
     x402SettlementMode,
 )
-
 
 # --- Fixtures ---
 
@@ -23,7 +21,7 @@ from src.opengradient.types import (
 @pytest.fixture
 def mock_web3():
     """Create a mock Web3 instance."""
-    with patch("src.opengradient.client.Web3") as mock:
+    with patch("src.opengradient.client.client.Web3") as mock:
         mock_instance = MagicMock()
         mock.return_value = mock_instance
         mock.HTTPProvider.return_value = MagicMock()
@@ -77,13 +75,14 @@ class TestClientInitialization:
             contract_address="0x" + "b" * 40,
         )
 
-        assert client._hub_user is None
-        assert client._api_url == "https://test.api.url"
-        assert client._inference_hub_contract_address == "0x" + "b" * 40
+        assert client.model_hub._hub_user is None
 
     def test_client_initialization_with_auth(self, mock_web3, mock_abi_files):
         """Test client initialization with email/password authentication."""
-        with patch("src.opengradient.client.firebase") as mock_firebase:
+        with (
+            patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}),
+            patch("src.opengradient.client.model_hub.firebase") as mock_firebase,
+        ):
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.return_value = {
                 "idToken": "test_token",
@@ -100,8 +99,8 @@ class TestClientInitialization:
                 password="test_password",
             )
 
-            assert client._hub_user is not None
-            assert client._hub_user["idToken"] == "test_token"
+            assert client.model_hub._hub_user is not None
+            assert client.model_hub._hub_user["idToken"] == "test_token"
 
     def test_client_initialization_custom_llm_urls(self, mock_web3, mock_abi_files):
         """Test client initialization with custom LLM server URLs."""
@@ -117,35 +116,18 @@ class TestClientInitialization:
             og_llm_streaming_server_url=custom_streaming_url,
         )
 
-        assert client._og_llm_server_url == custom_llm_url
-        assert client._og_llm_streaming_server_url == custom_streaming_url
+        assert client.llm._og_llm_server_url == custom_llm_url
+        assert client.llm._og_llm_streaming_server_url == custom_streaming_url
 
 
 class TestAlphaProperty:
-    def test_alpha_lazy_initialization(self, client):
-        """Test that alpha property is lazily initialized."""
-        assert client._alpha is None
+    def test_alpha_initialized_on_client_creation(self, client):
+        """Test that alpha is initialized during client creation."""
+        assert client.alpha is not None
 
-        with patch("src.opengradient.alpha.Alpha") as mock_alpha:
-            mock_alpha_instance = MagicMock()
-            mock_alpha.return_value = mock_alpha_instance
-
-            alpha = client.alpha
-
-            assert alpha is mock_alpha_instance
-            assert client._alpha is mock_alpha_instance
-
-    def test_alpha_returns_same_instance(self, client):
-        """Test that alpha property returns the same instance on subsequent calls."""
-        with patch("src.opengradient.alpha.Alpha") as mock_alpha:
-            mock_alpha_instance = MagicMock()
-            mock_alpha.return_value = mock_alpha_instance
-
-            alpha1 = client.alpha
-            alpha2 = client.alpha
-
-            assert alpha1 is alpha2
-            mock_alpha.assert_called_once()
+    def test_alpha_has_infer_method(self, client):
+        """Test that alpha namespace has the infer method."""
+        assert hasattr(client.alpha, "infer")
 
 
 # --- Authentication Tests ---
@@ -154,7 +136,10 @@ class TestAlphaProperty:
 class TestAuthentication:
     def test_login_to_hub_success(self, mock_web3, mock_abi_files):
         """Test successful login to hub."""
-        with patch("src.opengradient.client.firebase") as mock_firebase:
+        with (
+            patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}),
+            patch("src.opengradient.client.model_hub.firebase") as mock_firebase,
+        ):
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.return_value = {
                 "idToken": "success_token",
@@ -172,11 +157,14 @@ class TestAuthentication:
             )
 
             mock_auth.sign_in_with_email_and_password.assert_called_once_with("user@test.com", "password123")
-            assert client._hub_user["idToken"] == "success_token"
+            assert client.model_hub._hub_user["idToken"] == "success_token"
 
     def test_login_to_hub_failure(self, mock_web3, mock_abi_files):
         """Test login failure raises exception."""
-        with patch("src.opengradient.client.firebase") as mock_firebase:
+        with (
+            patch("src.opengradient.client.model_hub._FIREBASE_CONFIG", {"apiKey": "fake"}),
+            patch("src.opengradient.client.model_hub.firebase") as mock_firebase,
+        ):
             mock_auth = MagicMock()
             mock_auth.sign_in_with_email_and_password.side_effect = Exception("Invalid credentials")
             mock_firebase.initialize_app.return_value.auth.return_value = mock_auth
@@ -198,14 +186,14 @@ class TestAuthentication:
 class TestLLMCompletion:
     def test_llm_completion_success(self, client):
         """Test successful LLM completion."""
-        with patch.object(client, "_tee_llm_completion") as mock_tee:
+        with patch.object(client.llm, "_tee_llm_completion") as mock_tee:
             mock_tee.return_value = TextGenerationOutput(
                 transaction_hash="external",
                 completion_output="Hello! How can I help?",
                 payment_hash="0xpayment123",
             )
 
-            result = client.llm_completion(
+            result = client.llm.completion(
                 model=TEE_LLM.GPT_4O,
                 prompt="Hello",
                 max_tokens=100,
@@ -218,7 +206,7 @@ class TestLLMCompletion:
 class TestLLMChat:
     def test_llm_chat_success_non_streaming(self, client):
         """Test successful non-streaming LLM chat."""
-        with patch.object(client, "_tee_llm_chat") as mock_tee:
+        with patch.object(client.llm, "_tee_llm_chat") as mock_tee:
             mock_tee.return_value = TextGenerationOutput(
                 transaction_hash="external",
                 chat_output={"role": "assistant", "content": "Hi there!"},
@@ -226,7 +214,7 @@ class TestLLMChat:
                 payment_hash="0xpayment",
             )
 
-            result = client.llm_chat(
+            result = client.llm.chat(
                 model=TEE_LLM.GPT_4O,
                 messages=[{"role": "user", "content": "Hello"}],
                 stream=False,
@@ -237,14 +225,14 @@ class TestLLMChat:
 
     def test_llm_chat_streaming(self, client):
         """Test streaming LLM chat."""
-        with patch.object(client, "_tee_llm_chat_stream_sync") as mock_stream:
+        with patch.object(client.llm, "_tee_llm_chat_stream_sync") as mock_stream:
             mock_chunks = [
                 StreamChunk(choices=[], model="gpt-4o"),
                 StreamChunk(choices=[], model="gpt-4o", is_final=True),
             ]
             mock_stream.return_value = iter(mock_chunks)
 
-            result = client.llm_chat(
+            result = client.llm.chat(
                 model=TEE_LLM.GPT_4O,
                 messages=[{"role": "user", "content": "Hello"}],
                 stream=True,

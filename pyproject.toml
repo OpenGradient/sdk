@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.5.13"
+version = "0.6.0"
 description = "Python SDK for OpenGradient decentralized model management & inference services"
 authors = [{name = "OpenGradient", email = "kyle@vannalabs.ai"}]
 readme = "README.md"
@@ -55,6 +55,9 @@ exclude = ["tests*", "stresstest*"]
     "bin/*.bin",
     "**/*.py"
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 140

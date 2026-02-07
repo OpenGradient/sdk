@@ -10,13 +10,11 @@ NUM_REQUESTS = 10_000
 MODEL = "QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ"
 
 
-def run_inference(input_data: dict):
-    og.infer(MODEL, og.InferenceMode.VANILLA, input_data)
-
-
 def main(private_key: str):
-    # init with private key only
-    og.init(private_key=private_key, email=None, password=None)
+    client = og.Client(private_key=private_key)
+
+    def run_inference(input_data: dict):
+        client.alpha.infer(MODEL, og.InferenceMode.VANILLA, input_data)
 
     latencies, failures = stress_test_wrapper(run_inference, num_requests=NUM_REQUESTS)
 

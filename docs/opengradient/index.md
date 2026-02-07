@@ -2,531 +2,183 @@
 outline: [2,3]
 ---
 
-  
+opengradient
 
 # Package opengradient
 
-OpenGradient Python SDK for interacting with AI models and infrastructure.
+**Version: 0.6.0**
+
+OpenGradient Python SDK for decentralized AI inference with end-to-end verification.
+
+## Overview
+
+The OpenGradient SDK provides programmatic access to decentralized AI infrastructure, including:
+
+- **LLM Inference** -- Chat and completion with major LLM providers (OpenAI, Anthropic, Google, xAI) through TEE-verified execution
+- **On-chain Model Inference** -- Run ONNX models via blockchain smart contracts with VANILLA, TEE, or ZKML verification
+- **Model Hub** -- Create, version, and upload ML models to the OpenGradient Model Hub
+
+All LLM inference runs inside Trusted Execution Environments (TEEs) and settles on-chain via the x402 payment protocol, giving you cryptographic proof that inference was performed correctly.
+
+## Quick Start
+
+```python
+import opengradient as og
+
+# Initialize the client
+client = og.init(private_key="0x...")
+
+# Chat with an LLM (TEE-verified)
+response = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
+    messages=[{"role": "user", "content": "Hello!"}],
+    max_tokens=200,
+)
+print(response.chat_output)
+
+# Stream a response
+for chunk in client.llm.chat(
+    model=og.TEE_LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Explain TEE in one paragraph."}],
+    max_tokens=300,
+    stream=True,
+):
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+
+# Run on-chain ONNX model inference
+result = client.alpha.infer(
+    model_cid="your_model_cid",
+    inference_mode=og.InferenceMode.VANILLA,
+    model_input={"input": [1.0, 2.0, 3.0]},
+)
+print(result.model_output)
+```
+
+## Client Namespaces
+
+The [Client](./client/index) object exposes three namespaces:
+
+- **[llm](./client/llm)** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
+- **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
+- **[model_hub](./client/model_hub)** -- Model repository management
+
+## Model Hub (requires email auth)
+
+```python
+client = og.init(
+    private_key="0x...",
+    email="you@example.com",
+    password="...",
+)
+
+repo = client.model_hub.create_model("my-model", "A price prediction model")
+client.model_hub.upload("model.onnx", repo.name, repo.initialVersion)
+```
+
+## Framework Integrations
+
+The SDK includes adapters for popular AI frameworks -- see the `agents` submodule for LangChain and OpenAI integration.
 
 ## Submodules
 
-* [**alpha**](./alpha): Alpha Testnet features for OpenGradient SDK.
-* [**alphasense**](./alphasense): OpenGradient AlphaSense Tools
-* [**llm**](./llm): OpenGradient LLM Adapters
-* [**workflow_models**](./workflow_models): OpenGradient Hardcoded Models
-* [**x402_auth**](./x402_auth): X402 Authentication handler for httpx streaming requests.
+* [**agents**](./agents/index): OpenGradient Agent Framework Adapters
+* [**alphasense**](./alphasense/index): OpenGradient AlphaSense Tools
+* [**client**](./client/index): OpenGradient Client -- the central entry point to all SDK services.
+* [**types**](./types): OpenGradient Specific Types
+* [**workflow_models**](./workflow_models/index): OpenGradient Hardcoded Models
 
 ## Functions
 
-  
+---
 
-### Create model 
+### `init()`
 
 ```python
-def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None) ‑> opengradient.types.ModelRepository
+def init(private_key: str, email: Optional[str] = None, password: Optional[str] = None, **kwargs) ‑> `Client`
 ```
+Initialize the global OpenGradient client.
 
-  
-
-  
-Create a new model repository.
-  
+This is the recommended way to get started. It creates a `Client` instance
+and stores it as the global client for convenience.
 
 **Arguments**
 
-* **`model_name`**: Name for the new model repository
-* **`model_desc`**: Description of the model
-* **`model_path`**: Optional path to model file to upload immediately
+* **`private_key`**: Private key for OpenGradient transactions.
+* **`email`**: Email for Model Hub authentication. Optional.
+* **`password`**: Password for Model Hub authentication. Optional.
+    **kwargs: Additional arguments forwarded to `Client`.
 
-  
 **Returns**
 
-ModelRepository: Creation response with model metadata and optional upload results
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Create version 
-
-```python
-def create_version(model_name, notes=None, is_major=False)
-```
-
-  
-
-  
-Create a new version for an existing model.
-  
-
-**Arguments**
-
-* **`model_name`**: Name of the model repository
-* **`notes`**: Optional release notes for this version
-* **`is_major`**: If True, creates a major version bump instead of minor
-
-  
-**Returns**
-
-dict: Version creation response with version metadata
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Infer 
-
-```python
-def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None) ‑> opengradient.types.InferenceResult
-```
-
-  
-
-  
-Run inference on a model.
-  
-
-**Arguments**
-
-* **`model_cid`**: CID of the model to use
-* **`inference_mode`**: Mode of inference (e.g. VANILLA)
-* **`model_input`**: Input data for the model
-* **`max_retries`**: Maximum number of retries for failed transactions
-
-  
-**Returns**
-
-InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
-    * transaction_hash (str): Blockchain hash for the transaction
-    * model_output (Dict[str, np.ndarray]): Output of the ONNX model
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Init 
-
-```python
-def init(email: str, password: str, private_key: str, rpc_url='https://ogevmdevnet.opengradient.ai', api_url='https://sdk-devnet.opengradient.ai', contract_address='0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE')
-```
-
-  
-
-  
-Initialize the OpenGradient SDK with authentication and network settings.
-  
-
-**Arguments**
-
-* **`email`**: User's email address for authentication
-* **`password`**: User's password for authentication
-* **`private_key`**: Ethereum private key for blockchain transactions
-* **`rpc_url`**: Optional RPC URL for the blockchain network, defaults to testnet
-* **`api_url`**: Optional API URL for the OpenGradient API, defaults to testnet
-* **`contract_address`**: Optional inference contract address
-  
-
-  
-
-### List files 
-
-```python
-def list_files(model_name: str, version: str) ‑> List[Dict]
-```
-
-  
-
-  
-List files in a model repository version.
-  
-
-**Arguments**
-
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string to list files from
-
-  
-**Returns**
-
-List[Dict]: List of file metadata dictionaries
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Llm chat 
-
-```python
-def llm_chat(model_cid: opengradient.types.LLM, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch, stream: Optional[bool] = False) ‑> Union[opengradient.types.TextGenerationOutput, opengradient.types.TextGenerationStream]
-```
-
-  
-
-  
-Have a chat conversation with an LLM via TEE.
-  
-
-**Arguments**
-
-* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
-* **`messages`**: List of chat messages, each with 'role' and 'content'
-* **`max_tokens`**: Maximum tokens to generate
-* **`stop_sequence`**: Optional list of sequences where generation should stop
-* **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-* **`tools`**: Optional list of tools the model can use
-* **`tool_choice`**: Optional specific tool to use
-* **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
-* **`stream`**: Optional boolean to enable streaming
-
-  
-**Returns**
-
-TextGenerationOutput or TextGenerationStream
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Llm completion 
-
-```python
-def llm_completion(model_cid: opengradient.types.LLM, prompt: str, max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, x402_settlement_mode: Optional[opengradient.types.x402SettlementMode] = settle-batch) ‑> opengradient.types.TextGenerationOutput
-```
-
-  
-
-  
-Generate text completion using an LLM via TEE.
-  
-
-**Arguments**
-
-* **`model_cid`**: CID of the LLM model to use (e.g., 'anthropic/claude-3.5-haiku')
-* **`prompt`**: Text prompt for completion
-* **`max_tokens`**: Maximum tokens to generate
-* **`stop_sequence`**: Optional list of sequences where generation should stop
-* **`temperature`**: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-* **`x402_settlement_mode`**: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
-
-  
-**Returns**
-
-TextGenerationOutput: Transaction hash and generated text
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
-
-  
-
-### Upload 
-
-```python
-def upload(model_path, model_name, version) ‑> opengradient.types.FileUploadResult
-```
-
-  
-
-  
-Upload a model file to OpenGradient.
-  
-
-**Arguments**
-
-* **`model_path`**: Path to the model file on local filesystem
-* **`model_name`**: Name of the model repository
-* **`version`**: Version string for this model upload
-
-  
-**Returns**
-
-FileUploadResult: Upload response containing file metadata
-
-**Raises**
-
-* **`RuntimeError`**: If SDK is not initialized
-  
+The newly created `Client` instance.
 
 ## Classes
-    
 
-###  CandleOrder
+### `Client`
 
-<code>class <b>CandleOrder</b>(*args, **kwds)</code>
+Main OpenGradient SDK client.
 
-  
+Provides unified access to all OpenGradient services including LLM inference,
+on-chain model inference, and the Model Hub. Handles authentication via
+blockchain private key and optional Model Hub credentials.
 
-  
-Enum where members are also (and must be) ints
-  
-
-#### Variables
-
-  
-    
-* static `ASCENDING` - The type of the None singleton.
-    
-* static `DESCENDING` - The type of the None singleton.
-
-      
-    
-
-###  CandleType
-
-<code>class <b>CandleType</b>(*args, **kwds)</code>
-
-  
-
-  
-Enum where members are also (and must be) ints
-  
-
-#### Variables
-
-  
-    
-* static `CLOSE` - The type of the None singleton.
-    
-* static `HIGH` - The type of the None singleton.
-    
-* static `LOW` - The type of the None singleton.
-    
-* static `OPEN` - The type of the None singleton.
-    
-* static `VOLUME` - The type of the None singleton.
-
-      
-    
-
-###  HistoricalInputQuery
-
-<code>class <b>HistoricalInputQuery</b>(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: [CandleOrder](docs/types.md#CandleOrder), candle_types: List[[CandleType](docs/types.md#CandleType)])</code>
-
-  
-
-  
-HistoricalInputQuery(base: str, quote: str, total_candles: int, candle_duration_in_mins: int, order: opengradient.types.CandleOrder, candle_types: List[opengradient.types.CandleType])
-  
-
-  
-
-### To abi format 
+#### Constructor
 
 ```python
-def to_abi_format(self) ‑> tuple
+def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
 ```
 
-  
+**Arguments**
 
-  
-Convert to format expected by contract ABI
-  
+* **`private_key`**: Private key for OpenGradient transactions.
+* **`email`**: Email for Model Hub authentication. Optional.
+* **`password`**: Password for Model Hub authentication. Optional.
+* **`rpc_url`**: RPC URL for the blockchain network.
+* **`api_url`**: API URL for the OpenGradient API.
+* **`contract_address`**: Inference contract address.
+* **`og_llm_server_url`**: OpenGradient LLM server URL.
+* **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
 
 #### Variables
 
-  
-    
-* static `base  : str` - The type of the None singleton.
-    
-* static `candle_duration_in_mins  : int` - The type of the None singleton.
-    
-* static `candle_types  : List[opengradient.types.CandleType]` - The type of the None singleton.
-    
-* static `order  : opengradient.types.CandleOrder` - The type of the None singleton.
-    
-* static `quote  : str` - The type of the None singleton.
-    
-* static `total_candles  : int` - The type of the None singleton.
+* [**`alpha`**](./client/alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.
+* [**`llm`**](./client/llm): LLM chat and completion via TEE-verified execution.
+* [**`model_hub`**](./client/model_hub): Model Hub for creating, versioning, and uploading ML models.
 
-      
-    
+### `InferenceMode`
 
-###  InferenceMode
-
-<code>class <b>InferenceMode</b>(*args, **kwds)</code>
-
-  
-
-  
 Enum for the different inference modes available for inference (VANILLA, ZKML, TEE)
-  
 
 #### Variables
 
-  
-    
-* static `TEE` - The type of the None singleton.
-    
-* static `VANILLA` - The type of the None singleton.
-    
-* static `ZKML` - The type of the None singleton.
+* static `TEE`
+* static `VANILLA`
+* static `ZKML`
 
-      
-    
+### `TEE_LLM`
 
-###  LLM
-
-<code>class <b>LLM</b>(*args, **kwds)</code>
-
-  
-
-  
-Enum for available LLM models in OpenGradient.
-
-These models can be used with llm_chat() and llm_completion() methods.
-You can use either the enum value or the string identifier directly.
-  
-
-**Note**
-
-TEE_LLM enum contains the same models but is specifically for
-Trusted Execution Environment (TEE) verified inference.
-
-#### Variables
-
-  
-    
-* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
-    
-* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
-    
-* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
-    
-* static `GEMINI_2_0_FLASH` - The type of the None singleton.
-    
-* static `GEMINI_2_5_FLASH` - The type of the None singleton.
-    
-* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
-    
-* static `GEMINI_2_5_PRO` - The type of the None singleton.
-    
-* static `GPT_4O` - The type of the None singleton.
-    
-* static `GPT_4_1_2025_04_14` - The type of the None singleton.
-    
-* static `GROK_2_1212` - The type of the None singleton.
-    
-* static `GROK_2_VISION_LATEST` - The type of the None singleton.
-    
-* static `GROK_3_BETA` - The type of the None singleton.
-    
-* static `GROK_3_MINI_BETA` - The type of the None singleton.
-    
-* static `GROK_4_1_FAST` - The type of the None singleton.
-    
-* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
-    
-* static `O4_MINI` - The type of the None singleton.
-
-      
-    
-
-###  SchedulerParams
-
-<code>class <b>SchedulerParams</b>(frequency: int, duration_hours: int)</code>
-
-  
-
-  
-SchedulerParams(frequency: int, duration_hours: int)
-  
-
-  
-
-### From dict 
-
-```python
-def from_dict(data: Optional[Dict[str, int]]) ‑> Optional[opengradient.types.SchedulerParams]
-```
-
-  
-
-  
-
-  
-
-#### Variables
-
-  
-    
-* static `duration_hours  : int` - The type of the None singleton.
-    
-* static `frequency  : int` - The type of the None singleton.
-
-  
-    
-* `end_time  : int`
-
-      
-    
-
-###  TEE_LLM
-
-<code>class <b>TEE_LLM</b>(*args, **kwds)</code>
-
-  
-
-  
 Enum for LLM models available for TEE (Trusted Execution Environment) execution.
 
 TEE mode provides cryptographic verification that inference was performed
 correctly in a secure enclave. Use this for applications requiring
 auditability and tamper-proof AI inference.
-  
-
-**Note**
-
-The models in TEE_LLM are the same as LLM, but this enum explicitly
-indicates support for TEE execution.
 
 #### Variables
 
-  
-    
-* static `CLAUDE_3_5_HAIKU` - The type of the None singleton.
-    
-* static `CLAUDE_3_7_SONNET` - The type of the None singleton.
-    
-* static `CLAUDE_4_0_SONNET` - The type of the None singleton.
-    
-* static `GEMINI_2_0_FLASH` - The type of the None singleton.
-    
-* static `GEMINI_2_5_FLASH` - The type of the None singleton.
-    
-* static `GEMINI_2_5_FLASH_LITE` - The type of the None singleton.
-    
-* static `GEMINI_2_5_PRO` - The type of the None singleton.
-    
-* static `GPT_4O` - The type of the None singleton.
-    
-* static `GPT_4_1_2025_04_14` - The type of the None singleton.
-    
-* static `GROK_2_1212` - The type of the None singleton.
-    
-* static `GROK_2_VISION_LATEST` - The type of the None singleton.
-    
-* static `GROK_3_BETA` - The type of the None singleton.
-    
-* static `GROK_3_MINI_BETA` - The type of the None singleton.
-    
-* static `GROK_4_1_FAST` - The type of the None singleton.
-    
-* static `GROK_4_1_FAST_NON_REASONING` - The type of the None singleton.
-    
-* static `O4_MINI` - The type of the None singleton.
+* static `CLAUDE_3_5_HAIKU`
+* static `CLAUDE_3_7_SONNET`
+* static `CLAUDE_4_0_SONNET`
+* static `GEMINI_2_0_FLASH`
+* static `GEMINI_2_5_FLASH`
+* static `GEMINI_2_5_FLASH_LITE`
+* static `GEMINI_2_5_PRO`
+* static `GPT_4O`
+* static `GPT_4_1_2025_04_14`
+* static `GROK_2_1212`
+* static `GROK_2_VISION_LATEST`
+* static `GROK_3_BETA`
+* static `GROK_3_MINI_BETA`
+* static `GROK_4_1_FAST`
+* static `GROK_4_1_FAST_NON_REASONING`
+* static `O4_MINI`

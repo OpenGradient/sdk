@@ -13,9 +13,7 @@ import os
 
 import opengradient as og
 
-client = og.new_client(
-    email=None,
-    password=None,
+client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
@@ -25,7 +23,7 @@ messages = [
     {"role": "user", "content": "What makes it good for beginners?"},
 ]
 
-result = client.llm_chat(
+result = client.llm.chat(
     model=og.TEE_LLM.GPT_4_1_2025_04_14,
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,

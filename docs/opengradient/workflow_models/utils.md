@@ -2,7 +2,7 @@
 outline: [2,3]
 ---
 
-  
+[opengradient](../index) / [workflow_models](./index) / utils
 
 # Package opengradient.workflow_models.utils
 
@@ -10,43 +10,35 @@ Utility functions for the models module.
 
 ## Functions
 
-  
+---
 
-### Create block explorer link smart contract 
+### `create_block_explorer_link_smart_contract()`
 
 ```python
 def create_block_explorer_link_smart_contract(transaction_hash: str) ‑> str
 ```
-
-  
-
-  
 Create block explorer link for smart contract.
-  
 
-  
+---
 
-### Create block explorer link transaction 
+### `create_block_explorer_link_transaction()`
 
 ```python
 def create_block_explorer_link_transaction(transaction_hash: str) ‑> str
 ```
-
-  
-
-  
 Create block explorer link for transaction.
-  
 
-  
+---
 
-### Read workflow wrapper 
+### `read_workflow_wrapper()`
 
 ```python
-def read_workflow_wrapper(contract_address: str, format_function: Callable[..., str]) ‑> opengradient.workflow_models.types.WorkflowModelOutput
+def read_workflow_wrapper(alpha: `Alpha`, contract_address: str, format_function: Callable[..., str]) ‑> `WorkflowModelOutput`
 ```
-
-  
-
-  
 Wrapper function for reading from models through workflows.
+
+**Arguments**
+
+* **`alpha (Alpha)`**: The alpha namespace from an initialized OpenGradient client (client.alpha).
+* **`contract_address (str)`**: Smart contract address of the workflow
+* **`format_function (Callable)`**: Function for formatting the result returned by read_workflow

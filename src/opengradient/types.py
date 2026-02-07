@@ -1,3 +1,7 @@
+"""
+OpenGradient Specific Types
+"""
+
 import time
 from dataclasses import dataclass
 from enum import Enum, IntEnum
@@ -413,65 +417,6 @@ class Abi:
         return result
 
 
-class LLM(str, Enum):
-    """
-    Enum for available LLM models in OpenGradient.
-
-    These models can be used with llm_chat() and llm_completion() methods.
-    You can use either the enum value or the string identifier directly.
-
-    Usage:
-        # Using enum (recommended)
-        result = client.llm_chat(model_cid=og.LLM.GPT_4O, messages=[...])
-
-        # Using string directly
-        result = client.llm_chat(model_cid="openai/gpt-4o", messages=[...])
-
-    Model Identifier Format:
-        Models use the format: "{provider}/{model-name}"
-        - OpenAI: "openai/gpt-4o", "openai/gpt-4.1-2025-04-14"
-        - Anthropic: "anthropic/claude-3.7-sonnet", "anthropic/claude-4.0-sonnet"
-        - Google: "google/gemini-2.5-flash", "google/gemini-2.5-pro"
-        - xAI: "x-ai/grok-3-beta", "x-ai/grok-4.1-fast"
-
-    Note:
-        TEE_LLM enum contains the same models but is specifically for
-        Trusted Execution Environment (TEE) verified inference.
-    """
-
-    # # Existing open-source OG hosted models
-    # META_LLAMA_3_8B_INSTRUCT = "meta-llama/Meta-Llama-3-8B-Instruct"
-    # LLAMA_3_2_3B_INSTRUCT = "meta-llama/Llama-3.2-3B-Instruct"
-    # QWEN_2_5_72B_INSTRUCT = "Qwen/Qwen2.5-72B-Instruct"
-    # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
-    # DOBBY_UNHINGED_3_1_8B = "SentientAGI/Dobby-Mini-Unhinged-Llama-3.1-8B"
-    # DOBBY_LEASHED_3_1_8B = "SentientAGI/Dobby-Mini-Leashed-Llama-3.1-8B"
-
-    # OpenAI models via TEE
-    GPT_4_1_2025_04_14 = "openai/gpt-4.1-2025-04-14"
-    GPT_4O = "openai/gpt-4o"
-    O4_MINI = "openai/o4-mini"
-
-    # Anthropic models via TEE
-    CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
-    CLAUDE_3_5_HAIKU = "anthropic/claude-3.5-haiku"
-    CLAUDE_4_0_SONNET = "anthropic/claude-4.0-sonnet"
-
-    # Google models via TEE
-    GEMINI_2_5_FLASH = "google/gemini-2.5-flash"
-    GEMINI_2_5_PRO = "google/gemini-2.5-pro"
-    GEMINI_2_0_FLASH = "google/gemini-2.0-flash"
-    GEMINI_2_5_FLASH_LITE = "google/gemini-2.5-flash-lite"
-
-    # xAI Grok models via TEE
-    GROK_3_MINI_BETA = "x-ai/grok-3-mini-beta"
-    GROK_3_BETA = "x-ai/grok-3-beta"
-    GROK_2_1212 = "x-ai/grok-2-1212"
-    GROK_2_VISION_LATEST = "x-ai/grok-2-vision-latest"
-    GROK_4_1_FAST = "x-ai/grok-4.1-fast"
-    GROK_4_1_FAST_NON_REASONING = "x-ai/grok-4-1-fast-non-reasoning"
-
-
 class TEE_LLM(str, Enum):
     """
     Enum for LLM models available for TEE (Trusted Execution Environment) execution.
@@ -482,15 +427,10 @@ class TEE_LLM(str, Enum):
 
     Usage:
         # TEE-verified inference
-        result = client.llm_chat(
-            model_cid=og.TEE_LLM.GPT_4O,
+        result = client.llm.chat(
+            model=og.TEE_LLM.GPT_4O,
             messages=[{"role": "user", "content": "Hello"}],
-            inference_mode=og.LlmInferenceMode.TEE
         )
-
-    Note:
-        The models in TEE_LLM are the same as LLM, but this enum explicitly
-        indicates support for TEE execution.
     """
 
     # Existing (Currently turned off)
