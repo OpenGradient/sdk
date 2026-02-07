@@ -107,6 +107,13 @@ class Client:
             email (str, optional): Email for authentication. Defaults to "test@test.com".
             password (str, optional): Password for authentication. Defaults to "Test-123".
         """
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
         self._inference_hub_contract_address = contract_address
         self._blockchain = Web3(Web3.HTTPProvider(rpc_url))
         self._api_url = api_url
