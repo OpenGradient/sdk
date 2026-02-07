@@ -19,10 +19,6 @@ class X402Auth(httpx.Auth):
 
     This class implements the httpx Auth interface to handle 402 Payment Required
     responses by automatically creating and attaching payment headers.
-
-    Example:
-        async with httpx.AsyncClient(auth=X402Auth(account=wallet_account)) as client:
-            response = await client.get("https://api.example.com/paid-resource")
     """
 
     requires_response_body = True
@@ -45,16 +41,6 @@ class X402Auth(httpx.Auth):
         network_filter: typing.Optional[str] = None,
         scheme_filter: typing.Optional[str] = None,
     ):
-        """
-        Initialize X402Auth with an Ethereum account for signing payments.
-
-        Args:
-            account: eth_account LocalAccount instance for signing payments
-            max_value: Optional maximum allowed payment amount in base units
-            payment_requirements_selector: Optional callable to select payment requirements
-            network_filter: Optional network filter for selecting payment requirements
-            scheme_filter: Optional scheme filter for selecting payment requirements
-        """
         self.x402_client = x402Client(
             account,
             max_value=max_value,
@@ -64,15 +50,6 @@ class X402Auth(httpx.Auth):
         self.scheme_filter = scheme_filter
 
     async def async_auth_flow(self, request: httpx.Request) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
-        """
-        Handle authentication flow for x402 payment protocol.
-
-        Args:
-            request: httpx Request object to be authenticated
-
-        Yields:
-            httpx Request object with authentication headers attached
-        """
         response = yield request
 
         if response.status_code == 402:
@@ -82,7 +59,6 @@ class X402Auth(httpx.Auth):
 
                 payment_response = x402PaymentRequiredResponse(**data)
 
-                # Теперь используем и network_filter, и scheme_filter, как просил Copilot
                 selected_requirements = self.x402_client.select_payment_requirements(
                     payment_response.accepts,
                     self.network_filter,
