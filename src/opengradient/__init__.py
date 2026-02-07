@@ -1,326 +1,157 @@
 """
-OpenGradient Python SDK for interacting with AI models and infrastructure.
+OpenGradient Python SDK for decentralized AI inference with end-to-end verification.
+
+## Overview
+
+The OpenGradient SDK provides programmatic access to decentralized AI infrastructure, including:
+
+- **LLM Inference** -- Chat and completion with major LLM providers (OpenAI, Anthropic, Google, xAI) through TEE-verified execution
+- **On-chain Model Inference** -- Run ONNX models via blockchain smart contracts with VANILLA, TEE, or ZKML verification
+- **Model Hub** -- Create, version, and upload ML models to the OpenGradient Model Hub
+
+All LLM inference runs inside Trusted Execution Environments (TEEs) and settles on-chain via the x402 payment protocol, giving you cryptographic proof that inference was performed correctly.
+
+## Quick Start
+
+```python
+import opengradient as og
+
+# Initialize the client
+client = og.init(private_key="0x...")
+
+# Chat with an LLM (TEE-verified)
+response = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
+    messages=[{"role": "user", "content": "Hello!"}],
+    max_tokens=200,
+)
+print(response.chat_output)
+
+# Stream a response
+for chunk in client.llm.chat(
+    model=og.TEE_LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Explain TEE in one paragraph."}],
+    max_tokens=300,
+    stream=True,
+):
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+
+# Run on-chain ONNX model inference
+result = client.alpha.infer(
+    model_cid="your_model_cid",
+    inference_mode=og.InferenceMode.VANILLA,
+    model_input={"input": [1.0, 2.0, 3.0]},
+)
+print(result.model_output)
+```
+
+## Client Namespaces
+
+The `opengradient.client.Client` object exposes three namespaces:
+
+- **`opengradient.client.llm`** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
+- **`opengradient.client.alpha`** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
+- **`opengradient.client.model_hub`** -- Model repository management
+
+## Model Hub (requires email auth)
+
+```python
+client = og.init(
+    private_key="0x...",
+    email="you@example.com",
+    password="...",
+)
+
+repo = client.model_hub.create_model("my-model", "A price prediction model")
+client.model_hub.upload("model.onnx", repo.name, repo.initialVersion)
+```
+
+## Framework Integrations
+
+The SDK includes adapters for popular AI frameworks -- see the `agents` submodule for LangChain and OpenAI integration.
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Optional
 
+from . import agents, alphasense
 from .client import Client
-from .defaults import DEFAULT_INFERENCE_CONTRACT_ADDRESS, DEFAULT_RPC_URL, DEFAULT_API_URL
 from .types import (
-    LLM,
     TEE_LLM,
-    HistoricalInputQuery,
-    SchedulerParams,
-    CandleType,
     CandleOrder,
+    CandleType,
+    FileUploadResult,
+    HistoricalInputQuery,
     InferenceMode,
     InferenceResult,
-    LlmInferenceMode,
-    TextGenerationOutput,
-    TextGenerationStream,
     ModelOutput,
     ModelRepository,
-    FileUploadResult,
+    SchedulerParams,
+    TextGenerationOutput,
+    TextGenerationStream,
     x402SettlementMode,
 )
-from .alpha import _AlphaNamespace
 
-from . import llm, alphasense
-
-# Module-level alpha namespace for workflow/ML execution features (Alpha Testnet only)
-alpha = _AlphaNamespace()
-
-_client = None
-
-
-def new_client(
-    email: Optional[str],
-    password: Optional[str],
-    private_key: str,
-    rpc_url=DEFAULT_RPC_URL,
-    api_url=DEFAULT_API_URL,
-    contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
-    **kwargs,
-) -> Client:
-    """
-    Creates a unique OpenGradient client instance with the given authentication and network settings.
-
-    Args:
-        email: User's email address for authentication with Model Hub
-        password: User's password for authentication with Model Hub
-        private_key: Private key for OpenGradient transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
-        contract_address: Optional inference contract address
-    """
-
-    return Client(
-        email=email,
-        password=password,
-        private_key=private_key,
-        rpc_url=rpc_url,
-        api_url=api_url,
-        contract_address=contract_address,
-        **kwargs,
-    )
+global_client: Optional[Client] = None
+"""Global client instance. Set by calling `init()`."""
 
 
 def init(
-    email: str,
-    password: str,
     private_key: str,
-    rpc_url=DEFAULT_RPC_URL,
-    api_url=DEFAULT_API_URL,
-    contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
-):
-    """Initialize the OpenGradient SDK with authentication and network settings.
+    email: Optional[str] = None,
+    password: Optional[str] = None,
+    **kwargs,
+) -> Client:
+    """Initialize the global OpenGradient client.
+
+    This is the recommended way to get started. It creates a `Client` instance
+    and stores it as the global client for convenience.
 
     Args:
-        email: User's email address for authentication
-        password: User's password for authentication
-        private_key: Ethereum private key for blockchain transactions
-        rpc_url: Optional RPC URL for the blockchain network, defaults to mainnet
-        api_url: Optional API URL for the OpenGradient API, defaults to mainnet
-        contract_address: Optional inference contract address
-    """
-    global _client
-
-    _client = Client(
-        private_key=private_key, rpc_url=rpc_url, api_url=api_url, email=email, password=password, contract_address=contract_address
-    )
-    return _client
-
-
-def upload(model_path, model_name, version) -> FileUploadResult:
-    """Upload a model file to OpenGradient.
-
-    Args:
-        model_path: Path to the model file on local filesystem
-        model_name: Name of the model repository
-        version: Version string for this model upload
+        private_key: Private key for OpenGradient transactions.
+        email: Email for Model Hub authentication. Optional.
+        password: Password for Model Hub authentication. Optional.
+        **kwargs: Additional arguments forwarded to `Client`.
 
     Returns:
-        FileUploadResult: Upload response containing file metadata
+        The newly created `Client` instance.
 
-    Raises:
-        RuntimeError: If SDK is not initialized
+    Usage:
+        import opengradient as og
+        client = og.init(private_key="0x...")
+        response = client.llm.chat(model=og.TEE_LLM.GPT_4O, messages=[...])
     """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.upload(model_path, model_name, version)
-
-
-def create_model(model_name: str, model_desc: str, model_path: Optional[str] = None) -> ModelRepository:
-    """Create a new model repository.
-
-    Args:
-        model_name: Name for the new model repository
-        model_desc: Description of the model
-        model_path: Optional path to model file to upload immediately
-
-    Returns:
-        ModelRepository: Creation response with model metadata and optional upload results
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-
-    result = _client.create_model(model_name, model_desc)
-
-    if model_path:
-        version = "0.01"
-        upload_result = _client.upload(model_path, model_name, version)
-        result["upload"] = upload_result
-
-    return result
-
-
-def create_version(model_name, notes=None, is_major=False):
-    """Create a new version for an existing model.
-
-    Args:
-        model_name: Name of the model repository
-        notes: Optional release notes for this version
-        is_major: If True, creates a major version bump instead of minor
-
-    Returns:
-        dict: Version creation response with version metadata
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.create_version(model_name, notes, is_major)
-
-
-def infer(model_cid, inference_mode, model_input, max_retries: Optional[int] = None) -> InferenceResult:
-    """Run inference on a model.
-
-    Args:
-        model_cid: CID of the model to use
-        inference_mode: Mode of inference (e.g. VANILLA)
-        model_input: Input data for the model
-        max_retries: Maximum number of retries for failed transactions
-
-    Returns:
-        InferenceResult (InferenceResult): A dataclass object containing the transaction hash and model output.
-            * transaction_hash (str): Blockchain hash for the transaction
-            * model_output (Dict[str, np.ndarray]): Output of the ONNX model
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.infer(model_cid, inference_mode, model_input, max_retries=max_retries)
-
-
-def llm_completion(
-    model_cid: LLM,
-    prompt: str,
-    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
-    max_tokens: int = 100,
-    stop_sequence: Optional[List[str]] = None,
-    temperature: float = 0.0,
-    max_retries: Optional[int] = None,
-    x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
-) -> TextGenerationOutput:
-    """Generate text completion using an LLM.
-
-    Args:
-        model_cid: CID of the LLM model to use
-        prompt: Text prompt for completion
-        inference_mode: Mode of inference, defaults to VANILLA
-        max_tokens: Maximum tokens to generate
-        stop_sequence: Optional list of sequences where generation should stop
-        temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-        max_retries: Maximum number of retries for failed transactions
-        x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
-
-    Returns:
-        TextGenerationOutput: Transaction hash and generated text
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.llm_completion(
-        model_cid=model_cid,
-        inference_mode=inference_mode,
-        prompt=prompt,
-        max_tokens=max_tokens,
-        stop_sequence=stop_sequence,
-        temperature=temperature,
-        max_retries=max_retries,
-        x402_settlement_mode=x402_settlement_mode
-    )
-
-
-def llm_chat(
-    model_cid: LLM,
-    messages: List[Dict],
-    inference_mode: LlmInferenceMode = LlmInferenceMode.VANILLA,
-    max_tokens: int = 100,
-    stop_sequence: Optional[List[str]] = None,
-    temperature: float = 0.0,
-    tools: Optional[List[Dict]] = None,
-    tool_choice: Optional[str] = None,
-    max_retries: Optional[int] = None,
-    x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
-    stream: Optional[bool] = False,
-) -> Union[TextGenerationOutput, TextGenerationStream]:
-    """Have a chat conversation with an LLM.
-
-    Args:
-        model_cid: CID of the LLM model to use
-        messages: List of chat messages, each with 'role' and 'content'
-        inference_mode: Mode of inference, defaults to VANILLA
-        max_tokens: Maximum tokens to generate
-        stop_sequence: Optional list of sequences where generation should stop
-        temperature: Sampling temperature (0.0 = deterministic, 1.0 = creative)
-        tools: Optional list of tools the model can use
-        tool_choice: Optional specific tool to use
-        max_retries: Maximum number of retries for failed transactions
-        x402_settlement_mode: Settlement modes for x402 payment protocol transactions (enum x402SettlementMode)
-        stream: Optional boolean to enable streaming
-
-    Returns:
-        TextGenerationOutput or TextGenerationStream
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.llm_chat(
-        model_cid=model_cid,
-        inference_mode=inference_mode,
-        messages=messages,
-        max_tokens=max_tokens,
-        stop_sequence=stop_sequence,
-        temperature=temperature,
-        tools=tools,
-        tool_choice=tool_choice,
-        max_retries=max_retries,
-        x402_settlement_mode=x402_settlement_mode,
-        stream=stream,
-    )
-
-
-def list_files(model_name: str, version: str) -> List[Dict]:
-    """List files in a model repository version.
-
-    Args:
-        model_name: Name of the model repository
-        version: Version string to list files from
-
-    Returns:
-        List[Dict]: List of file metadata dictionaries
-
-    Raises:
-        RuntimeError: If SDK is not initialized
-    """
-    if _client is None:
-        raise RuntimeError("OpenGradient client not initialized. Call og.init() first.")
-    return _client.list_files(model_name, version)
+    global global_client
+    global_client = Client(private_key=private_key, email=email, password=password, **kwargs)
+    return global_client
 
 
 __all__ = [
-    "list_files",
-    "login",
-    "llm_chat",
-    "llm_completion",
-    "infer",
-    "create_version",
-    "create_model",
-    "upload",
+    "Client",
+    "global_client",
     "init",
-    "LLM",
     "TEE_LLM",
-    "alpha",
     "InferenceMode",
-    "LlmInferenceMode",
     "HistoricalInputQuery",
     "SchedulerParams",
     "CandleType",
     "CandleOrder",
-    "InferenceMode",
-    "llm",
+    "agents",
     "alphasense",
 ]
 
 __pdoc__ = {
     "account": False,
     "cli": False,
-    "client": False,
+    "client": True,
     "defaults": False,
-    "exceptions": False,
-    "llm": True,
+    "agents": True,
     "alphasense": True,
-    "proto": False,
-    "types": False,
-    "utils": False,
+    "types": True,
+    # Hide niche types from the top-level page -- they are documented under the types submodule
+    "CandleOrder": False,
+    "CandleType": False,
+    "HistoricalInputQuery": False,
+    "SchedulerParams": False,
+    "global_client": False,
 }

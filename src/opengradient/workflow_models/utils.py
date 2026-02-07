@@ -1,9 +1,11 @@
 """Utility functions for the models module."""
 
+from typing import Callable
+
+from opengradient.client.alpha import Alpha
+
 from .constants import BLOCK_EXPLORER_URL
-from typing import Callable, Any
 from .types import WorkflowModelOutput
-import opengradient as og
 
 
 def create_block_explorer_link_smart_contract(transaction_hash: str) -> str:
@@ -18,15 +20,16 @@ def create_block_explorer_link_transaction(transaction_hash: str) -> str:
     return block_explorer_url
 
 
-def read_workflow_wrapper(contract_address: str, format_function: Callable[..., str]) -> WorkflowModelOutput:
+def read_workflow_wrapper(alpha: Alpha, contract_address: str, format_function: Callable[..., str]) -> WorkflowModelOutput:
     """
     Wrapper function for reading from models through workflows.
     Args:
+        alpha (Alpha): The alpha namespace from an initialized OpenGradient client (client.alpha).
         contract_address (str): Smart contract address of the workflow
         format_function (Callable): Function for formatting the result returned by read_workflow
     """
     try:
-        result = og.alpha.read_workflow_result(contract_address)
+        result = alpha.read_workflow_result(contract_address)
 
         formatted_result = format_function(result)
         block_explorer_link = create_block_explorer_link_smart_contract(contract_address)

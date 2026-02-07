@@ -1,3 +1,6 @@
+"""Exception types for OpenGradient SDK errors."""
+
+
 class OpenGradientError(Exception):
     """Base exception for OpenGradient SDK"""
 

@@ -4,7 +4,7 @@
 
 ## Overview
 
-OpenGradient SDK provides decentralized AI inference with optional cryptographic verification (TEE mode). It supports LLM chat/completions, ONNX model inference, and scheduled workflows.
+OpenGradient SDK provides decentralized AI inference with cryptographic verification via Trusted Execution Environments (TEE). It supports LLM chat/completions, ONNX model inference, and scheduled workflows. All LLM calls are TEE-verified with x402 payments.
 
 ## Installation
 
@@ -19,15 +19,13 @@ import opengradient as og
 import os
 
 # Initialize client
-client = og.new_client(
+client = og.Client(
     private_key=os.environ["OG_PRIVATE_KEY"],  # Required: Ethereum private key
-    openai_api_key=os.environ.get("OPENAI_API_KEY"),  # Optional: for OpenAI models
-    anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY"),  # Optional: for Claude
 )
 
-# LLM Chat
-result = client.llm_chat(
-    model_cid="gpt-4o",  # or og.LLM.CLAUDE_3_5_HAIKU
+# LLM Chat (TEE-verified with x402 payments)
+result = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
     messages=[{"role": "user", "content": "Hello!"}],
     max_tokens=100,
 )
@@ -40,13 +38,10 @@ print(result.chat_output["content"])
 
 ```python
 # Option 1: Create client instance (recommended)
-client = og.new_client(
+client = og.Client(
     private_key="0x...",           # Required: Ethereum private key
     email=None,                    # Optional: Model Hub auth
     password=None,                 # Optional: Model Hub auth
-    openai_api_key=None,           # Optional: OpenAI access
-    anthropic_api_key=None,        # Optional: Anthropic access
-    google_api_key=None,           # Optional: Google access
 )
 
 # Option 2: Global initialization
@@ -56,31 +51,34 @@ og.init(private_key="0x...", email="...", password="...")
 ### LLM Chat
 
 ```python
-result = client.llm_chat(
-    model_cid: str,                    # Model ID or og.LLM enum
+result = client.llm.chat(
+    model: TEE_LLM,                    # og.TEE_LLM enum value
     messages: List[Dict],              # [{"role": "user", "content": "..."}]
     max_tokens: int = 100,
     temperature: float = 0.0,
     tools: List[Dict] = [],            # Optional: function calling
     tool_choice: str = None,           # "auto", "none", or specific tool
-    inference_mode: og.LlmInferenceMode = og.LlmInferenceMode.VANILLA,
+    stop_sequence: List[str] = None,
+    x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
+    stream: bool = False,              # Enable streaming responses
 )
-# Returns: TextGenerationOutput
+# Returns: TextGenerationOutput (or TextGenerationStream if stream=True)
 #   - chat_output: Dict with role, content, tool_calls
 #   - transaction_hash: str
 #   - finish_reason: str ("stop", "tool_call")
+#   - payment_hash: str
 ```
 
 ### LLM Completion
 
 ```python
-result = client.llm_completion(
-    model_cid: str,
+result = client.llm.completion(
+    model: TEE_LLM,
     prompt: str,
     max_tokens: int = 100,
     temperature: float = 0.0,
     stop_sequence: List[str] = None,
-    inference_mode: og.LlmInferenceMode = og.LlmInferenceMode.VANILLA,
+    x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
 )
 # Returns: TextGenerationOutput
 #   - completion_output: str (raw text)
@@ -90,10 +88,11 @@ result = client.llm_completion(
 ### ONNX Model Inference
 
 ```python
-result = client.infer(
+result = client.alpha.infer(
     model_cid: str,                    # IPFS CID of model
+    inference_mode: og.InferenceMode,  # VANILLA, TEE, or ZKML
     model_input: Dict[str, Any],       # Input tensors
-    inference_mode: og.InferenceMode = og.InferenceMode.VANILLA,
+    max_retries: int = None,
 )
 # Returns: InferenceResult
 #   - model_output: Dict[str, np.ndarray]
@@ -102,9 +101,9 @@ result = client.infer(
 
 ## Available Models
 
-### TEE-Verified Models (og.LLM and og.TEE_LLM)
+### TEE-Verified Models (og.TEE_LLM)
 
-All models are now TEE-verified. The following models are available:
+All LLM models are TEE-verified. `og.LLM` and `og.TEE_LLM` contain the same models:
 
 ```python
 # OpenAI
@@ -120,18 +119,27 @@ og.TEE_LLM.CLAUDE_4_0_SONNET
 # Google
 og.TEE_LLM.GEMINI_2_5_FLASH
 og.TEE_LLM.GEMINI_2_5_PRO
+og.TEE_LLM.GEMINI_2_0_FLASH
+og.TEE_LLM.GEMINI_2_5_FLASH_LITE
 
 # xAI
 og.TEE_LLM.GROK_3_BETA
 og.TEE_LLM.GROK_3_MINI_BETA
+og.TEE_LLM.GROK_2_1212
+og.TEE_LLM.GROK_2_VISION_LATEST
+og.TEE_LLM.GROK_4_1_FAST
+og.TEE_LLM.GROK_4_1_FAST_NON_REASONING
 ```
 
-### External Providers (by string)
+### Using Models
+
+All models are accessed through the OpenGradient TEE infrastructure with x402 payments:
 
 ```python
-"gpt-4o", "gpt-4-turbo"        # OpenAI
-"claude-3-sonnet"              # Anthropic
-"gemini-2-5-pro"               # Google
+result = client.llm.chat(
+    model=og.TEE_LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Hello"}],
+)
 ```
 
 ## Common Patterns
@@ -154,8 +162,8 @@ tools = [{
     }
 }]
 
-result = client.llm_chat(
-    model_cid=og.LLM.CLAUDE_3_7_SONNET,
+result = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_7_SONNET,
     messages=[{"role": "user", "content": "What's the weather in NYC?"}],
     tools=tools,
     tool_choice="auto",
@@ -166,15 +174,19 @@ if result.chat_output.get("tool_calls"):
         print(f"Call {call['name']} with {call['arguments']}")
 ```
 
-### TEE Verified Inference
+### Streaming
 
 ```python
-# Use TEE mode for cryptographic proof of execution
-result = client.llm_chat(
-    model_cid=og.TEE_LLM.GPT_4O,
-    messages=[{"role": "user", "content": "Hello"}],
-    inference_mode=og.LlmInferenceMode.TEE,
+stream = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_7_SONNET,
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    stream=True,
 )
+
+for chunk in stream:
+    for choice in chunk.choices:
+        if choice.delta.content:
+            print(choice.delta.content, end="")
 ```
 
 ### LangChain Integration
@@ -183,7 +195,7 @@ result = client.llm_chat(
 from langgraph.prebuilt import create_react_agent
 
 # Create LangChain-compatible LLM
-llm = og.llm.langchain_adapter(
+llm = og.agents.langchain_adapter(
     private_key=os.environ["OG_PRIVATE_KEY"],
     model_cid=og.LLM.CLAUDE_3_7_SONNET,
     max_tokens=300,
@@ -195,7 +207,7 @@ for chunk in agent.stream({"messages": [("user", "Your question")]}):
     print(chunk)
 ```
 
-### Scheduled Workflows
+### Scheduled Workflows (Alpha Testnet)
 
 ```python
 # Define data input
@@ -213,16 +225,19 @@ input_query = og.HistoricalInputQuery(
 scheduler = og.SchedulerParams(frequency=60, duration_hours=2)
 
 # Deploy
-contract = client.new_workflow(
+contract = client.alpha.new_workflow(
     model_cid="your-model-cid",
     input_query=input_query,
     input_tensor_name="price_data",
     scheduler_params=scheduler,
 )
 
+# Manually trigger execution
+result = client.alpha.run_workflow(contract)
+
 # Read results
-result = client.read_workflow_result(contract)
-history = client.read_workflow_history(contract, num_results=5)
+latest = client.alpha.read_workflow_result(contract)
+history = client.alpha.read_workflow_history(contract, num_results=5)
 ```
 
 ### AlphaSense Tool Creation
@@ -248,18 +263,15 @@ tool = og.alphasense.create_run_model_tool(
 ## Key Types
 
 ```python
-# Inference modes
+# On-chain inference modes (for ONNX models)
 og.InferenceMode.VANILLA    # Standard execution
 og.InferenceMode.TEE        # Trusted Execution Environment
 og.InferenceMode.ZKML       # Zero-knowledge proof
 
-og.LlmInferenceMode.VANILLA
-og.LlmInferenceMode.TEE
-
-# x402 Payment Settlement Modes
+# x402 Payment Settlement Modes (for LLM calls)
 og.x402SettlementMode.SETTLE           # Input/output hashes only (most private)
-og.x402SettlementMode.SETTLE_BATCH     # Batch hashes for multiple inferences (most cost-efficient)
-og.x402SettlementMode.SETTLE_METADATA  # Full model info, input/output data, and metadata
+og.x402SettlementMode.SETTLE_BATCH     # Batch hashes (most cost-efficient, default)
+og.x402SettlementMode.SETTLE_METADATA  # Full data and metadata on-chain
 
 # Workflow data types
 og.CandleType.OPEN, .HIGH, .LOW, .CLOSE, .VOLUME
@@ -269,7 +281,7 @@ og.CandleOrder.ASCENDING, .DESCENDING
 ## Error Handling
 
 ```python
-from opengradient.exceptions import (
+from opengradient.client.exceptions import (
     OpenGradientError,      # Base exception
     AuthenticationError,
     InferenceError,
@@ -277,10 +289,13 @@ from opengradient.exceptions import (
     NetworkError,
     RateLimitError,
     TimeoutError,
+    ServerError,
+    UnsupportedModelError,
+    InsufficientCreditsError,
 )
 
 try:
-    result = client.llm_chat(...)
+    result = client.llm.chat(...)
 except RateLimitError:
     # Retry with backoff
 except InferenceError as e:
@@ -293,9 +308,6 @@ except OpenGradientError as e:
 
 ```bash
 OG_PRIVATE_KEY=0x...          # Required: Ethereum private key
-OPENAI_API_KEY=sk-...         # Optional: for OpenAI models
-ANTHROPIC_API_KEY=sk-ant-...  # Optional: for Anthropic models
-GOOGLE_API_KEY=AIza...        # Optional: for Google models
 ```
 
 ## Resources

@@ -1,9 +1,8 @@
-import opengradient as og
 import os
 
-client = og.new_client(
-    email=None,
-    password=None,
+import opengradient as og
+
+client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
@@ -11,12 +10,12 @@ messages = [
     {"role": "user", "content": "Describe to me the 7 network layers?"},
 ]
 
-stream = client.llm_chat(
-    model_cid=og.LLM.GPT_4_1_2025_04_14,
-    inference_mode=og.LlmInferenceMode.TEE,
+stream = client.llm.chat(
+    model=og.TEE_LLM.GPT_4_1_2025_04_14,
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
     stream=True,
+    max_tokens=1000,
 )
 
 for chunk in stream:

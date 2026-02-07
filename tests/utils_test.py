@@ -1,17 +1,10 @@
-import pytest
-import numpy as np
-from typing import List, Dict
-from dataclasses import dataclass
 import json
-import sys
-import os
 
-# Add the src directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+import numpy as np
+import pytest
 
-# Import from src/opengradient
-import src.opengradient.types as types
-import src.opengradient.utils as utils
+import opengradient.client._conversions as utils
+import opengradient.types as types
 
 
 @pytest.fixture

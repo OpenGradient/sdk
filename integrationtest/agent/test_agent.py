@@ -1,18 +1,15 @@
 import os
 import unittest
+from enum import Enum
 
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
-
-from opengradient.alphasense import create_read_workflow_tool, create_run_model_tool, ToolType
-from opengradient.llm import OpenGradientChatModel
-from opengradient import LLM
-from opengradient import init
-from opengradient import InferenceResult
-import opengradient as og
-
 from pydantic import BaseModel, Field
-from enum import Enum
+
+import opengradient as og
+from opengradient import LLM, InferenceResult
+from opengradient.alphasense import ToolType, create_read_workflow_tool, create_run_model_tool
+from opengradient.llm import OpenGradientChatModel
 
 
 class TestLLM(unittest.TestCase):
@@ -22,7 +19,7 @@ class TestLLM(unittest.TestCase):
         if not private_key:
             raise ValueError("PRIVATE_KEY environment variable is not set")
 
-        init(private_key=private_key, email=None, password=None)
+        self.client = og.Client(private_key=private_key)
         self.llm = OpenGradientChatModel(private_key=private_key, model_cid=LLM.CLAUDE_3_7_SONNET)
 
     def test_simple_completion(self):
@@ -42,7 +39,7 @@ class TestLLM(unittest.TestCase):
 
     def test_read_workflow(self):
         # Read current workflow result
-        workflow_result = og.alpha.read_workflow_result(contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0")
+        workflow_result = self.client.alpha.read_workflow_result(contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0")
         expected_result = str(workflow_result.numbers["Y"][0])
 
         btc_workflow_tool = create_read_workflow_tool(
@@ -50,6 +47,7 @@ class TestLLM(unittest.TestCase):
             workflow_contract_address="0x6e0641925b845A1ca8aA9a890C4DEF388E9197e0",
             tool_name="ETH_Price_Forecast",
             tool_description="Reads latest forecast for ETH price",
+            alpha=self.client.alpha,
             output_formatter=lambda x: x,
         )
 
@@ -89,11 +87,12 @@ class TestLLM(unittest.TestCase):
             tool_name="One_hour_volatility_ETH_USDT",
             model_input_provider=model_input_provider,
             model_output_formatter=output_formatter,
+            inference=self.client.alpha,
             tool_description="This tool measures the live 1 hour volatility for the trading pair ETH/USDT.",
             inference_mode=og.InferenceMode.VANILLA,
         )
 
-        expected_result = og.infer(
+        expected_result = self.client.alpha.infer(
             inference_mode=og.InferenceMode.VANILLA, model_cid="QmRhcpDXfYCKsimTmJYrAVM4Bbvck59Zb2onj3MHv9Kw5N", model_input=model_input
         )
         formatted_expected_result = format(float(expected_result.model_output["Y"].item()), ".3%")
@@ -194,13 +193,14 @@ class TestLLM(unittest.TestCase):
             tool_name="Return_volatility_tool",
             model_input_provider=model_input_provider,
             model_output_formatter=output_formatter,
+            inference=self.client.alpha,
             tool_input_schema=InputSchema,
             tool_description="This tool takes a token and measures the return volatility (standard deviation of returns).",
             inference_mode=og.InferenceMode.VANILLA,
         )
 
         # Test option ETH
-        expected_result_eth = og.infer(
+        expected_result_eth = self.client.alpha.infer(
             inference_mode=og.InferenceMode.VANILLA, model_cid="QmZdSfHWGJyzBiB2K98egzu3MypPcv4R1ASypUxwZ1MFUG", model_input=eth_model_input
         )
         formatted_expected_result_eth = format(float(expected_result_eth.model_output["std"].item()), ".3%")
@@ -215,7 +215,7 @@ class TestLLM(unittest.TestCase):
         self.assertIn(formatted_expected_result_eth, list(events)[-1]["messages"][-1].content)
 
         # Test option BTC
-        expected_result_btc = og.infer(
+        expected_result_btc = self.client.alpha.infer(
             inference_mode=og.InferenceMode.VANILLA, model_cid="QmZdSfHWGJyzBiB2K98egzu3MypPcv4R1ASypUxwZ1MFUG", model_input=btc_model_input
         )
         formatted_expected_result_btc = format(float(expected_result_btc.model_output["std"].item()), ".3%")

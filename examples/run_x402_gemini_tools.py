@@ -7,12 +7,11 @@ Usage:
 """
 
 import os
+
 import opengradient as og
 
 # Initialize client with Google API key
-client = og.new_client(
-    email=None,
-    password=None,
+client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
@@ -52,17 +51,16 @@ messages = [
 ]
 
 print("Testing Gemini tool calls...")
-print(f"Model: {og.LLM.GEMINI_2_5_FLASH_LITE}")
+print(f"Model: {og.TEE_LLM.GEMINI_2_5_FLASH_LITE}")
 print(f"Messages: {messages}")
 print(f"Tools: {tools}")
 print("-" * 50)
 
-result = client.llm_chat(
-    model_cid=og.LLM.GEMINI_2_5_FLASH_LITE,
+result = client.llm.chat(
+    model=og.TEE_LLM.GEMINI_2_5_FLASH_LITE,
     messages=messages,
     tools=tools,
     max_tokens=200,
-    inference_mode=og.LlmInferenceMode.VANILLA,
 )
 
 print(f"Finish reason: {result.finish_reason}")

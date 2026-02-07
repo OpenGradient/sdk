@@ -4,16 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "opengradient"
-version = "0.5.13"
+version = "0.6.0"
 description = "Python SDK for OpenGradient decentralized model management & inference services"
 authors = [{name = "OpenGradient", email = "kyle@vannalabs.ai"}]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
@@ -23,7 +22,6 @@ dependencies = [
     "web3>=7.3.0",
     "click>=8.1.7",
     "firebase-rest-api>=1.11.0",
-    "grpcio>=1.66.2",
     "numpy>=1.26.4",
     "requests>=2.32.3",
     "langchain>=0.3.7",
@@ -54,9 +52,11 @@ exclude = ["tests*", "stresstest*"]
 "opengradient" = [
     "abi/*.abi",
     "bin/*.bin",
-    "proto/*.proto",
     "**/*.py"
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 140
