@@ -220,6 +220,22 @@ def __init__(name: str, values: List[Tuple[int, int]])
 * static `name` : str
 * static `values` : List[Tuple[int, int]]
 
+### `PaymentNetwork`
+
+Payment network for x402 payment protocol transactions.
+
+Controls which blockchain network is used for paying for LLM inference.
+
+**Attributes**
+
+* **`OG_EVM`**: Pay on the OpenGradient EVM network (default).
+* **`BASE_SEPOLIA`**: Pay on the Base Sepolia testnet using the OG token.
+
+#### Variables
+
+* static `BASE_SEPOLIA`
+* static `OG_EVM`
+
 ### `SchedulerParams`
 
 #### Constructor
