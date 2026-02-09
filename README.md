@@ -1,84 +1,98 @@
 # OpenGradient Python SDK
 
-A Python SDK for decentralized model management and inference services on the OpenGradient platform. The SDK enables programmatic access to our model repository and decentralized AI infrastructure.
+A Python SDK for decentralized model management and inference services on the OpenGradient platform. The SDK provides programmatic access to distributed AI infrastructure with cryptographic verification capabilities.
 
-## Key Features
+## Overview
 
-- Model management and versioning
-- Decentralized model inference
-- Support for LLM inference with various models
-- **Trusted Execution Environment (TEE) inference** with cryptographic attestation
-- Drop-in replacement for OpenAI and Anthropic LLM APIs - add verifiable and secure inference to your existing AI application or agent with minimal code changes
-- Consensus-based end-to-end verified AI execution
-- Command-line interface (CLI) for direct access
+OpenGradient enables developers to build AI applications with verifiable execution guarantees through Trusted Execution Environments (TEE) and blockchain-based settlement. The SDK supports standard LLM inference patterns while adding cryptographic attestation for applications requiring auditability and tamper-proof AI execution.
 
-## Model Hub
+### Key Features
 
-Browse and discover AI models on our [Model Hub](https://hub.opengradient.ai/). The Hub provides:
-- Registry of models and LLMs
-- Easy model discovery and deployment
-- Direct integration with the SDK
+- **Verifiable LLM Inference**: Drop-in replacement for OpenAI and Anthropic APIs with cryptographic attestation
+- **Multi-Provider Support**: Access models from OpenAI, Anthropic, Google, and xAI through a unified interface
+- **TEE Execution**: Trusted Execution Environment inference with cryptographic verification
+- **Model Hub Integration**: Registry for model discovery, versioning, and deployment
+- **Consensus-Based Verification**: End-to-end verified AI execution through the OpenGradient network
+- **Command-Line Interface**: Direct access to SDK functionality via CLI
 
 ## Installation
 ```bash
 pip install opengradient
 ```
 
-Note: Windows users should temporarily enable WSL when installing `opengradient` (fix in progress).
+**Note**: Windows users should temporarily enable WSL during installation (fix in progress).
 
-## Network Configuration
+## Network Architecture
 
-OpenGradient currently runs two networks:
-- **Testnet**: The main public testnet for general use
-- **Alpha Testnet**: For alpha features like atomic AI execution from smart contracts or scheduled ML workflow execution (see [Alpha Testnet Features](#alpha-testnet-features))
+OpenGradient operates two networks:
 
-For the latest network RPCs, contract addresses, and deployment information, see the [Network Deployment Documentation](https://docs.opengradient.ai/learn/network/deployment.html).
+- **Testnet**: Primary public testnet for general development and testing
+- **Alpha Testnet**: Experimental features including atomic AI execution from smart contracts and scheduled ML workflow execution
+
+For current network RPC endpoints, contract addresses, and deployment information, refer to the [Network Deployment Documentation](https://docs.opengradient.ai/learn/network/deployment.html).
 
 ## Getting Started
 
-### 1. Account Setup
+### Prerequisites
 
-You'll need:
-- **Private key**: An Ethereum-compatible wallet private key for OpenGradient transactions
-- **Test tokens**: Get free test tokens from the [OpenGradient Faucet](https://faucet.opengradient.ai) to use LLM inference on the testnet
-- **Model Hub account** (optional): Only needed for uploading models. Create one at [Hub Sign Up](https://hub.opengradient.ai/signup)
+Before using the SDK, you will need:
 
-The easiest way to set up your configuration is through our wizard:
+1. **Private Key**: An Ethereum-compatible wallet private key for OpenGradient transactions
+2. **Test Tokens**: Obtain free test tokens from the [OpenGradient Faucet](https://faucet.opengradient.ai) for testnet LLM inference
+3. **Model Hub Account** (Optional): Required only for model uploads. Register at [hub.opengradient.ai/signup](https://hub.opengradient.ai/signup)
+
+### Configuration
+
+Initialize your configuration using the interactive wizard:
 ```bash
 opengradient config init
 ```
 
-### 2. Initialize the Client
+### Client Initialization
 ```python
 import os
 import opengradient as og
 
 client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
-    email=None,  # Optional: only needed for model uploads
+    email=None,  # Optional: required only for model uploads
     password=None,
 )
 ```
 
-### 3. Basic Usage
+## Core Functionality
 
-#### LLM Chat secured by TEE (Trusted Execution Environment)
+### TEE-Secured LLM Chat
 
-OpenGradient supports secure, verifiable inference through TEE for leading LLM providers. Access models from OpenAI, Anthropic, Google, and xAI with cryptographic attestation verified by the OpenGradient network:
-
+OpenGradient provides secure, verifiable inference through Trusted Execution Environments. All supported models include cryptographic attestation verified by the OpenGradient network:
 ```python
 completion = client.llm.chat(
     model=og.TEE_LLM.GPT_4O,
     messages=[{"role": "user", "content": "Hello!"}],
 )
 print(f"Response: {completion.chat_output['content']}")
-print(f"Tx hash: {completion.transaction_hash}")
+print(f"Transaction hash: {completion.transaction_hash}")
 ```
 
-#### Verifiable LangChain Agent
+### Streaming Responses
 
-Use OpenGradient as a drop-in LLM for LangChain agents - every decision and reasoning is verified through the OpenGradient network:
+For real-time generation, enable streaming:
+```python
+stream = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_3_7_SONNET,
+    messages=[{"role": "user", "content": "Explain quantum computing"}],
+    max_tokens=500,
+    stream=True,
+)
 
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+### Verifiable LangChain Integration
+
+Use OpenGradient as a drop-in LLM provider for LangChain agents with network-verified execution:
 ```python
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
@@ -95,27 +109,50 @@ def get_weather(city: str) -> str:
     return f"Sunny, 72°F in {city}"
 
 agent = create_react_agent(llm, [get_weather])
-result = agent.invoke({"messages": [("user", "What's the weather in San Francisco?")]})
+result = agent.invoke({
+    "messages": [("user", "What's the weather in San Francisco?")]
+})
 print(result["messages"][-1].content)
 ```
 
-**Available TEE Models:**
-The SDK includes models from multiple providers accessible via the `og.TEE_LLM` enum:
-- **OpenAI**: GPT-4.1, GPT-4o, o4-mini
-- **Anthropic**: Claude 3.7 Sonnet, Claude 3.5 Haiku, Claude 4.0 Sonnet
-- **Google**: Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 2.0 Flash
-- **xAI**: Grok 3 Beta, Grok 3 Mini Beta, Grok 4.1 Fast
+### Available Models
 
-For the complete list, check the `og.TEE_LLM` enum in your IDE or see the [API documentation](https://docs.opengradient.ai/api_reference/python_sdk/).
+The SDK provides access to models from multiple providers via the `og.TEE_LLM` enum:
 
-### 4. Alpha Testnet Features
+#### OpenAI
+- GPT-4.1 (2025-04-14)
+- GPT-4o
+- o4-mini
 
-The Alpha Testnet provides access to experimental features, including **custom ML model inference** and **workflow deployment and execution**. Run inference on any model hosted on the Model Hub, or deploy on-chain AI pipelines that connect models with data sources and can be scheduled for automated execution.
+#### Anthropic
+- Claude 3.7 Sonnet
+- Claude 3.5 Haiku
+- Claude 4.0 Sonnet
 
-**Note:** Alpha features require connecting to the Alpha Testnet. See [Network Configuration](#network-configuration) for details.
+#### Google
+- Gemini 2.5 Flash
+- Gemini 2.5 Pro
+- Gemini 2.0 Flash
+- Gemini 2.5 Flash Lite
 
-#### Custom Model Inference 
-Browse models on our [Model Hub](https://hub.opengradient.ai/) or upload your own:
+#### xAI
+- Grok 3 Beta
+- Grok 3 Mini Beta
+- Grok 2 (1212)
+- Grok 2 Vision
+- Grok 4.1 Fast (reasoning and non-reasoning)
+
+For a complete list, reference the `og.TEE_LLM` enum or consult the [API documentation](https://docs.opengradient.ai/api_reference/python_sdk/).
+
+## Alpha Testnet Features
+
+The Alpha Testnet provides access to experimental capabilities including custom ML model inference and workflow orchestration. These features enable on-chain AI pipelines that connect models with data sources and support scheduled automated execution.
+
+**Note**: Alpha features require connecting to the Alpha Testnet. See [Network Architecture](#network-architecture) for details.
+
+### Custom Model Inference
+
+Browse models on the [Model Hub](https://hub.opengradient.ai/) or deploy your own:
 ```python
 result = client.alpha.infer(
     model_cid="your-model-cid",
@@ -125,11 +162,13 @@ result = client.alpha.infer(
 print(f"Output: {result.model_output}")
 ```
 
-#### Deploy a Workflow
+### Workflow Deployment
+
+Deploy on-chain AI workflows with optional scheduling:
 ```python
 import opengradient as og
 
-client = og.init(
+client = og.Client(
     private_key="your-private-key",
     email="your-email",
     password="your-password",
@@ -145,17 +184,20 @@ input_query = og.HistoricalInputQuery(
     candle_types=[og.CandleType.CLOSE],
 )
 
-# Deploy a workflow (optionally with scheduling)
+# Deploy workflow with optional scheduling
 contract_address = client.alpha.new_workflow(
     model_cid="your-model-cid",
     input_query=input_query,
     input_tensor_name="input",
-    scheduler_params=og.SchedulerParams(frequency=3600, duration_hours=24),  # Optional
+    scheduler_params=og.SchedulerParams(
+        frequency=3600,
+        duration_hours=24
+    ),  # Optional
 )
 print(f"Workflow deployed at: {contract_address}")
 ```
 
-#### Execute and Read Results
+### Workflow Execution and Monitoring
 ```python
 # Manually trigger workflow execution
 result = client.alpha.run_workflow(contract_address)
@@ -164,47 +206,95 @@ print(f"Inference output: {result}")
 # Read the latest result
 latest = client.alpha.read_workflow_result(contract_address)
 
-# Get historical results
-history = client.alpha.read_workflow_history(contract_address, num_results=5)
+# Retrieve historical results
+history = client.alpha.read_workflow_history(
+    contract_address,
+    num_results=5
+)
 ```
 
-### 5. Examples
+## Command-Line Interface
 
-See code examples under [examples](./examples).
-
-## CLI Usage
-
-The SDK includes a command-line interface for quick operations. First, verify your configuration:
+The SDK includes a comprehensive CLI for direct operations. Verify your configuration:
 ```bash
 opengradient config show
 ```
 
-Run a test inference:
+Execute a test inference:
 ```bash
 opengradient infer -m QmbUqS93oc4JTLMHwpVxsE39mhNxy6hpf6Py3r9oANr8aZ \
     --input '{"num_input1":[1.0, 2.0, 3.0], "num_input2":10}'
 ```
 
+Run a chat completion:
+```bash
+opengradient chat --model anthropic/claude-3.5-haiku \
+    --messages '[{"role":"user","content":"Hello"}]' \
+    --max-tokens 100
+```
+
+For a complete list of CLI commands:
+```bash
+opengradient --help
+```
+
 ## Use Cases
 
-1. **Off-chain Applications**: Use OpenGradient as a decentralized alternative to centralized AI providers like HuggingFace and OpenAI.
+### Decentralized AI Applications
+Use OpenGradient as a decentralized alternative to centralized AI providers, eliminating single points of failure and vendor lock-in.
 
-2. **Verifiable AI Execution**: Leverage TEE inference for cryptographically attested AI outputs, enabling trustless AI applications and agents.
+### Verifiable AI Execution
+Leverage TEE inference for cryptographically attested AI outputs, enabling trustless AI applications where execution integrity must be proven.
 
-3. **Model Hosting**: Manage, hosy and execute models on the Model Hub and integrate directly into your development workflow.
+### Auditability and Compliance
+Build applications requiring complete audit trails of AI decisions with cryptographic verification of model inputs, outputs, and execution environments.
+
+### Model Hosting and Distribution
+Manage, host, and execute models through the Model Hub with direct integration into development workflows.
+
+## Payment Settlement
+
+OpenGradient supports multiple settlement modes through the x402 payment protocol:
+
+- **SETTLE**: Records cryptographic hashes only (maximum privacy)
+- **SETTLE_METADATA**: Records complete input/output data (maximum transparency)
+- **SETTLE_BATCH**: Aggregates multiple inferences (most cost-efficient)
+
+Specify settlement mode in your requests:
+```python
+result = client.llm.chat(
+    model=og.TEE_LLM.GPT_4O,
+    messages=[{"role": "user", "content": "Hello"}],
+    x402_settlement_mode=og.x402SettlementMode.SETTLE_BATCH,
+)
+```
+
+## Examples
+
+Additional code examples are available in the [examples](./examples) directory.
 
 ## Documentation
 
-For comprehensive documentation, API reference, and examples, visit:
+For comprehensive documentation, API reference, and guides:
+
 - [OpenGradient Documentation](https://docs.opengradient.ai/)
 - [API Reference](https://docs.opengradient.ai/api_reference/python_sdk/)
+- [Network Deployment](https://docs.opengradient.ai/learn/network/deployment.html)
 
-### Claude Code Users
+### Claude Code Integration
 
-If you use [Claude Code](https://claude.ai/code), copy [docs/CLAUDE_SDK_USERS.md](docs/CLAUDE_SDK_USERS.md) to your project's `CLAUDE.md` to help Claude assist you with OpenGradient SDK development.
+If you use [Claude Code](https://claude.ai/code), copy [docs/CLAUDE_SDK_USERS.md](docs/CLAUDE_SDK_USERS.md) to your project's `CLAUDE.md` to enable context-aware assistance with OpenGradient SDK development.
+
+## Model Hub
+
+Browse and discover AI models on the [OpenGradient Model Hub](https://hub.opengradient.ai/). The Hub provides:
+
+- Comprehensive model registry with versioning
+- Model discovery and deployment tools
+- Direct SDK integration for seamless workflows
 
 ## Support
 
-- Run `opengradient --help` for CLI command reference
+- Execute `opengradient --help` for CLI command reference
 - Visit our [documentation](https://docs.opengradient.ai/) for detailed guides
-- Join our [community](https://opengradient.ai/) for support
+- Join our [community](https://opengradient.ai/) for support and discussions
