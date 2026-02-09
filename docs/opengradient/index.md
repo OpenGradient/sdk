@@ -166,7 +166,8 @@ Controls which blockchain network is used for paying for LLM inference.
 **Attributes**
 
 * **`OG_EVM`**: Pay on the OpenGradient EVM network (default).
-* **`BASE_SEPOLIA`**: Pay on the Base Sepolia testnet using the OG token.
+* **`BASE_SEPOLIA`**: Pay on the Base Sepolia testnet using the OG token
+        at address ``0x240b09731D96979f50B2C649C9CE10FcF9C7987F``.
 
 #### Variables
 
