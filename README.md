@@ -269,6 +269,16 @@ result = client.llm.chat(
 )
 ```
 
+### Payment Network Selection
+
+By default, payments settle on the OG EVM network. To pay via Base Sepolia instead, set the `payment_network` parameter at client initialization:
+```python
+client = og.Client(
+    private_key=os.environ.get("OG_PRIVATE_KEY"),
+    payment_network=og.PaymentNetwork.BASE_SEPOLIA,
+)
+```
+
 ## Examples
 
 Additional code examples are available in the [examples](./examples) directory.
