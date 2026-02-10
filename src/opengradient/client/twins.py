@@ -14,8 +14,8 @@ class Twins:
     """
     Digital twins chat namespace.
 
-    Provides access to digital twin conversations from twin.fun,
-    backed by OpenGradient verifiable inference.
+    Provides access to digital twin conversations backed by OpenGradient
+    verifiable inference. Browse available twins at https://twin.fun.
 
     Usage:
         client = og.init(private_key="0x...", twins_api_key="your-api-key")

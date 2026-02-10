@@ -1,4 +1,5 @@
 ## Chat with digital twins from twin.fun via OpenGradient verifiable inference
+# Browse available twins at https://twin.fun
 
 import os
 
