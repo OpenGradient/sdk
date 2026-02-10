@@ -273,6 +273,14 @@ result = client.llm.chat(
 
 Additional code examples are available in the [examples](./examples) directory.
 
+## Tutorials
+
+Step-by-step guides for building with OpenGradient are available in the [tutorials](./tutorials) directory:
+
+1. **[Build a Verifiable AI Agent with On-Chain Tools](./tutorials/01-verifiable-ai-agent.md)** — Create an AI agent with cryptographically attested execution and on-chain tool integration
+2. **[Streaming Multi-Provider Chat with Settlement Modes](./tutorials/02-streaming-multi-provider.md)** — Use a unified API across OpenAI, Anthropic, and Google with real-time streaming and configurable settlement
+3. **[Tool-Calling Agent with Verified Reasoning](./tutorials/03-verified-tool-calling.md)** — Build a tool-calling agent where every reasoning step is cryptographically verifiable
+
 ## Documentation
 
 For comprehensive documentation, API reference, and guides:
