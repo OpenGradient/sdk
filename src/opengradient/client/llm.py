@@ -67,6 +67,46 @@ class LLM:
             max_value=max_value,
         )
 
+    def _validate_response_format(self, response_format: Optional[Dict]) -> None:
+        """
+        Validate response_format structure.
+
+        Performs lightweight structural validation only. Does NOT validate
+        the actual JSON Schema content - that's handled by the backend.
+
+        Args:
+            response_format: Response format dict to validate.
+
+        Raises:
+            OpenGradientError: If the structure is invalid.
+        """
+        if response_format is None:
+            return
+
+        if not isinstance(response_format, dict):
+            raise OpenGradientError("response_format must be a dict")
+
+        if "type" not in response_format:
+            raise OpenGradientError("response_format must have a 'type' field")
+
+        format_type = response_format["type"]
+        if format_type not in ("json_object", "json_schema"):
+            raise OpenGradientError(f"response_format type must be 'json_object' or 'json_schema', got: {format_type}")
+
+        if format_type == "json_schema":
+            if "json_schema" not in response_format:
+                raise OpenGradientError("response_format with type='json_schema' must have a 'json_schema' field")
+
+            json_schema = response_format["json_schema"]
+            if not isinstance(json_schema, dict):
+                raise OpenGradientError("json_schema must be a dict")
+
+            if "name" not in json_schema:
+                raise OpenGradientError("json_schema must have a 'name' field")
+
+            if "schema" not in json_schema:
+                raise OpenGradientError("json_schema must have a 'schema' field")
+
     def completion(
         self,
         model: TEE_LLM,
@@ -74,6 +114,7 @@ class LLM:
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
+        response_format: Optional[Dict] = None,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
@@ -85,6 +126,11 @@ class LLM:
             max_tokens (int): Maximum number of tokens for LLM output. Default is 100.
             stop_sequence (List[str], optional): List of stop sequences for LLM. Default is None.
             temperature (float): Temperature for LLM inference, between 0 and 1. Default is 0.0.
+            response_format (Dict, optional): Format for structured outputs. Supports:
+                - `{"type": "json_object"}`: Returns valid JSON (any structure)
+                - `{"type": "json_schema", "json_schema": {...}}`: Returns JSON matching schema
+                Example: `{"type": "json_schema", "json_schema": {"name": "response", "schema": {...}}}`
+                Note: Not all models support structured outputs. Default is None.
             x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
                 - SETTLE: Records input/output hashes only (most privacy-preserving).
                 - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
@@ -98,14 +144,16 @@ class LLM:
                 - Payment hash for x402 transactions
 
         Raises:
-            OpenGradientError: If the inference fails.
+            OpenGradientError: If the inference fails or validation fails.
         """
+        self._validate_response_format(response_format)
         return self._tee_llm_completion(
             model=model.split("/")[1],
             prompt=prompt,
             max_tokens=max_tokens,
             stop_sequence=stop_sequence,
             temperature=temperature,
+            response_format=response_format,
             x402_settlement_mode=x402_settlement_mode,
         )
 
@@ -116,6 +164,7 @@ class LLM:
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
+        response_format: Optional[Dict] = None,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
@@ -145,6 +194,9 @@ class LLM:
 
                 if stop_sequence:
                     payload["stop"] = stop_sequence
+
+                if response_format:
+                    payload["response_format"] = response_format
 
                 try:
                     response = await client.post("/v1/completions", json=payload, headers=headers, timeout=60)
@@ -180,6 +232,7 @@ class LLM:
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = [],
         tool_choice: Optional[str] = None,
+        response_format: Optional[Dict] = None,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
         stream: bool = False,
     ) -> Union[TextGenerationOutput, TextGenerationStream]:
@@ -194,6 +247,11 @@ class LLM:
             temperature (float): Temperature for LLM inference, between 0 and 1.
             tools (List[dict], optional): Set of tools for function calling.
             tool_choice (str, optional): Sets a specific tool to choose.
+            response_format (Dict, optional): Format for structured outputs. Supports:
+                - `{"type": "json_object"}`: Returns valid JSON (any structure)
+                - `{"type": "json_schema", "json_schema": {...}}`: Returns JSON matching schema
+                Example: `{"type": "json_schema", "json_schema": {"name": "colors", "schema": {...}}}`
+                Note: Not all models support structured outputs. Default is None.
             x402_settlement_mode (x402SettlementMode, optional): Settlement mode for x402 payments.
                 - SETTLE: Records input/output hashes only (most privacy-preserving).
                 - SETTLE_BATCH: Aggregates multiple inferences into batch hashes (most cost-efficient).
@@ -207,8 +265,9 @@ class LLM:
                 - If stream=True: TextGenerationStream yielding StreamChunk objects with typed deltas (true streaming via threading)
 
         Raises:
-            OpenGradientError: If the inference fails.
+            OpenGradientError: If the inference fails or validation fails.
         """
+        self._validate_response_format(response_format)
         if stream:
             # Use threading bridge for true sync streaming
             return self._tee_llm_chat_stream_sync(
@@ -219,6 +278,7 @@ class LLM:
                 temperature=temperature,
                 tools=tools,
                 tool_choice=tool_choice,
+                response_format=response_format,
                 x402_settlement_mode=x402_settlement_mode,
             )
         else:
@@ -231,6 +291,7 @@ class LLM:
                 temperature=temperature,
                 tools=tools,
                 tool_choice=tool_choice,
+                response_format=response_format,
                 x402_settlement_mode=x402_settlement_mode,
             )
 
@@ -243,6 +304,7 @@ class LLM:
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
+        response_format: Optional[Dict] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
     ) -> TextGenerationOutput:
         """
@@ -276,6 +338,9 @@ class LLM:
                 if tools:
                     payload["tools"] = tools
                     payload["tool_choice"] = tool_choice or "auto"
+
+                if response_format:
+                    payload["response_format"] = response_format
 
                 try:
                     # Non-streaming with x402
@@ -320,6 +385,7 @@ class LLM:
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
+        response_format: Optional[Dict] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
     ):
         """
@@ -351,6 +417,7 @@ class LLM:
                             temperature=temperature,
                             tools=tools,
                             tool_choice=tool_choice,
+                            response_format=response_format,
                             x402_settlement_mode=x402_settlement_mode,
                         ):
                             queue.put(chunk)  # Put chunk immediately
@@ -404,6 +471,7 @@ class LLM:
         temperature: float = 0.0,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
+        response_format: Optional[Dict] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
     ):
         """
@@ -440,6 +508,8 @@ class LLM:
             if tools:
                 payload["tools"] = tools
                 payload["tool_choice"] = tool_choice or "auto"
+            if response_format:
+                payload["response_format"] = response_format
 
             async with client.stream(
                 "POST",
