@@ -110,6 +110,8 @@ User configuration stored via `opengradient config init` wizard.
 
 Docs are generated with `pdoc3` using a custom Mako template at `templates/text.mako`. Run `make docs` to regenerate into `docs/`. Do not edit generated documentation files in `docs/` by hand.
 
+There are concrete example scripts using the SDK in the examples/ folder that highlight how to use the SDK and provides a starting point for developers.
+
 ### Cross-referencing in docstrings
 
 To link to another module or class from a docstring, use fully qualified names in backticks:
