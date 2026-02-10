@@ -14,6 +14,7 @@ from ..defaults import (
 from .alpha import Alpha
 from .llm import LLM
 from .model_hub import ModelHub
+from .twins import Twins
 
 
 class Client:
@@ -40,11 +41,15 @@ class Client:
     alpha: Alpha
     """Alpha Testnet features including on-chain inference, workflow management, and ML model execution."""
 
+    twins: Twins
+    """Digital twins chat via OpenGradient verifiable inference."""
+
     def __init__(
         self,
         private_key: str,
         email: Optional[str] = None,
         password: Optional[str] = None,
+        twins_api_key: Optional[str] = None,
         rpc_url: str = DEFAULT_RPC_URL,
         api_url: str = DEFAULT_API_URL,
         contract_address: str = DEFAULT_INFERENCE_CONTRACT_ADDRESS,
@@ -58,6 +63,7 @@ class Client:
             private_key: Private key for OpenGradient transactions.
             email: Email for Model Hub authentication. Optional.
             password: Password for Model Hub authentication. Optional.
+            twins_api_key: API key for digital twins chat (twin.fun). Optional.
             rpc_url: RPC URL for the blockchain network.
             api_url: API URL for the OpenGradient API.
             contract_address: Inference contract address.
@@ -87,3 +93,5 @@ class Client:
             api_url=api_url,
         )
 
+        if twins_api_key is not None:
+            self.twins = Twins(api_key=twins_api_key)

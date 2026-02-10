@@ -3,11 +3,12 @@ OpenGradient Client -- the central entry point to all SDK services.
 
 ## Overview
 
-The `opengradient.client.client.Client` class provides unified access to three service namespaces:
+The `opengradient.client.client.Client` class provides unified access to four service namespaces:
 
 - **`opengradient.client.llm`** -- LLM chat and text completion with TEE-verified execution and x402 payment settlement
 - **`opengradient.client.model_hub`** -- Model repository management: create, version, and upload ML models
 - **`opengradient.client.alpha`** -- Alpha Testnet features: on-chain ONNX model inference (VANILLA, TEE, ZKML modes), workflow deployment, and scheduled ML model execution
+- **`opengradient.client.twins`** -- Digital twins chat via OpenGradient verifiable inference
 
 ## Usage
 
