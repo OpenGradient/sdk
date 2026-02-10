@@ -109,6 +109,26 @@ python examples/langchain_agent.py
 
 **Example use case:** Building conversational agents with tool access, task automation.
 
+## Twins Chat Example
+
+#### `twins_chat.py`
+Chat with digital twins from [twin.fun](https://twin.fun) via OpenGradient verifiable inference.
+
+```bash
+python examples/twins_chat.py
+```
+
+**What it does:**
+- Connects to the Twins API to chat with digital twins of public figures
+- Demonstrates multi-turn conversations with different twin personas
+- Uses TEE-based verifiable inference for trustworthy responses
+
+**Required environment variables:**
+- `OG_PRIVATE_KEY`: Your Ethereum private key
+- `TWINS_API_KEY`: Your Twins API key
+
+**Example use case:** Building applications that interact with digital twin personas through verified AI inference.
+
 ## Common Patterns
 
 ### Initializing the Client
