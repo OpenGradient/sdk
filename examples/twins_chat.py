@@ -11,6 +11,10 @@ client = og.init(
 )
 
 # Chat with Elon Musk
+print("--------------------------------")
+print("Chat with Elon Musk")
+print("--------------------------------")
+
 elon = client.twins.chat(
     twin_id="0x1abd463fd6244be4a1dc0f69e0b70cd5",
     model=og.TEE_LLM.GROK_4_1_FAST_NON_REASONING,
@@ -20,6 +24,10 @@ elon = client.twins.chat(
 print(f"Elon: {elon.chat_output['content']}")
 
 # Chat with Donald Trump
+print("--------------------------------")
+print("Chat with Donald Trump")
+print("--------------------------------")
+
 trump = client.twins.chat(
     twin_id="0x66ae99aae4324ed580b2787ac5e811f6",
     model=og.TEE_LLM.GROK_4_1_FAST_NON_REASONING,
