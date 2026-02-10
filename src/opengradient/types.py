@@ -5,9 +5,14 @@ OpenGradient Specific Types
 import time
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import AsyncIterator, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, AsyncIterator, Dict, Iterator, List, Literal, Optional, Tuple, TypedDict, Union
 
 import numpy as np
+
+try:
+    from typing import NotRequired
+except ImportError:
+    from typing_extensions import NotRequired
 
 
 class x402SettlementMode(str, Enum):
@@ -487,3 +492,67 @@ class ModelRepository:
 class FileUploadResult:
     modelCid: str
     size: int
+
+
+class JSONSchemaDefinition(TypedDict):
+    """
+    JSON Schema definition for structured output validation.
+
+    This follows the OpenAI standard for schema-validated responses.
+    The schema must be a valid JSON Schema object that defines the
+    structure the model's output should conform to.
+
+    Attributes:
+        name: A descriptive name for the schema (e.g., "math_response", "user_profile").
+        schema: A valid JSON Schema object (dict) defining the expected output structure.
+        strict: Whether to enforce strict schema validation. Defaults to True.
+            When True, the model output must exactly match the schema.
+    """
+
+    name: str
+    schema: Dict[str, Any]
+    strict: NotRequired[bool]
+
+
+class ResponseFormat(TypedDict):
+    """
+    Response format configuration for structured outputs.
+
+    Used to constrain LLM outputs to valid JSON matching a specific schema.
+    Follows the OpenAI standard response_format parameter structure.
+
+    Attributes:
+        type: The response format type. Must be one of:
+            - "json_object": Model outputs valid JSON (any structure)
+            - "json_schema": Model outputs JSON matching the provided schema
+        json_schema: Required when type="json_schema". Defines the schema
+            the output must conform to.
+
+    Usage:
+        # Simple JSON mode
+        response_format = {"type": "json_object"}
+
+        # Schema-validated JSON
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "math_response",
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "result": {"type": "number"},
+                        "explanation": {"type": "string"}
+                    },
+                    "required": ["result", "explanation"]
+                }
+            }
+        }
+
+    Note:
+        Not all models support structured outputs. Check model capabilities
+        before using this feature. The backend will return an error if the
+        model does not support structured outputs.
+    """
+
+    type: Literal["json_object", "json_schema"]
+    json_schema: NotRequired[JSONSchemaDefinition]

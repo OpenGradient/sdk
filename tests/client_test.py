@@ -319,3 +319,200 @@ class TestX402SettlementMode:
         """Test settlement mode aliases."""
         assert x402SettlementMode.SETTLE_INDIVIDUAL == x402SettlementMode.SETTLE
         assert x402SettlementMode.SETTLE_INDIVIDUAL_WITH_METADATA == x402SettlementMode.SETTLE_METADATA
+
+
+class TestResponseFormatValidation:
+    """Test response_format validation logic."""
+
+    @pytest.fixture
+    def client(self, mock_web3, mock_abi_files):
+        """Create a test client instance."""
+        return Client(private_key="0x" + "1" * 64)
+
+    def test_none_response_format(self, client):
+        """Test that None response_format is valid."""
+        # Should not raise an exception
+        client.llm._validate_response_format(None)
+
+    def test_json_object_format(self, client):
+        """Test json_object response format validation."""
+        response_format = {"type": "json_object"}
+        # Should not raise an exception
+        client.llm._validate_response_format(response_format)
+
+    def test_json_schema_format(self, client):
+        """Test json_schema response format validation."""
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "test_schema",
+                "schema": {
+                    "type": "object",
+                    "properties": {"field": {"type": "string"}},
+                },
+            },
+        }
+        # Should not raise an exception
+        client.llm._validate_response_format(response_format)
+
+    def test_invalid_type_not_dict(self, client):
+        """Test that non-dict response_format raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="response_format must be a dict"):
+            client.llm._validate_response_format("invalid")
+
+    def test_missing_type_field(self, client):
+        """Test that missing 'type' field raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="response_format must have a 'type' field"):
+            client.llm._validate_response_format({})
+
+    def test_invalid_type_value(self, client):
+        """Test that invalid type value raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="response_format type must be"):
+            client.llm._validate_response_format({"type": "invalid_type"})
+
+    def test_json_schema_missing_json_schema_field(self, client):
+        """Test that json_schema type without json_schema field raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="must have a 'json_schema' field"):
+            client.llm._validate_response_format({"type": "json_schema"})
+
+    def test_json_schema_not_dict(self, client):
+        """Test that non-dict json_schema raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="json_schema must be a dict"):
+            client.llm._validate_response_format({"type": "json_schema", "json_schema": "invalid"})
+
+    def test_json_schema_missing_name(self, client):
+        """Test that json_schema without name raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="json_schema must have a 'name' field"):
+            client.llm._validate_response_format({"type": "json_schema", "json_schema": {"schema": {}}})
+
+    def test_json_schema_missing_schema(self, client):
+        """Test that json_schema without schema raises error."""
+        from src.opengradient.client.exceptions import OpenGradientError
+
+        with pytest.raises(OpenGradientError, match="json_schema must have a 'schema' field"):
+            client.llm._validate_response_format({"type": "json_schema", "json_schema": {"name": "test"}})
+
+
+class TestStructuredOutputs:
+    """Test structured output functionality with mocked backends."""
+
+    @pytest.fixture
+    def client(self, mock_web3, mock_abi_files):
+        """Create a test client instance."""
+        return Client(private_key="0x" + "1" * 64)
+
+    @pytest.fixture
+    def mock_x402_client(self):
+        """Mock x402HttpxClient for testing."""
+        with patch("src.opengradient.client.llm.x402HttpxClient") as mock_client_class:
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.headers = {}
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+            yield mock_client, mock_response
+
+    @pytest.fixture
+    def mock_httpx_client(self):
+        """Mock httpx.AsyncClient for streaming tests."""
+        with patch("src.opengradient.client.llm.httpx.AsyncClient") as mock_client_class:
+            mock_client = MagicMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+            yield mock_client
+
+    def test_chat_with_json_object(self, client, mock_x402_client):
+        """Test chat with json_object response format."""
+        mock_client, mock_response = mock_x402_client
+        mock_response.aread = MagicMock(
+            return_value=json.dumps(
+                {"choices": [{"message": {"role": "assistant", "content": '{"colors": ["red", "blue"]}'}, "finish_reason": "stop"}]}
+            ).encode()
+        )
+        mock_client.post = MagicMock(return_value=mock_response)
+
+        result = client.llm.chat(
+            model=TEE_LLM.GPT_4O,
+            messages=[{"role": "user", "content": "List colors"}],
+            max_tokens=100,
+            response_format={"type": "json_object"},
+        )
+
+        # Verify the call was made with response_format in payload
+        call_kwargs = mock_client.post.call_args[1]
+        assert "json" in call_kwargs
+        assert call_kwargs["json"]["response_format"] == {"type": "json_object"}
+        assert result.chat_output["content"] == '{"colors": ["red", "blue"]}'
+
+    def test_chat_with_json_schema(self, client, mock_x402_client):
+        """Test chat with json_schema response format."""
+        mock_client, mock_response = mock_x402_client
+        mock_response.aread = MagicMock(
+            return_value=json.dumps(
+                {"choices": [{"message": {"role": "assistant", "content": '{"count": 2}'}, "finish_reason": "stop"}]}
+            ).encode()
+        )
+        mock_client.post = MagicMock(return_value=mock_response)
+
+        schema = {"type": "object", "properties": {"count": {"type": "integer"}}}
+        result = client.llm.chat(
+            model=TEE_LLM.GPT_4O,
+            messages=[{"role": "user", "content": "Count items"}],
+            max_tokens=100,
+            response_format={"type": "json_schema", "json_schema": {"name": "count", "schema": schema}},
+        )
+
+        # Verify the call was made with response_format in payload
+        call_kwargs = mock_client.post.call_args[1]
+        assert "response_format" in call_kwargs["json"]
+        assert call_kwargs["json"]["response_format"]["type"] == "json_schema"
+        assert result.chat_output["content"] == '{"count": 2}'
+
+    def test_completion_with_response_format(self, client, mock_x402_client):
+        """Test completion with response_format."""
+        mock_client, mock_response = mock_x402_client
+        mock_response.aread = MagicMock(return_value=json.dumps({"completion": '{"answer": 42}'}).encode())
+        mock_client.post = MagicMock(return_value=mock_response)
+
+        result = client.llm.completion(
+            model=TEE_LLM.GPT_4O,
+            prompt="Answer in JSON",
+            max_tokens=100,
+            response_format={"type": "json_object"},
+        )
+
+        # Verify the call was made with response_format in payload
+        call_kwargs = mock_client.post.call_args[1]
+        assert "response_format" in call_kwargs["json"]
+        assert result.completion_output == '{"answer": 42}'
+
+    def test_chat_without_response_format(self, client, mock_x402_client):
+        """Test that chat works without response_format (backward compatibility)."""
+        mock_client, mock_response = mock_x402_client
+        mock_response.aread = MagicMock(
+            return_value=json.dumps(
+                {"choices": [{"message": {"role": "assistant", "content": "Hello"}, "finish_reason": "stop"}]}
+            ).encode()
+        )
+        mock_client.post = MagicMock(return_value=mock_response)
+
+        result = client.llm.chat(
+            model=TEE_LLM.GPT_4O,
+            messages=[{"role": "user", "content": "Hi"}],
+            max_tokens=100,
+        )
+
+        # Verify response_format was not in the payload
+        call_kwargs = mock_client.post.call_args[1]
+        assert "response_format" not in call_kwargs["json"]
+        assert result.chat_output["content"] == "Hello"

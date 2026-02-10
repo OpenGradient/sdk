@@ -83,6 +83,21 @@ python examples/run_x402_gemini_tools.py
 - Demonstrates tool/function calling with Gemini models
 - Uses x402 protocol for payment processing
 
+#### `run_x402_structured_output.py`
+Demonstrates structured outputs with schema validation.
+
+```bash
+python examples/run_x402_structured_output.py
+```
+
+**What it does:**
+- Shows how to use `response_format` to constrain LLM outputs to valid JSON
+- Demonstrates simple JSON mode and schema-validated outputs
+- Includes examples with chat, completion, and streaming
+- Useful for reliable data extraction and structured AI workflows
+
+**Note:** Not all models support structured outputs. Works with GPT-4o, GPT-4o-mini, and other compatible models.
+
 ## Alpha Testnet Examples
 
 Examples for features only available on the **Alpha Testnet** are located in the [`alpha/`](./alpha/) folder. These include:
