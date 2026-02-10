@@ -10,11 +10,12 @@ OpenGradient Client -- the central entry point to all SDK services.
 
 ## Overview
 
-The [Client](./client) class provides unified access to three service namespaces:
+The [Client](./client) class provides unified access to four service namespaces:
 
 - **[llm](./llm)** -- LLM chat and text completion with TEE-verified execution and x402 payment settlement
 - **[model_hub](./model_hub)** -- Model repository management: create, version, and upload ML models
 - **[alpha](./alpha)** -- Alpha Testnet features: on-chain ONNX model inference (VANILLA, TEE, ZKML modes), workflow deployment, and scheduled ML model execution
+- **[twins](./twins)** -- Digital twins chat via OpenGradient verifiable inference
 
 ## Usage
 
@@ -52,6 +53,7 @@ repo = client.model_hub.create_model("my-model", "A price prediction model")
 * [exceptions](./exceptions): Exception types for OpenGradient SDK errors.
 * [llm](./llm): LLM chat and completion via TEE-verified execution with x402 payments.
 * [model_hub](./model_hub): Model Hub for creating, versioning, and uploading ML models.
+* [twins](./twins): Digital twins chat via OpenGradient verifiable inference.
 
 ## Classes
 
@@ -66,7 +68,7 @@ blockchain private key and optional Model Hub credentials.
 #### Constructor
 
 ```python
-def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, twins_api_key: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
 ```
 
 **Arguments**
@@ -74,6 +76,7 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 * **`private_key`**: Private key for OpenGradient transactions.
 * **`email`**: Email for Model Hub authentication. Optional.
 * **`password`**: Password for Model Hub authentication. Optional.
+* **`twins_api_key`**: API key for digital twins chat (twin.fun). Optional.
 * **`rpc_url`**: RPC URL for the blockchain network.
 * **`api_url`**: API URL for the OpenGradient API.
 * **`contract_address`**: Inference contract address.
@@ -85,3 +88,4 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 * [**`alpha`**](./alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.
 * [**`llm`**](./llm): LLM chat and completion via TEE-verified execution.
 * [**`model_hub`**](./model_hub): Model Hub for creating, versioning, and uploading ML models.
+* [**`twins`**](./twins): Digital twins chat via OpenGradient verifiable inference.

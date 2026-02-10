@@ -48,11 +48,12 @@ print(result.model_output)
 
 ## Client Namespaces
 
-The `opengradient.client.Client` object exposes three namespaces:
+The `opengradient.client.Client` object exposes four namespaces:
 
 - **`opengradient.client.llm`** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
 - **`opengradient.client.alpha`** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
 - **`opengradient.client.model_hub`** -- Model repository management
+- **`opengradient.client.twins`** -- Digital twins chat via OpenGradient verifiable inference (requires twins API key)
 
 ## Model Hub (requires email auth)
 

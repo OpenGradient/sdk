@@ -57,11 +57,12 @@ print(result.model_output)
 
 ## Client Namespaces
 
-The [Client](./client/index) object exposes three namespaces:
+The [Client](./client/index) object exposes four namespaces:
 
 - **[llm](./client/llm)** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
 - **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
 - **[model_hub](./client/model_hub)** -- Model repository management
+- **[twins](./client/twins)** -- Digital twins chat via OpenGradient verifiable inference (requires twins API key)
 
 ## Model Hub (requires email auth)
 
@@ -126,7 +127,7 @@ blockchain private key and optional Model Hub credentials.
 #### Constructor
 
 ```python
-def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, twins_api_key: Optional[str] = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
 ```
 
 **Arguments**
@@ -134,6 +135,7 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 * **`private_key`**: Private key for OpenGradient transactions.
 * **`email`**: Email for Model Hub authentication. Optional.
 * **`password`**: Password for Model Hub authentication. Optional.
+* **`twins_api_key`**: API key for digital twins chat (twin.fun). Optional.
 * **`rpc_url`**: RPC URL for the blockchain network.
 * **`api_url`**: API URL for the OpenGradient API.
 * **`contract_address`**: Inference contract address.
@@ -145,6 +147,7 @@ def __init__(private_key: str, email: Optional[str] = None, password: Optio
 * [**`alpha`**](./client/alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.
 * [**`llm`**](./client/llm): LLM chat and completion via TEE-verified execution.
 * [**`model_hub`**](./client/model_hub): Model Hub for creating, versioning, and uploading ML models.
+* [**`twins`**](./client/twins): Digital twins chat via OpenGradient verifiable inference.
 
 ### `InferenceMode`
 
