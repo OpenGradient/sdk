@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OpenGradient Python SDK - A decentralized model management and inference platform SDK. The SDK enables programmatic access to model repositories and decentralized AI infrastructure, including end-to-end verified AI execution.
+OpenGradient Python SDK - A decentralized model management and inference platform SDK. The SDK enables programmatic access to model repositories and decentralized AI infrastructure, including end-to-end verified AI execution. Use virtualenv for dependency management locally (in `venv` folder).
 
 ## Development Commands
 
@@ -108,7 +108,7 @@ User configuration stored via `opengradient config init` wizard.
 
 ## Documentation (pdoc)
 
-Docs are generated with `pdoc3` using a custom Mako template at `templates/text.mako`. Run `make docs` to regenerate into `docs/`.
+Docs are generated with `pdoc3` using a custom Mako template at `templates/text.mako`. Run `make docs` to regenerate into `docs/`. Do not edit generated documentation files in `docs/` by hand.
 
 ### Cross-referencing in docstrings
 
