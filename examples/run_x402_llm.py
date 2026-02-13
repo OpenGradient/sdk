@@ -27,6 +27,7 @@ result = client.llm.chat(
     model=og.TEE_LLM.GPT_4_1_2025_04_14,
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
+    network="base-testnet"
 )
 print(f"Response: {result.chat_output['content']}")
 print(f"Payment hash: {result.payment_hash}")
