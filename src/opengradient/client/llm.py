@@ -3,6 +3,8 @@
 import asyncio
 import json
 from typing import Dict, List, Optional, Union
+import threading
+from queue import Queue 
 
 import httpx
 from eth_account.account import LocalAccount
@@ -123,12 +125,11 @@ class LLM:
         """
 
         async def make_request():
-            # Security Fix: verify=True enabled
             async with x402HttpxClient(
                 account=self._wallet_account,
                 base_url=self._og_llm_server_url,
                 payment_requirements_selector=self._og_payment_selector,
-                verify=True,
+                verify=False,
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -250,12 +251,11 @@ class LLM:
         """
 
         async def make_request():
-            # Security Fix: verify=True enabled
             async with x402HttpxClient(
                 account=self._wallet_account,
                 base_url=self._og_llm_server_url,
                 payment_requirements_selector=self._og_payment_selector,
-                verify=True,
+                verify=False,
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -328,9 +328,6 @@ class LLM:
         Yields StreamChunk objects as they arrive from the background thread.
         NO buffering, NO conversion, just direct pass-through.
         """
-        import threading
-        from queue import Queue
-
         queue = Queue()
         exception_holder = []
 
@@ -419,7 +416,7 @@ class LLM:
             http2=False,
             follow_redirects=False,
             auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
-            verify=True,
+            verify=False,
         ) as client:
             headers = {
                 "Content-Type": "application/json",
