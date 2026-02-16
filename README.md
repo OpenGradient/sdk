@@ -48,6 +48,23 @@ Initialize your configuration using the interactive wizard:
 opengradient config init
 ```
 
+### Environment Variables
+
+The SDK requires the following environment variable:
+
+- **`OG_PRIVATE_KEY`** (Required): Your Ethereum-compatible wallet private key for OpenGradient transactions
+
+The following Firebase configuration variables are **optional** and only needed for Model Hub operations (uploading/managing models):
+
+- `FIREBASE_API_KEY`
+- `FIREBASE_AUTH_DOMAIN`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_STORAGE_BUCKET`
+- `FIREBASE_APP_ID`
+- `FIREBASE_DATABASE_URL`
+
+**Note**: If you're only using the SDK for LLM inference, you can skip the Firebase configuration entirely.
+
 ### Client Initialization
 ```python
 import os
