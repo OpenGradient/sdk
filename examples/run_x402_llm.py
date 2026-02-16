@@ -12,48 +12,7 @@
 import os
 
 import opengradient as og
-from x402v2.mechanisms.evm.constants import PERMIT2_ADDRESS
-from web3 import Web3
-
-BASE_OPG_ADDRESS = "0x240b09731D96979f50B2C649C9CE10FcF9C7987F"
-
-ERC20_ABI = [
-    {
-        "inputs": [
-            {"name": "owner", "type": "address"},
-            {"name": "spender", "type": "address"},
-        ],
-        "name": "allowance",
-        "outputs": [{"name": "", "type": "uint256"}],
-        "stateMutability": "view",
-        "type": "function",
-    }
-]
-
-BASE_SEPOLIA_RPC = "https://sepolia.base.org"
-
-
-def check_permit2_approval(client_address: str, network: str):
-    """Check if the client address has approved Permit2 for OPG on Base testnet."""
-    if network != "base-testnet":
-        return
-
-    w3 = Web3(Web3.HTTPProvider(BASE_SEPOLIA_RPC))
-    opg = w3.eth.contract(address=Web3.to_checksum_address(BASE_OPG_ADDRESS), abi=ERC20_ABI)
-
-    allowance = opg.functions.allowance(
-        Web3.to_checksum_address(client_address),
-        Web3.to_checksum_address(PERMIT2_ADDRESS),
-    ).call()
-
-    print(f"Current OPG Permit Allowance: {allowance}")
-
-    if allowance == 0:
-        raise RuntimeError(
-            f"ERROR: No Permit2 approval found for address {client_address}. "
-            f"You need to approve the Permit2 contract ({PERMIT2_ADDRESS}) "
-            f"to spend OPG ({BASE_OPG_ADDRESS}) on Base Sepolia before using x402 payments."
-        )
+from x402_permit2 import check_permit2_approval
 
 network = "base-testnet"
 
