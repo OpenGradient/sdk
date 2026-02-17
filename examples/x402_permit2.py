@@ -122,7 +122,7 @@ def main() -> None:
         raise RuntimeError("OG_PRIVATE_KEY is not set.")
 
     client = og.Client(private_key=private_key)
-    wallet_address = client.alpha._wallet_account.address
+    wallet_address = client.wallet_address
 
     before = get_permit2_allowance(wallet_address)
     print(f"Wallet: {wallet_address}")
