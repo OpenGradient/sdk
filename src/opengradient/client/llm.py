@@ -264,9 +264,7 @@ class LLM:
                 try:
                     # Non-streaming with x402
                     endpoint = "/v1/chat/completions"
-                    response = await client.post(
-                        self._og_llm_server_url + endpoint, json=payload, headers=headers, timeout=60
-                    )
+                    response = await client.post(self._og_llm_server_url + endpoint, json=payload, headers=headers, timeout=60)
 
                     content = await response.aread()
                     result = json.loads(content.decode())
@@ -464,4 +462,3 @@ class LLM:
             ) as response:
                 async for parsed_chunk in _parse_sse_response(response):
                     yield parsed_chunk
-

@@ -96,6 +96,15 @@ def initialize_config(ctx):
     else:
         ctx.obj["private_key"] = click.prompt("Enter your OpenGradient private key", type=str)
 
+    # Optional separate private key for Alpha Testnet
+    alpha_pk = click.prompt(
+        "Enter a separate Alpha Testnet private key (optional, press Enter to reuse the main key)",
+        type=str,
+        default="",
+        show_default=False,
+    )
+    ctx.obj["alpha_private_key"] = alpha_pk if alpha_pk else None
+
     # Make email and password optional
     email = click.prompt(
         "Enter your OpenGradient Hub email address (optional, press Enter to skip)", type=str, default="", show_default=False
@@ -132,6 +141,7 @@ def cli(ctx):
         try:
             ctx.obj["client"] = Client(
                 private_key=ctx.obj["private_key"],
+                alpha_private_key=ctx.obj.get("alpha_private_key"),
                 rpc_url=DEFAULT_RPC_URL,
                 api_url=DEFAULT_API_URL,
                 contract_address=DEFAULT_INFERENCE_CONTRACT_ADDRESS,
@@ -173,7 +183,7 @@ def show(ctx):
     click.echo("Current config:")
     for key, value in ctx.obj.items():
         if key != "client":  # Don't display the client object
-            if (key == "password" or key == "private_key") and value is not None:
+            if key in ("password", "private_key", "alpha_private_key") and value is not None:
                 click.echo(f"{key}: {'*' * len(value)}")  # Mask the password
             elif value is None:
                 click.echo(f"{key}: Not set")

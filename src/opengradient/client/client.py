@@ -47,6 +47,7 @@ class Client:
     def __init__(
         self,
         private_key: str,
+        alpha_private_key: Optional[str] = None,
         email: Optional[str] = None,
         password: Optional[str] = None,
         twins_api_key: Optional[str] = None,
@@ -61,11 +62,13 @@ class Client:
         Initialize the OpenGradient client.
 
         Args:
-            private_key: Private key for OpenGradient transactions.
+            private_key: Private key for LLM inference (Base Sepolia, x402 payments).
+            alpha_private_key: Private key for Alpha Testnet features (on-chain inference).
+                When omitted, falls back to ``private_key`` for backward compatibility.
             email: Email for Model Hub authentication. Optional.
             password: Password for Model Hub authentication. Optional.
             twins_api_key: API key for digital twins chat (twin.fun). Optional.
-            rpc_url: RPC URL for the blockchain network.
+            rpc_url: RPC URL for the Alpha Testnet blockchain network.
             api_url: API URL for the OpenGradient API.
             contract_address: Inference contract address.
             og_llm_server_url: OpenGradient LLM server URL.
@@ -73,6 +76,12 @@ class Client:
         """
         blockchain = Web3(Web3.HTTPProvider(rpc_url))
         wallet_account = blockchain.eth.account.from_key(private_key)
+
+        # Use a separate account for Alpha Testnet when provided
+        if alpha_private_key is not None:
+            alpha_wallet_account = blockchain.eth.account.from_key(alpha_private_key)
+        else:
+            alpha_wallet_account = wallet_account
 
         hub_user = None
         if email is not None:
@@ -90,7 +99,7 @@ class Client:
 
         self.alpha = Alpha(
             blockchain=blockchain,
-            wallet_account=wallet_account,
+            wallet_account=alpha_wallet_account,
             inference_hub_contract_address=contract_address,
             api_url=api_url,
         )

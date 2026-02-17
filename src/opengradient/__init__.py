@@ -99,6 +99,7 @@ global_client: Optional[Client] = None
 
 def init(
     private_key: str,
+    alpha_private_key: Optional[str] = None,
     email: Optional[str] = None,
     password: Optional[str] = None,
     **kwargs,
@@ -109,7 +110,9 @@ def init(
     and stores it as the global client for convenience.
 
     Args:
-        private_key: Private key for OpenGradient transactions.
+        private_key: Private key for LLM inference (Base Sepolia, x402 payments).
+        alpha_private_key: Private key for Alpha Testnet features (on-chain inference).
+            When omitted, falls back to ``private_key`` for backward compatibility.
         email: Email for Model Hub authentication. Optional.
         password: Password for Model Hub authentication. Optional.
         **kwargs: Additional arguments forwarded to `Client`.
@@ -123,7 +126,13 @@ def init(
         response = client.llm.chat(model=og.TEE_LLM.GPT_4O, messages=[...])
     """
     global global_client
-    global_client = Client(private_key=private_key, email=email, password=password, **kwargs)
+    global_client = Client(
+        private_key=private_key,
+        alpha_private_key=alpha_private_key,
+        email=email,
+        password=password,
+        **kwargs,
+    )
     return global_client
 
 

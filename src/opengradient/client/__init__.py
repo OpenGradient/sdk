@@ -17,6 +17,9 @@ import opengradient as og
 
 client = og.init(private_key="0x...")
 
+# Use separate keys for LLM (Base Sepolia) and Alpha Testnet
+client = og.init(private_key="0xLLM_KEY...", alpha_private_key="0xALPHA_KEY...")
+
 # LLM chat (TEE-verified, streamed)
 for chunk in client.llm.chat(
     model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
