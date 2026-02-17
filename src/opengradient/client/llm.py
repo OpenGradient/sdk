@@ -135,7 +135,7 @@ class LLM:
                     payload["stop"] = stop_sequence
 
                 try:
-                    response = await client.post(self._og_llm_server_url+"/v1/completions", json=payload, headers=headers, timeout=60)
+                    response = await client.post(self._og_llm_server_url + "/v1/completions", json=payload, headers=headers, timeout=60)
 
                     # Read the response content
                     content = await response.aread()
