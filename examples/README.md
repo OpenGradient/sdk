@@ -48,11 +48,11 @@ python examples/upload_model.py
 
 ## x402 LLM Examples
 
-#### `approve_permit2.py`
+#### `x402_permit2.py`
 Grants Permit2 approval so x402 payments can spend OPG on Base Sepolia.
 
 ```bash
-python examples/approve_permit2.py
+python examples/x402_permit2.py
 ```
 
 **What it does:**

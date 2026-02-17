@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, AsyncGenerator
 
 import httpx
 from eth_account.account import LocalAccount
@@ -36,6 +36,7 @@ from .x402_auth import X402Auth
 
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+BASE_TESTNET_NETWORK = "eip155:84532"
 
 TIMEOUT = httpx.Timeout(
     timeout=90.0,
@@ -164,13 +165,9 @@ class LLM:
                     # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
-                    payment_hash = ""
-
-                    if X402_PROCESSING_HASH_HEADER in response.headers:
-                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
 
                     return TextGenerationOutput(
-                        transaction_hash="external", completion_output=result.get("completion"), payment_hash=payment_hash
+                        transaction_hash="external", completion_output=result.get("completion"),
                     )
 
                 except Exception as e:
@@ -301,10 +298,6 @@ class LLM:
                     content = await response.aread()
                     result = json.loads(content.decode())
 
-                    payment_hash = ""
-                    if X402_PROCESSING_HASH_HEADER in response.headers:
-                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
-
                     choices = result.get("choices")
                     if not choices:
                         raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
@@ -313,7 +306,6 @@ class LLM:
                         transaction_hash="external",
                         finish_reason=choices[0].get("finish_reason"),
                         chat_output=choices[0].get("message"),
-                        payment_hash=payment_hash,
                     )
 
                 except Exception as e:
@@ -322,8 +314,8 @@ class LLM:
 
         async def make_request_v2():
             x402_client = x402Clientv2()
-            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=["eip155:84532"])
-            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=["eip155:84532"])
+            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=[BASE_TESTNET_NETWORK])
+            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=[BASE_TESTNET_NETWORK])
 
             # Security Fix: verify=True enabled
             async with x402HttpxClientv2(
@@ -357,10 +349,6 @@ class LLM:
                     content = await response.aread()
                     result = json.loads(content.decode())
 
-                    payment_hash = ""
-                    if X402_PROCESSING_HASH_HEADER in response.headers:
-                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
-
                     choices = result.get("choices")
                     if not choices:
                         raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
@@ -369,7 +357,6 @@ class LLM:
                         transaction_hash="external",
                         finish_reason=choices[0].get("finish_reason"),
                         chat_output=choices[0].get("message"),
-                        payment_hash=payment_hash,
                     )
 
                 except Exception as e:
@@ -510,7 +497,7 @@ class LLM:
             payload["tools"] = tools
             payload["tool_choice"] = tool_choice or "auto"
 
-        async def _parse_sse_response(response):
+        async def _parse_sse_response(response) -> AsyncGenerator[StreamChunk, None]:
             status_code = getattr(response, "status_code", None)
             if status_code is not None and status_code >= 400:
                 body = await response.aread()
@@ -567,11 +554,11 @@ class LLM:
                 ) as response:
                     async for parsed_chunk in _parse_sse_response(response):
                         yield parsed_chunk
-                        
+
         elif network == x402Network.BASE_TESTNET:
             x402_client = x402Clientv2()
-            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=["eip155:84532"])
-            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=["eip155:84532"])
+            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
+            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
 
             async with x402HttpxClientv2(x402_client) as client:
                 endpoint = "/v1/chat/completions"

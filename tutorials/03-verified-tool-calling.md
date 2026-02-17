@@ -223,7 +223,6 @@ def run_agent(client: og.Client, user_query: str) -> str:
             return f"Error: {e}"
 
         print(f"  Finish reason: {result.finish_reason}")
-        print(f"  Payment hash: {result.payment_hash}")
 
         # -- The model wants to call one or more tools --
         # "tool_calls" finish reason follows the OpenAI convention and is used

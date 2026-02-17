@@ -20,7 +20,7 @@ client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
-check_permit2_approval(client.alpha._wallet_account.address, network)
+check_permit2_approval(client.wallet_address, network)
 
 messages = [
     {"role": "user", "content": "What is Python?"},
@@ -35,4 +35,3 @@ result = client.llm.chat(
     network=network
 )
 print(f"Response: {result.chat_output['content']}")
-print(f"Payment hash: {result.payment_hash}")
