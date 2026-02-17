@@ -69,6 +69,7 @@ class CandleType(IntEnum):
     CLOSE = 3
     VOLUME = 4
 
+
 class x402Network(str, Enum):
     OG_EVM = "og-evm"
     BASE_TESTNET = "base-testnet"

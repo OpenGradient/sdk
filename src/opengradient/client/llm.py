@@ -19,18 +19,8 @@ from x402v2.mechanisms.evm.exact.register import register_exact_evm_client as re
 from x402v2.mechanisms.evm.upto.register import register_upto_evm_client as register_upto_evm_clientv2
 from eth_account import Account
 
-from ..defaults import (
-    DEFAULT_NETWORK_FILTER,
-    DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL
-)
-from ..types import (
-    TEE_LLM,
-    StreamChunk,
-    TextGenerationOutput,
-    TextGenerationStream,
-    x402SettlementMode,
-    x402Network
-)
+from ..defaults import DEFAULT_NETWORK_FILTER, DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL
+from ..types import TEE_LLM, StreamChunk, TextGenerationOutput, TextGenerationStream, x402SettlementMode, x402Network
 from .exceptions import OpenGradientError
 from .x402_auth import X402Auth
 
@@ -167,7 +157,8 @@ class LLM:
                     result = json.loads(content.decode())
 
                     return TextGenerationOutput(
-                        transaction_hash="external", completion_output=result.get("completion"),
+                        transaction_hash="external",
+                        completion_output=result.get("completion"),
                     )
 
                 except Exception as e:
@@ -243,7 +234,7 @@ class LLM:
                 tools=tools,
                 tool_choice=tool_choice,
                 x402_settlement_mode=x402_settlement_mode,
-                network=network
+                network=network,
             )
 
     def _tee_llm_chat(
@@ -310,17 +301,14 @@ class LLM:
 
                 except Exception as e:
                     raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
-        
 
         async def make_request_v2():
             x402_client = x402Clientv2()
-            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=[BASE_TESTNET_NETWORK])
-            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=[BASE_TESTNET_NETWORK])
+            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
+            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
 
             # Security Fix: verify=True enabled
-            async with x402HttpxClientv2(
-                x402_client
-            ) as client:
+            async with x402HttpxClientv2(x402_client) as client:
                 headers = {
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
@@ -344,8 +332,10 @@ class LLM:
                 try:
                     # Non-streaming with x402
                     endpoint = "/v1/chat/completions"
-                    response = await client.post(DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL+endpoint, json=payload, headers=headers, timeout=60)
-                    
+                    response = await client.post(
+                        DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL + endpoint, json=payload, headers=headers, timeout=60
+                    )
+
                     content = await response.aread()
                     result = json.loads(content.decode())
 
