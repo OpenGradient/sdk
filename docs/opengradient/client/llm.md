@@ -31,7 +31,7 @@ def __init__(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_st
 #### `chat()`
 
 ```python
-def chat(self, model: `TEE_LLM`, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH, stream: bool = False, network: Optional[`x402Network`] = x402Network.OG_EVM) ‑> Union[`TextGenerationOutput`, `TextGenerationStream`]
+def chat(self, model: `TEE_LLM`, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[`TextGenerationOutput`, `TextGenerationStream`]
 ```
 Perform inference on an LLM model using chat via TEE.
 
