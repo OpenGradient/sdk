@@ -2,7 +2,11 @@
 
 import asyncio
 import json
+import ssl
+import socket
+import tempfile
 from typing import Dict, List, Optional, Union
+from urllib.parse import urlparse
 import threading
 from queue import Queue 
 
@@ -41,6 +45,53 @@ LIMITS = httpx.Limits(
 )
 
 
+def _fetch_tls_cert_as_ssl_context(server_url: str) -> Optional[ssl.SSLContext]:
+    """
+    Connect to a server, retrieve its TLS certificate (TOFU),
+    and return an ssl.SSLContext that trusts ONLY that certificate.
+
+    Hostname verification is disabled because the TEE server's cert
+    is typically issued for a hostname but we may connect via IP address.
+    The pinned certificate itself provides the trust anchor.
+
+    Returns None if the server is not HTTPS or unreachable.
+    """
+    parsed = urlparse(server_url)
+    if parsed.scheme != "https":
+        return None
+
+    hostname = parsed.hostname
+    port = parsed.port or 443
+
+    # Connect without verification to retrieve the server's certificate
+    fetch_ctx = ssl.create_default_context()
+    fetch_ctx.check_hostname = False
+    fetch_ctx.verify_mode = ssl.CERT_NONE
+
+    try:
+        with socket.create_connection((hostname, port), timeout=10) as sock:
+            with fetch_ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
+                der_cert = ssock.getpeercert(binary_form=True)
+                pem_cert = ssl.DER_cert_to_PEM_cert(der_cert)
+    except Exception:
+        return None
+
+    # Write PEM to a temp file so we can load it into the SSLContext
+    cert_file = tempfile.NamedTemporaryFile(
+        prefix="og_tee_tls_", suffix=".pem", delete=False, mode="w"
+    )
+    cert_file.write(pem_cert)
+    cert_file.flush()
+    cert_file.close()
+
+    # Build an SSLContext that trusts ONLY this cert, with hostname check disabled
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.load_verify_locations(cert_file.name)
+    ctx.check_hostname = False  # Cert is for a hostname, but we connect via IP
+    ctx.verify_mode = ssl.CERT_REQUIRED  # Still verify the cert itself
+    return ctx
+
+
 class LLM:
     """
     LLM inference namespace.
@@ -59,6 +110,20 @@ class LLM:
         self._wallet_account = wallet_account
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
+
+        # Fetch and pin the backend TLS certificate (TOFU).
+        # Returns an ssl.SSLContext that trusts only the pinned cert
+        # with hostname verification disabled (TEE connects via IP).
+        # Falls back to verify=False if the cert can't be retrieved.
+        # TODO (Kyle): This should be replaced by the Blockchain TLS cert that is registered
+        self._tls_verify: Union[ssl.SSLContext, bool] = (
+            _fetch_tls_cert_as_ssl_context(self._og_llm_server_url) or False
+        )
+
+        # TODO (Kyle): This should be replaced by the Blockchain TLS cert that is registered
+        self._streaming_tls_verify: Union[ssl.SSLContext, bool] = (
+            _fetch_tls_cert_as_ssl_context(self._og_llm_streaming_server_url) or False
+        )
 
     def _og_payment_selector(self, accepts, network_filter=DEFAULT_NETWORK_FILTER, scheme_filter=None, max_value=None):
         """Custom payment selector for OpenGradient network."""
@@ -129,7 +194,7 @@ class LLM:
                 account=self._wallet_account,
                 base_url=self._og_llm_server_url,
                 payment_requirements_selector=self._og_payment_selector,
-                verify=False,
+                verify=self._tls_verify,
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -255,7 +320,7 @@ class LLM:
                 account=self._wallet_account,
                 base_url=self._og_llm_server_url,
                 payment_requirements_selector=self._og_payment_selector,
-                verify=False,
+                verify=self._tls_verify,
             ) as client:
                 headers = {
                     "Content-Type": "application/json",
@@ -416,7 +481,7 @@ class LLM:
             http2=False,
             follow_redirects=False,
             auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
-            verify=False,
+            verify=self._streaming_tls_verify,
         ) as client:
             headers = {
                 "Content-Type": "application/json",
