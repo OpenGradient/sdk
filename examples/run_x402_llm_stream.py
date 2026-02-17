@@ -1,13 +1,20 @@
 import os
 
 import opengradient as og
+from x402_permit2 import check_permit2_approval
+
+network = "base-testnet"
 
 client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
+check_permit2_approval(client.alpha._wallet_account.address, network)
+
 messages = [
-    {"role": "user", "content": "Describe to me the 7 network layers?"},
+    {"role": "user", "content": "What is Python?"},
+    {"role": "assistant", "content": "Python is a high-level programming language."},
+    {"role": "user", "content": "What makes it good for beginners?"},
 ]
 
 stream = client.llm.chat(
@@ -15,7 +22,8 @@ stream = client.llm.chat(
     messages=messages,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
     stream=True,
-    max_tokens=1000,
+    max_tokens=300,
+    network=network,
 )
 
 for chunk in stream:
