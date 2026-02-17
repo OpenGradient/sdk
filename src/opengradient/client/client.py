@@ -22,14 +22,21 @@ class Client:
     Main OpenGradient SDK client.
 
     Provides unified access to all OpenGradient services including LLM inference,
-    on-chain model inference, and the Model Hub. Handles authentication via
-    blockchain private key and optional Model Hub credentials.
+    on-chain model inference, and the Model Hub.
+
+    The client operates across two chains:
+
+    - **LLM inference** (``client.llm``) settles via x402 on **Base Sepolia**
+      using OPG tokens (funded by ``private_key``).
+    - **Alpha Testnet** (``client.alpha``) runs on the **OpenGradient network**
+      using testnet gas tokens (funded by ``alpha_private_key``, or ``private_key``
+      when not provided).
 
     Usage:
         client = og.Client(private_key="0x...")
+        client = og.Client(private_key="0xBASE_KEY", alpha_private_key="0xALPHA_KEY")
         result = client.llm.chat(model=TEE_LLM.CLAUDE_3_5_HAIKU, messages=[...])
         result = client.alpha.infer(model_cid, InferenceMode.VANILLA, input_data)
-        client.model_hub.upload(model_path, model_name, version)
     """
 
     model_hub: ModelHub
@@ -61,14 +68,22 @@ class Client:
         """
         Initialize the OpenGradient client.
 
+        The SDK uses two different chains. LLM inference (``client.llm``) settles
+        via x402 on **Base Sepolia** using OPG tokens, while Alpha Testnet features
+        (``client.alpha``) run on the **OpenGradient network** using testnet gas tokens.
+        You can supply a separate ``alpha_private_key`` so each chain uses its own
+        funded wallet. When omitted, ``private_key`` is used for both.
+
         Args:
-            private_key: Private key for LLM inference (Base Sepolia, x402 payments).
-            alpha_private_key: Private key for Alpha Testnet features (on-chain inference).
-                When omitted, falls back to ``private_key`` for backward compatibility.
+            private_key: Private key whose wallet holds **Base Sepolia OPG tokens**
+                for x402 LLM payments.
+            alpha_private_key: Private key whose wallet holds **OpenGradient testnet
+                gas tokens** for on-chain inference. Optional -- falls back to
+                ``private_key`` for backward compatibility.
             email: Email for Model Hub authentication. Optional.
             password: Password for Model Hub authentication. Optional.
             twins_api_key: API key for digital twins chat (twin.fun). Optional.
-            rpc_url: RPC URL for the Alpha Testnet blockchain network.
+            rpc_url: RPC URL for the OpenGradient Alpha Testnet.
             api_url: API URL for the OpenGradient API.
             contract_address: Inference contract address.
             og_llm_server_url: OpenGradient LLM server URL.

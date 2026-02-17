@@ -46,12 +46,24 @@ result = client.alpha.infer(
 print(result.model_output)
 ```
 
+## Private Keys
+
+The SDK operates across two chains. You can use a single key for both, or provide separate keys:
+
+- **``private_key``** -- pays for LLM inference via x402 on **Base Sepolia** (requires OPG tokens)
+- **``alpha_private_key``** *(optional)* -- pays gas for Alpha Testnet on-chain inference on the **OpenGradient network** (requires testnet gas tokens). Falls back to ``private_key`` when omitted.
+
+```python
+# Separate keys for each chain
+client = og.init(private_key="0xBASE_KEY...", alpha_private_key="0xALPHA_KEY...")
+```
+
 ## Client Namespaces
 
 The `opengradient.client.Client` object exposes four namespaces:
 
-- **`opengradient.client.llm`** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
-- **`opengradient.client.alpha`** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
+- **`opengradient.client.llm`** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments (Base Sepolia OPG tokens)
+- **`opengradient.client.alpha`** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (OpenGradient testnet gas tokens)
 - **`opengradient.client.model_hub`** -- Model repository management
 - **`opengradient.client.twins`** -- Digital twins chat via OpenGradient verifiable inference (requires twins API key)
 
@@ -110,9 +122,11 @@ def init(
     and stores it as the global client for convenience.
 
     Args:
-        private_key: Private key for LLM inference (Base Sepolia, x402 payments).
-        alpha_private_key: Private key for Alpha Testnet features (on-chain inference).
-            When omitted, falls back to ``private_key`` for backward compatibility.
+        private_key: Private key whose wallet holds **Base Sepolia OPG tokens**
+            for x402 LLM payments.
+        alpha_private_key: Private key whose wallet holds **OpenGradient testnet
+            gas tokens** for on-chain inference. Optional -- falls back to
+            ``private_key`` for backward compatibility.
         email: Email for Model Hub authentication. Optional.
         password: Password for Model Hub authentication. Optional.
         **kwargs: Additional arguments forwarded to `Client`.

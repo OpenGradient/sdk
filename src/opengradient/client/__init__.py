@@ -5,19 +5,27 @@ OpenGradient Client -- the central entry point to all SDK services.
 
 The `opengradient.client.client.Client` class provides unified access to four service namespaces:
 
-- **`opengradient.client.llm`** -- LLM chat and text completion with TEE-verified execution and x402 payment settlement
+- **`opengradient.client.llm`** -- LLM chat and text completion with TEE-verified execution and x402 payment settlement (Base Sepolia OPG tokens)
 - **`opengradient.client.model_hub`** -- Model repository management: create, version, and upload ML models
-- **`opengradient.client.alpha`** -- Alpha Testnet features: on-chain ONNX model inference (VANILLA, TEE, ZKML modes), workflow deployment, and scheduled ML model execution
+- **`opengradient.client.alpha`** -- Alpha Testnet features: on-chain ONNX model inference (VANILLA, TEE, ZKML modes), workflow deployment, and scheduled ML model execution (OpenGradient testnet gas tokens)
 - **`opengradient.client.twins`** -- Digital twins chat via OpenGradient verifiable inference
+
+## Private Keys
+
+The SDK operates across two chains:
+
+- **`private_key`** -- used for LLM inference (``client.llm``). Pays via x402 on **Base Sepolia** with OPG tokens.
+- **`alpha_private_key`** *(optional)* -- used for Alpha Testnet features (``client.alpha``). Pays gas on the **OpenGradient network** with testnet tokens. Falls back to ``private_key`` when omitted.
 
 ## Usage
 
 ```python
 import opengradient as og
 
+# Single key for both chains (backward compatible)
 client = og.init(private_key="0x...")
 
-# Use separate keys for LLM (Base Sepolia) and Alpha Testnet
+# Separate keys: Base Sepolia OPG for LLM, OpenGradient testnet gas for Alpha
 client = og.init(private_key="0xLLM_KEY...", alpha_private_key="0xALPHA_KEY...")
 
 # LLM chat (TEE-verified, streamed)
