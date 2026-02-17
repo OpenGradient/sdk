@@ -178,7 +178,7 @@ class LLM:
         max_tokens: int = 100,
         stop_sequence: Optional[List[str]] = None,
         temperature: float = 0.0,
-        tools: Optional[List[Dict]] = [],
+        tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
         stream: bool = False,
