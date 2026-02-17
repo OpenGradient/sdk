@@ -70,11 +70,6 @@ class CandleType(IntEnum):
     VOLUME = 4
 
 
-class x402Network(str, Enum):
-    OG_EVM = "og-evm"
-    BASE_TESTNET = "base-testnet"
-
-
 @dataclass
 class HistoricalInputQuery:
     base: str

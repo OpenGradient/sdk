@@ -20,7 +20,7 @@ from .defaults import (
     DEFAULT_OG_FAUCET_URL,
     DEFAULT_RPC_URL,
 )
-from .types import InferenceMode, x402Network, x402SettlementMode
+from .types import InferenceMode, x402SettlementMode
 
 OG_CONFIG_FILE = Path.home() / ".opengradient_config.json"
 
@@ -72,11 +72,6 @@ x402SettlementModes = {
     "settle-batch": x402SettlementMode.SETTLE_BATCH,
     "settle": x402SettlementMode.SETTLE,
     "settle-metadata": x402SettlementMode.SETTLE_METADATA,
-}
-
-x402Networks = {
-    "og-evm": x402Network.OG_EVM,
-    "base-testnet": x402Network.BASE_TESTNET,
 }
 
 
@@ -466,12 +461,6 @@ def print_llm_completion_result(model_cid, tx_hash, llm_output, is_vanilla=True)
     default="settle-batch",
     help="Settlement mode for x402 payments: settle (hashes only), settle-batch (batched, default), settle-metadata (full data)",
 )
-@click.option(
-    "--network",
-    type=click.Choice(x402Networks.keys()),
-    default="og-evm",
-    help="x402 network to use for TEE chat payments: og-evm (default) or base-testnet",
-)
 @click.option("--stream", is_flag=True, default=False, help="Stream the output from the LLM")
 @click.pass_context
 def chat(
@@ -486,7 +475,6 @@ def chat(
     tools_file: Optional[Path],
     tool_choice: Optional[str],
     x402_settlement_mode: Optional[str],
-    network: str,
     stream: bool,
 ):
     """
@@ -573,7 +561,6 @@ def chat(
             tools=parsed_tools,
             tool_choice=tool_choice,
             x402_settlement_mode=x402SettlementModes[x402_settlement_mode],
-            network=x402Networks[network],
             stream=stream,
         )
 
