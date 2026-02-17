@@ -68,28 +68,22 @@ completion:
 		--prompt "Hello, how are you?" \
 		--max-tokens 50
 
-chat-og-evm:
+chat:
 	python -m opengradient.cli chat \
 		--model $(MODEL) \
 		--messages '[{"role":"user","content":"Tell me a fun fact"}]' \
-		--max-tokens 150 --network og-evm
-
-chat-base-testnet:
-	python -m opengradient.cli chat \
-		--model $(MODEL) \
-		--messages '[{"role":"user","content":"Tell me a fun fact"}]' \
-		--max-tokens 150 --network base-testnet
+		--max-tokens 150
 
 chat-stream:
 	python -m opengradient.cli chat \
-		--model $(MODEL) --mode TEE \
+		--model $(MODEL) \
 		--messages '[{"role":"user","content":"Tell me a short story"}]' \
 		--max-tokens 250 \
 		--stream
 
 chat-tool:
 	python -m opengradient.cli chat \
-		--model $(MODEL) --mode TEE \
+		--model $(MODEL) \
 		--messages '[{"role":"user","content":"What is the weather in Tokyo?"}]' \
 		--tools '[{"type":"function","function":{"name":"get_weather","description":"Get weather for a location","parameters":{"type":"object","properties":{"location":{"type":"string"},"unit":{"type":"string","enum":["celsius","fahrenheit"]}},"required":["location"]}}}]' \
 		--max-tokens 100 \

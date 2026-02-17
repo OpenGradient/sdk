@@ -8,7 +8,6 @@ from web3 import Web3
 
 BASE_OPG_ADDRESS = "0x240b09731D96979f50B2C649C9CE10FcF9C7987F"
 BASE_SEPOLIA_RPC = "https://sepolia.base.org"
-BASE_TESTNET = "base-testnet"
 MAX_UINT256 = (1 << 256) - 1
 
 ERC20_ABI = [
@@ -48,11 +47,8 @@ def get_permit2_allowance(client_address: str) -> int:
     ).call()
 
 
-def check_permit2_approval(client_address: str, network: str) -> None:
+def check_permit2_approval(client_address: str) -> None:
     """Raise an error if Permit2 approval is missing for base-testnet."""
-    if network != BASE_TESTNET:
-        return
-
     allowance = get_permit2_allowance(client_address)
     print(f"Current OPG Permit2 allowance: {allowance}")
 

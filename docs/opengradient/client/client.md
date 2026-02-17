@@ -21,7 +21,7 @@ blockchain private key and optional Model Hub credentials.
 #### Constructor
 
 ```python
-def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, twins_api_key: Optional[str] = None, wallet_address: str = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llmogevm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llmogevm.opengradient.ai')
+def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, twins_api_key: Optional[str] = None, wallet_address: str = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llm.opengradient.ai')
 ```
 
 **Arguments**
