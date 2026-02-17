@@ -68,11 +68,17 @@ completion:
 		--prompt "Hello, how are you?" \
 		--max-tokens 50
 
-chat:
+chat-og-evm:
 	python -m opengradient.cli chat \
-		--model $(MODEL) --mode TEE \
+		--model $(MODEL) \
 		--messages '[{"role":"user","content":"Tell me a fun fact"}]' \
-		--max-tokens 150
+		--max-tokens 150 --network og-evm
+
+chat-base-testnet:
+	python -m opengradient.cli chat \
+		--model $(MODEL) \
+		--messages '[{"role":"user","content":"Tell me a fun fact"}]' \
+		--max-tokens 150 --network base-testnet
 
 chat-stream:
 	python -m opengradient.cli chat \

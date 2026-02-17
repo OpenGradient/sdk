@@ -50,6 +50,7 @@ class Client:
         email: Optional[str] = None,
         password: Optional[str] = None,
         twins_api_key: Optional[str] = None,
+        wallet_address: str = None,
         rpc_url: str = DEFAULT_RPC_URL,
         api_url: str = DEFAULT_API_URL,
         contract_address: str = DEFAULT_INFERENCE_CONTRACT_ADDRESS,
@@ -79,6 +80,7 @@ class Client:
 
         # Create namespaces
         self.model_hub = ModelHub(hub_user=hub_user)
+        self.wallet_address = wallet_account.address
 
         self.llm = LLM(
             wallet_account=wallet_account,

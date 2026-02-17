@@ -2,15 +2,26 @@
 
 import asyncio
 import json
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, AsyncGenerator
 
 import httpx
 from eth_account.account import LocalAccount
 from x402.clients.base import x402Client
 from x402.clients.httpx import x402HttpxClient
 
+from x402v2 import x402Client as x402Clientv2
+from x402v2.http import x402HTTPClient as x402HTTPClientv2
+from x402v2.http.clients import x402HttpxClient as x402HttpxClientv2
+from x402v2.mechanisms.evm import EthAccountSigner as EthAccountSignerv2
+from x402v2.mechanisms.evm.exact import ExactEvmServerScheme as ExactEvmServerSchemev2
+from x402v2.mechanisms.evm.upto import UptoEvmServerScheme as UptoEvmServerSchemev2
+from x402v2.mechanisms.evm.exact.register import register_exact_evm_client as register_exact_evm_clientv2
+from x402v2.mechanisms.evm.upto.register import register_upto_evm_client as register_upto_evm_clientv2
+from eth_account import Account
+
 from ..defaults import (
     DEFAULT_NETWORK_FILTER,
+    DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL
 )
 from ..types import (
     TEE_LLM,
@@ -18,12 +29,14 @@ from ..types import (
     TextGenerationOutput,
     TextGenerationStream,
     x402SettlementMode,
+    x402Network
 )
 from .exceptions import OpenGradientError
 from .x402_auth import X402Auth
 
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+BASE_TESTNET_NETWORK = "eip155:84532"
 
 TIMEOUT = httpx.Timeout(
     timeout=90.0,
@@ -152,13 +165,9 @@ class LLM:
                     # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
-                    payment_hash = ""
-
-                    if X402_PROCESSING_HASH_HEADER in response.headers:
-                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
 
                     return TextGenerationOutput(
-                        transaction_hash="external", completion_output=result.get("completion"), payment_hash=payment_hash
+                        transaction_hash="external", completion_output=result.get("completion"),
                     )
 
                 except Exception as e:
@@ -182,6 +191,7 @@ class LLM:
         tool_choice: Optional[str] = None,
         x402_settlement_mode: Optional[x402SettlementMode] = x402SettlementMode.SETTLE_BATCH,
         stream: bool = False,
+        network: Optional[x402Network] = x402Network.OG_EVM,
     ) -> Union[TextGenerationOutput, TextGenerationStream]:
         """
         Perform inference on an LLM model using chat via TEE.
@@ -220,6 +230,7 @@ class LLM:
                 tools=tools,
                 tool_choice=tool_choice,
                 x402_settlement_mode=x402_settlement_mode,
+                network=network,
             )
         else:
             # Non-streaming
@@ -232,6 +243,7 @@ class LLM:
                 tools=tools,
                 tool_choice=tool_choice,
                 x402_settlement_mode=x402_settlement_mode,
+                network=network
             )
 
     def _tee_llm_chat(
@@ -244,6 +256,7 @@ class LLM:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
+        network: Optional[x402Network] = x402Network.OG_EVM,
     ) -> TextGenerationOutput:
         """
         Route chat request to OpenGradient TEE LLM server with x402 payments.
@@ -282,13 +295,8 @@ class LLM:
                     endpoint = "/v1/chat/completions"
                     response = await client.post(endpoint, json=payload, headers=headers, timeout=60)
 
-                    # Read the response content
                     content = await response.aread()
                     result = json.loads(content.decode())
-
-                    payment_hash = ""
-                    if X402_PROCESSING_HASH_HEADER in response.headers:
-                        payment_hash = response.headers[X402_PROCESSING_HASH_HEADER]
 
                     choices = result.get("choices")
                     if not choices:
@@ -298,14 +306,69 @@ class LLM:
                         transaction_hash="external",
                         finish_reason=choices[0].get("finish_reason"),
                         chat_output=choices[0].get("message"),
-                        payment_hash=payment_hash,
+                    )
+
+                except Exception as e:
+                    raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
+        
+
+        async def make_request_v2():
+            x402_client = x402Clientv2()
+            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=[BASE_TESTNET_NETWORK])
+            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account),networks=[BASE_TESTNET_NETWORK])
+
+            # Security Fix: verify=True enabled
+            async with x402HttpxClientv2(
+                x402_client
+            ) as client:
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
+                }
+
+                payload = {
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                }
+
+                if stop_sequence:
+                    payload["stop"] = stop_sequence
+
+                if tools:
+                    payload["tools"] = tools
+                    payload["tool_choice"] = tool_choice or "auto"
+
+                try:
+                    # Non-streaming with x402
+                    endpoint = "/v1/chat/completions"
+                    response = await client.post(DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL+endpoint, json=payload, headers=headers, timeout=60)
+                    
+                    content = await response.aread()
+                    result = json.loads(content.decode())
+
+                    choices = result.get("choices")
+                    if not choices:
+                        raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
+
+                    return TextGenerationOutput(
+                        transaction_hash="external",
+                        finish_reason=choices[0].get("finish_reason"),
+                        chat_output=choices[0].get("message"),
                     )
 
                 except Exception as e:
                     raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
 
         try:
-            return asyncio.run(make_request())
+            if network == x402Network.OG_EVM:
+                return asyncio.run(make_request())
+            elif network == x402Network.BASE_TESTNET:
+                return asyncio.run(make_request_v2())
+            else:
+                raise OpenGradientError(f"Invalid network: {network}")
         except OpenGradientError:
             raise
         except Exception as e:
@@ -321,6 +384,7 @@ class LLM:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
+        network: Optional[x402Network] = x402Network.OG_EVM,
     ):
         """
         Sync streaming using threading bridge - TRUE real-time streaming.
@@ -352,6 +416,7 @@ class LLM:
                             tools=tools,
                             tool_choice=tool_choice,
                             x402_settlement_mode=x402_settlement_mode,
+                            network=network,
                         ):
                             queue.put(chunk)  # Put chunk immediately
                     except Exception as e:
@@ -405,76 +470,106 @@ class LLM:
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None,
         x402_settlement_mode: x402SettlementMode = x402SettlementMode.SETTLE_BATCH,
+        network: Optional[x402Network] = x402Network.OG_EVM,
     ):
         """
         Internal async streaming implementation for TEE LLM with x402 payments.
 
         Yields StreamChunk objects as they arrive from the server.
         """
-        async with httpx.AsyncClient(
-            base_url=self._og_llm_streaming_server_url,
-            headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
-            timeout=TIMEOUT,
-            limits=LIMITS,
-            http2=False,
-            follow_redirects=False,
-            auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
-            verify=True,
-        ) as client:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                "X-SETTLEMENT-TYPE": x402_settlement_mode,
-            }
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+            "X-SETTLEMENT-TYPE": x402_settlement_mode,
+        }
 
-            payload = {
-                "model": model,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "stream": True,
-            }
+        payload = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
 
-            if stop_sequence:
-                payload["stop"] = stop_sequence
-            if tools:
-                payload["tools"] = tools
-                payload["tool_choice"] = tool_choice or "auto"
+        if stop_sequence:
+            payload["stop"] = stop_sequence
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = tool_choice or "auto"
 
-            async with client.stream(
-                "POST",
-                "/v1/chat/completions",
-                json=payload,
-                headers=headers,
-            ) as response:
-                buffer = b""
-                async for chunk in response.aiter_raw():
-                    if not chunk:
+        async def _parse_sse_response(response) -> AsyncGenerator[StreamChunk, None]:
+            status_code = getattr(response, "status_code", None)
+            if status_code is not None and status_code >= 400:
+                body = await response.aread()
+                body_text = body.decode("utf-8", errors="replace")
+                raise OpenGradientError(f"TEE LLM streaming request failed with status {status_code}: {body_text}")
+
+            buffer = b""
+            async for chunk in response.aiter_raw():
+                if not chunk:
+                    continue
+
+                buffer += chunk
+
+                while b"\n" in buffer:
+                    line_bytes, buffer = buffer.split(b"\n", 1)
+
+                    if not line_bytes.strip():
                         continue
 
-                    buffer += chunk
+                    try:
+                        line = line_bytes.decode("utf-8").strip()
+                    except UnicodeDecodeError:
+                        continue
 
-                    # Process complete lines from buffer
-                    while b"\n" in buffer:
-                        line_bytes, buffer = buffer.split(b"\n", 1)
+                    if not line.startswith("data: "):
+                        continue
 
-                        if not line_bytes.strip():
-                            continue
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        return
 
-                        try:
-                            line = line_bytes.decode("utf-8").strip()
-                        except UnicodeDecodeError:
-                            continue
+                    try:
+                        data = json.loads(data_str)
+                        yield StreamChunk.from_sse_data(data)
+                    except json.JSONDecodeError:
+                        continue
 
-                        if not line.startswith("data: "):
-                            continue
+        if network == x402Network.OG_EVM:
+            async with httpx.AsyncClient(
+                base_url=self._og_llm_streaming_server_url,
+                headers={"Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}"},
+                timeout=TIMEOUT,
+                limits=LIMITS,
+                http2=False,
+                follow_redirects=False,
+                auth=X402Auth(account=self._wallet_account, network_filter=DEFAULT_NETWORK_FILTER),  # type: ignore
+                verify=True,
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    "/v1/chat/completions",
+                    json=payload,
+                    headers=headers,
+                ) as response:
+                    async for parsed_chunk in _parse_sse_response(response):
+                        yield parsed_chunk
 
-                        data_str = line[6:]
-                        if data_str.strip() == "[DONE]":
-                            return
+        elif network == x402Network.BASE_TESTNET:
+            x402_client = x402Clientv2()
+            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
+            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
 
-                        try:
-                            data = json.loads(data_str)
-                            yield StreamChunk.from_sse_data(data)
-                        except json.JSONDecodeError:
-                            continue
+            async with x402HttpxClientv2(x402_client) as client:
+                endpoint = "/v1/chat/completions"
+                async with client.stream(
+                    "POST",
+                    DEFAULT_OPENGRADIENT_V2_LLM_SERVER_URL + endpoint,
+                    json=payload,
+                    headers=headers,
+                    timeout=60,
+                ) as response:
+                    async for parsed_chunk in _parse_sse_response(response):
+                        yield parsed_chunk
+        else:
+            raise OpenGradientError(f"Invalid network: {network}")

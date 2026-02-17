@@ -48,6 +48,18 @@ python examples/upload_model.py
 
 ## x402 LLM Examples
 
+#### `x402_permit2.py`
+Grants Permit2 approval so x402 payments can spend OPG on Base Sepolia.
+
+```bash
+python examples/x402_permit2.py
+```
+
+**What it does:**
+- Sends an `approve(PERMIT2, amount)` transaction for OPG
+- Uses `OG_PRIVATE_KEY` to sign and submit the transaction
+- Prints allowance before and after approval
+
 #### `run_x402_llm.py`
 Runs LLM inference with x402 transaction processing.
 
@@ -187,4 +199,3 @@ Browse available models on the [OpenGradient Model Hub](https://hub.opengradient
 - Run `opengradient --help` for CLI command reference
 - Visit our [documentation](https://docs.opengradient.ai/) for detailed guides
 - Check the main [README](../README.md) for SDK overview
-
