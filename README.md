@@ -37,9 +37,10 @@ For current network RPC endpoints, contract addresses, and deployment informatio
 
 Before using the SDK, you will need:
 
-1. **Private Key**: An Ethereum-compatible wallet private key for OpenGradient transactions
+1. **Private Key**: An Ethereum-compatible wallet private key funded with **Base Sepolia OPG tokens** for x402 LLM payments
 2. **Test Tokens**: Obtain free test tokens from the [OpenGradient Faucet](https://faucet.opengradient.ai) for testnet LLM inference
-3. **Model Hub Account** (Optional): Required only for model uploads. Register at [hub.opengradient.ai/signup](https://hub.opengradient.ai/signup)
+3. **Alpha Private Key** (Optional): A separate private key funded with **OpenGradient testnet gas tokens** for Alpha Testnet on-chain inference. If not provided, the primary `private_key` is used for both chains.
+4. **Model Hub Account** (Optional): Required only for model uploads. Register at [hub.opengradient.ai/signup](https://hub.opengradient.ai/signup)
 
 ### Configuration
 
@@ -69,11 +70,16 @@ import os
 import opengradient as og
 
 client = og.Client(
-    private_key=os.environ.get("OG_PRIVATE_KEY"),
+    private_key=os.environ.get("OG_PRIVATE_KEY"),  # Base Sepolia OPG tokens for LLM payments
+    alpha_private_key=os.environ.get("OG_ALPHA_PRIVATE_KEY"),  # Optional: OpenGradient testnet tokens for on-chain inference
     email=None,  # Optional: required only for model uploads
     password=None,
 )
 ```
+
+The client operates across two chains:
+- **LLM inference** (`client.llm`) settles via x402 on **Base Sepolia** using OPG tokens (funded by `private_key`)
+- **Alpha Testnet** (`client.alpha`) runs on the **OpenGradient network** using testnet gas tokens (funded by `alpha_private_key`, or `private_key` when not provided)
 
 ## Core Functionality
 
@@ -184,7 +190,8 @@ Deploy on-chain AI workflows with optional scheduling:
 import opengradient as og
 
 client = og.Client(
-    private_key="your-private-key",
+    private_key="your-private-key",  # Base Sepolia OPG tokens
+    alpha_private_key="your-alpha-private-key",  # OpenGradient testnet tokens
     email="your-email",
     password="your-password",
 )
