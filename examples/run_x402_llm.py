@@ -1,13 +1,13 @@
 import os
 
 import opengradient as og
-from x402_permit2 import check_permit2_approval
 
 client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
-check_permit2_approval(client.wallet_address)
+approval = client.llm.ensure_opg_approval(opg_amount=5)
+print(f"Approval: {approval}")
 
 messages = [
     {"role": "user", "content": "What is Python?"},

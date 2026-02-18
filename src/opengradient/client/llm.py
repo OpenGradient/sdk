@@ -2,22 +2,19 @@
 
 import asyncio
 import json
-from typing import Dict, List, Optional, Union, AsyncGenerator
+from typing import AsyncGenerator, Dict, List, Optional, Union
 
 import httpx
 from eth_account.account import LocalAccount
 from x402v2 import x402Client as x402Clientv2
-from x402v2.http import x402HTTPClient as x402HTTPClientv2
 from x402v2.http.clients import x402HttpxClient as x402HttpxClientv2
 from x402v2.mechanisms.evm import EthAccountSigner as EthAccountSignerv2
-from x402v2.mechanisms.evm.exact import ExactEvmServerScheme as ExactEvmServerSchemev2
-from x402v2.mechanisms.evm.upto import UptoEvmServerScheme as UptoEvmServerSchemev2
 from x402v2.mechanisms.evm.exact.register import register_exact_evm_client as register_exact_evm_clientv2
 from x402v2.mechanisms.evm.upto.register import register_upto_evm_client as register_upto_evm_clientv2
-from eth_account import Account
 
 from ..types import TEE_LLM, StreamChunk, TextGenerationOutput, TextGenerationStream, x402SettlementMode
 from .exceptions import OpenGradientError
+from .opg_token import Permit2ApprovalResult, ensure_opg_approval
 
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
@@ -45,8 +42,17 @@ class LLM:
     (Trusted Execution Environment) with x402 payment protocol support.
     Supports both streaming and non-streaming responses.
 
+    Before making LLM requests, ensure your wallet has approved sufficient
+    OPG tokens for Permit2 spending by calling ``ensure_opg_approval``.
+    This only sends an on-chain transaction when the current allowance is
+    below the requested amount.
+
     Usage:
         client = og.Client(...)
+
+        # One-time approval (idempotent — skips if allowance is already sufficient)
+        client.llm.ensure_opg_approval(opg_amount=5)
+
         result = client.llm.chat(model=TEE_LLM.CLAUDE_3_5_HAIKU, messages=[...])
         result = client.llm.completion(model=TEE_LLM.CLAUDE_3_5_HAIKU, prompt="Hello")
     """
@@ -55,6 +61,27 @@ class LLM:
         self._wallet_account = wallet_account
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
+
+    def ensure_opg_approval(self, opg_amount: float) -> Permit2ApprovalResult:
+        """Ensure the Permit2 allowance for OPG is at least ``opg_amount``.
+
+        Checks the current Permit2 allowance for the wallet. If the allowance
+        is already >= the requested amount, returns immediately without sending
+        a transaction. Otherwise, sends an ERC-20 approve transaction.
+
+        Args:
+            opg_amount: Minimum number of OPG tokens required (e.g. ``5.0``
+                for 5 OPG). Converted to base units (18 decimals) internally.
+
+        Returns:
+            Permit2ApprovalResult: Contains ``allowance_before``,
+                ``allowance_after``, and ``tx_hash`` (None when no approval
+                was needed).
+
+        Raises:
+            OpenGradientError: If the approval transaction fails.
+        """
+        return ensure_opg_approval(self._wallet_account, opg_amount)
 
     def completion(
         self,

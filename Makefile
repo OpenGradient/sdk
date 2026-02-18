@@ -31,7 +31,7 @@ docs:
 # Testing
 # ============================================================================
 
-test: utils_test client_test langchain_adapter_test
+test: utils_test client_test langchain_adapter_test opg_token_test
 
 utils_test:
 	pytest tests/utils_test.py -v
@@ -41,6 +41,9 @@ client_test:
 
 langchain_adapter_test:
 	pytest tests/langchain_adapter_test.py -v
+
+opg_token_test:
+	pytest tests/opg_token_test.py -v
 
 integrationtest:
 	python integrationtest/agent/test_agent.py
@@ -89,5 +92,5 @@ chat-tool:
 		--max-tokens 100 \
 		--stream
 
-.PHONY: install build publish check docs test utils_test client_test integrationtest examples \
+.PHONY: install build publish check docs test utils_test client_test langchain_adapter_test opg_token_test integrationtest examples \
 	infer completion chat chat-stream chat-tool

@@ -18,6 +18,11 @@ Provides access to large language model completions and chat via TEE
 (Trusted Execution Environment) with x402 payment protocol support.
 Supports both streaming and non-streaming responses.
 
+Before making LLM requests, ensure your wallet has approved sufficient
+OPG tokens for Permit2 spending by calling ``ensure_opg_approval``.
+This only sends an on-chain transaction when the current allowance is
+below the requested amount.
+
 #### Constructor
 
 ```python
@@ -31,7 +36,7 @@ def __init__(wallet_account: `LocalAccount`, og_llm_server_url: str, og_llm_st
 #### `chat()`
 
 ```python
-def chat(self, model: `TEE_LLM`, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = [], tool_choice: Optional[str] = None, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[`TextGenerationOutput`, `TextGenerationStream`]
+def chat(self, model: `TEE_LLM`, messages: List[Dict], max_tokens: int = 100, stop_sequence: Optional[List[str]] = None, temperature: float = 0.0, tools: Optional[List[Dict]] = None, tool_choice: Optional[str] = None, x402_settlement_mode: Optional[`x402SettlementMode`] = x402SettlementMode.SETTLE_BATCH, stream: bool = False) ‑> Union[`TextGenerationOutput`, `TextGenerationStream`]
 ```
 Perform inference on an LLM model using chat via TEE.
 
@@ -93,3 +98,31 @@ TextGenerationOutput: Generated text results including:
 **Raises**
 
 * **`OpenGradientError`**: If the inference fails.
+
+---
+
+#### `ensure_opg_approval()`
+
+```python
+def ensure_opg_approval(self, opg_amount: float) ‑> `Permit2ApprovalResult`
+```
+Ensure the Permit2 allowance for OPG is at least ``opg_amount``.
+
+Checks the current Permit2 allowance for the wallet. If the allowance
+is already >= the requested amount, returns immediately without sending
+a transaction. Otherwise, sends an ERC-20 approve transaction.
+
+**Arguments**
+
+* **`opg_amount`**: Minimum number of OPG tokens required (e.g. ``5.0``
+        for 5 OPG). Converted to base units (18 decimals) internally.
+
+**Returns**
+
+Permit2ApprovalResult: Contains ``allowance_before``,
+    ``allowance_after``, and ``tx_hash`` (None when no approval
+    was needed).
+
+**Raises**
+
+* **`OpenGradientError`**: If the approval transaction fails.
