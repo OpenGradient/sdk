@@ -42,8 +42,17 @@ class LLM:
     (Trusted Execution Environment) with x402 payment protocol support.
     Supports both streaming and non-streaming responses.
 
+    Before making LLM requests, ensure your wallet has approved sufficient
+    OPG tokens for Permit2 spending by calling ``ensure_opg_approval``.
+    This only sends an on-chain transaction when the current allowance is
+    below the requested amount.
+
     Usage:
         client = og.Client(...)
+
+        # One-time approval (idempotent — skips if allowance is already sufficient)
+        client.llm.ensure_opg_approval(opg_amount=5)
+
         result = client.llm.chat(model=TEE_LLM.CLAUDE_3_5_HAIKU, messages=[...])
         result = client.llm.completion(model=TEE_LLM.CLAUDE_3_5_HAIKU, prompt="Hello")
     """
