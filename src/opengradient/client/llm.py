@@ -196,7 +196,7 @@ class LLM:
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                "X-SETTLEMENT-TYPE": x402_settlement_mode,
+                "X-SETTLEMENT-TYPE": x402_settlement_mode.value,
             }
 
             payload = {
@@ -337,6 +337,7 @@ class LLM:
                     self._og_llm_server_url + endpoint, json=payload, headers=headers, timeout=60
                 )
 
+                response.raise_for_status()
                 content = await response.aread()
                 result = json.loads(content.decode())
 
@@ -435,7 +436,7 @@ class LLM:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-            "X-SETTLEMENT-TYPE": x402_settlement_mode,
+            "X-SETTLEMENT-TYPE": x402_settlement_mode.value,
         }
 
         payload = {

@@ -10,10 +10,13 @@ approval = client.llm.ensure_opg_approval(opg_amount=5)
 print(f"$OPG Approval Status: {approval}")
 
 messages = [
-    {"role": "user", "content": "What is Python?"},
-    {"role": "assistant", "content": "Python is a high-level programming language."},
-    {"role": "user", "content": "What makes it good for beginners?"},
+    {"role": "user", "content": "What is the capital of France?"},
 ]
 
-result = client.llm.chat(model=og.TEE_LLM.GPT_4_1_2025_04_14, messages=messages, x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA)
+result = client.llm.chat(
+    model=og.TEE_LLM.CLAUDE_4_0_SONNET,
+    messages=messages,
+    max_tokens=300,
+    x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
+)
 print(f"Response: {result.chat_output['content']}")
