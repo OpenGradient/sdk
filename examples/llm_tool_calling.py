@@ -3,7 +3,7 @@ Test Gemini models with tool calls.
 
 Usage:
     export OG_PRIVATE_KEY="your_private_key"
-    python examples/test_gemini_tools.py
+    python examples/llm_tool_calling.py
 """
 
 import os

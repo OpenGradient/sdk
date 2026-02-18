@@ -5,7 +5,7 @@ Creates a simple ReAct agent with a tool, powered by an OpenGradient LLM.
 
 Usage:
     export OG_PRIVATE_KEY="your_private_key"
-    python examples/langchain_agent.py
+    python examples/langchain_react_agent.py
 """
 
 import os

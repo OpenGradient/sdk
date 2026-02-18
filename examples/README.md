@@ -22,22 +22,22 @@ opengradient config init
 
 ### Model Management
 
-#### `create_model.py`
+#### `create_model_repo.py`
 Creates a new model repository on the Model Hub.
 
 ```bash
-python examples/create_model.py
+python examples/create_model_repo.py
 ```
 
 **What it does:**
 - Creates a new model repository with a name and description
 - Returns a model repository object with version information
 
-#### `upload_model.py`
+#### `upload_model_to_hub.py`
 Uploads a model file to an existing model repository.
 
 ```bash
-python examples/upload_model.py
+python examples/upload_model_to_hub.py
 ```
 
 **What it does:**
@@ -47,41 +47,42 @@ python examples/upload_model.py
 
 **Note:** Requires Model Hub credentials (`OG_MODEL_HUB_EMAIL` and `OG_MODEL_HUB_PASSWORD`).
 
-## x402 LLM Examples
+## LLM Examples
 
-#### `run_x402_llm.py`
-Runs LLM inference with x402 transaction processing.
+#### `llm_chat.py`
+Runs a basic LLM chat completion.
 
 ```bash
-python examples/run_x402_llm.py
+python examples/llm_chat.py
 ```
 
 **What it does:**
+- Sends a multi-turn conversation to an LLM
 - Uses x402 protocol for payment processing
-- Currently supports `gpt-4.1-2025-04-14` model
-- Returns payment hash instead of transaction hash
+- Returns the model's response
 
-#### `run_x402_llm_stream.py`
-Runs streaming LLM inference with x402 transaction processing.
+#### `llm_chat_streaming.py`
+Runs a streaming LLM chat completion.
 
 ```bash
-python examples/run_x402_llm_stream.py
+python examples/llm_chat_streaming.py
 ```
 
 **What it does:**
-- Uses x402 protocol for payment processing with streaming responses
+- Sends a multi-turn conversation to an LLM with streaming enabled
 - Demonstrates real-time token streaming
 - Returns chunks as they arrive from the model
 
-#### `run_x402_gemini_tools.py`
-Runs Gemini model inference with tool calling via x402.
+#### `llm_tool_calling.py`
+Demonstrates LLM tool/function calling.
 
 ```bash
-python examples/run_x402_gemini_tools.py
+python examples/llm_tool_calling.py
 ```
 
 **What it does:**
-- Demonstrates tool/function calling with Gemini models
+- Defines a tool (weather lookup) and passes it to the LLM
+- The model decides when to invoke tools based on the user's query
 - Uses x402 protocol for payment processing
 
 ## Alpha Testnet Examples
@@ -96,11 +97,11 @@ See [`alpha/README.md`](./alpha/README.md) for details.
 
 ## LangChain Agent Example
 
-#### `langchain_agent.py`
+#### `langchain_react_agent.py`
 Creates a basic LangChain ReAct agent powered by an OpenGradient LLM.
 
 ```bash
-python examples/langchain_agent.py
+python examples/langchain_react_agent.py
 ```
 
 **What it does:**
