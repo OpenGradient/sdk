@@ -34,18 +34,27 @@ export OG_PRIVATE_KEY="0x..."
 
 ## Step 1: Initialize the Client and LangChain Adapter
 
-The `og.agents.langchain_adapter` function returns a LangChain-compatible chat model
-that routes all requests through OpenGradient's TEE infrastructure.
+Before making any LLM calls, you need to approve OPG token spending for the x402
+payment protocol. The `ensure_opg_approval` method checks your wallet's current
+Permit2 allowance and only sends an on-chain transaction if the allowance is below
+the requested amount -- so it's safe to call every time.
 
 ```python
 import os
 import opengradient as og
 
+private_key = os.environ["OG_PRIVATE_KEY"]
+
+# Approve OPG spending for x402 payments (idempotent -- skips if already approved).
+client = og.Client(private_key=private_key)
+client.llm.ensure_opg_approval(opg_amount=5)
+
 # Create the LangChain chat model backed by OpenGradient TEE.
 # Note: the adapter creates its own internal Client, separate from any client
 # created via og.init(). This is why private_key is passed here explicitly.
+# The approval above applies to the wallet, so it covers the adapter's client too.
 llm = og.agents.langchain_adapter(
-    private_key=os.environ["OG_PRIVATE_KEY"],
+    private_key=private_key,
     model_cid=og.TEE_LLM.GPT_4_1_2025_04_14,
     max_tokens=500,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_BATCH,
@@ -281,6 +290,9 @@ SAMPLE_PRICES = {
 # langchain_adapter() creates its own internal client for LLM calls.
 private_key = os.environ["OG_PRIVATE_KEY"]
 client = og.init(private_key=private_key)
+
+# Approve OPG spending for x402 payments (idempotent -- skips if already approved).
+client.llm.ensure_opg_approval(opg_amount=5)
 
 llm = og.agents.langchain_adapter(
     private_key=private_key,

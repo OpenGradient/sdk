@@ -12,8 +12,8 @@ on-chain: just a hash (privacy), a batch digest (cost savings), or full metadata
 (complete transparency).
 
 This tutorial walks through the `client.llm.chat()` API, covering non-streaming and
-streaming responses, multi-provider switching, settlement modes, payment networks,
-and function calling -- all in one place.
+streaming responses, multi-provider switching, settlement modes, and function calling
+-- all in one place.
 
 ## Prerequisites
 
@@ -33,7 +33,10 @@ export OG_PRIVATE_KEY="0x..."
 
 ## Step 1: Basic Non-Streaming Chat
 
-Start with the simplest possible call -- send a message and get a response.
+Start with the simplest possible call -- send a message and get a response. Before
+making any LLM calls, approve OPG token spending for the x402 payment protocol using
+`ensure_opg_approval`. This is idempotent -- it checks the current Permit2 allowance
+and only sends a transaction if the allowance is below the requested amount.
 
 ```python
 import os
@@ -46,6 +49,9 @@ if not private_key:
     sys.exit(1)
 
 client = og.init(private_key=private_key)
+
+# Approve OPG spending for x402 payments (one-time, idempotent).
+client.llm.ensure_opg_approval(opg_amount=5)
 
 result = client.llm.chat(
     model=og.TEE_LLM.GPT_4O,
@@ -192,38 +198,7 @@ All three calls return a `payment_hash` you can look up on-chain. The difference
 how much detail the on-chain record contains. Store these hashes if you need an
 audit trail -- they are the on-chain receipts for each inference call.
 
-You can also choose which blockchain network to settle on by passing
-`payment_network` at client creation time. See Step 5 for details.
-
-## Step 5: Payment Network Selection
-
-By default, x402 payments settle on the OpenGradient EVM network. You can also pay
-on Base Sepolia testnet by passing `payment_network` when creating the client:
-
-```python
-# Default: pay on OpenGradient EVM
-client_og = og.init(
-    private_key=private_key,
-)
-
-# Alternative: pay on Base Sepolia
-client_base = og.Client(
-    private_key=private_key,
-    payment_network=og.PaymentNetwork.BASE_SEPOLIA,
-)
-
-# Both clients use the exact same llm.chat() API
-result = client_base.llm.chat(
-    model=og.TEE_LLM.GPT_4O,
-    messages=[{"role": "user", "content": "Hello via Base Sepolia!"}],
-    max_tokens=100,
-)
-```
-
-The payment network affects only *where* the settlement transaction lands -- the TEE
-verification and API interface are identical regardless of which network you choose.
-
-## Step 6: Function Calling
+## Step 5: Function Calling
 
 You can pass tools to `client.llm.chat()` in the standard OpenAI function-calling
 format. This works with any model that supports tool use.
@@ -288,6 +263,9 @@ if not private_key:
     sys.exit(1)
 
 client = og.init(private_key=private_key)
+
+# Approve OPG spending for x402 payments (idempotent -- skips if already approved).
+client.llm.ensure_opg_approval(opg_amount=5)
 
 PROMPT = "Explain what a Trusted Execution Environment is in two sentences."
 
@@ -381,7 +359,5 @@ else:
   real-time chat interface backed by verifiable inference.
 - **Add tool calling**: See **Tutorial 3** for a full multi-turn agent loop with
   tool dispatch and result feeding.
-- **Go multi-chain**: Try `og.PaymentNetwork.BASE_SEPOLIA` to settle on Base instead
-  of the OpenGradient EVM.
 - **Build an agent**: See **Tutorial 1** to combine LangChain with on-chain model
   tools for a fully verifiable AI agent.
