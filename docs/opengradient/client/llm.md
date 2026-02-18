@@ -122,8 +122,8 @@ a transaction. Otherwise, sends an ERC-20 approve transaction.
 
 **Arguments**
 
-* **`opg_amount`**: Minimum number of OPG tokens required (e.g. ``5.0``
-        for 5 OPG). Converted to base units (18 decimals) internally.
+* **`opg_amount`**: Minimum number of OPG tokens required (e.g. ``0.05``
+        for 0.05 OPG). Must be at least 0.05 OPG.
 
 **Returns**
 
@@ -133,4 +133,5 @@ Permit2ApprovalResult: Contains ``allowance_before``,
 
 **Raises**
 
+* **`ValueError`**: If the OPG amount is less than 0.05.
 * **`OpenGradientError`**: If the approval transaction fails.
