@@ -2,22 +2,19 @@
 
 import asyncio
 import json
-from typing import Dict, List, Optional, Union, AsyncGenerator
+from typing import AsyncGenerator, Dict, List, Optional, Union
 
 import httpx
 from eth_account.account import LocalAccount
 from x402v2 import x402Client as x402Clientv2
-from x402v2.http import x402HTTPClient as x402HTTPClientv2
 from x402v2.http.clients import x402HttpxClient as x402HttpxClientv2
 from x402v2.mechanisms.evm import EthAccountSigner as EthAccountSignerv2
-from x402v2.mechanisms.evm.exact import ExactEvmServerScheme as ExactEvmServerSchemev2
-from x402v2.mechanisms.evm.upto import UptoEvmServerScheme as UptoEvmServerSchemev2
 from x402v2.mechanisms.evm.exact.register import register_exact_evm_client as register_exact_evm_clientv2
 from x402v2.mechanisms.evm.upto.register import register_upto_evm_client as register_upto_evm_clientv2
-from eth_account import Account
 
 from ..types import TEE_LLM, StreamChunk, TextGenerationOutput, TextGenerationStream, x402SettlementMode
 from .exceptions import OpenGradientError
+from .opg_token import Permit2ApprovalResult, approve_opg
 
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
@@ -55,6 +52,26 @@ class LLM:
         self._wallet_account = wallet_account
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
+
+    def approve_opg(self, opg_amount: float) -> Permit2ApprovalResult:
+        """Approve OPG tokens for Permit2 spending on Base Sepolia.
+
+        Checks the current Permit2 allowance for the wallet. If the allowance
+        is zero, automatically sends an ERC-20 approve transaction.
+
+        Args:
+            opg_amount: Number of OPG tokens to approve (e.g. ``5.0`` for
+                5 OPG). Converted to base units (18 decimals) internally.
+
+        Returns:
+            Permit2ApprovalResult: Contains ``allowance_before``,
+                ``allowance_after``, and ``tx_hash`` (None when no approval
+                was needed).
+
+        Raises:
+            OpenGradientError: If the approval transaction fails.
+        """
+        return approve_opg(self._wallet_account, opg_amount)
 
     def completion(
         self,

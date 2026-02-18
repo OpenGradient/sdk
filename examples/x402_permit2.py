@@ -2,9 +2,10 @@ import argparse
 import os
 from typing import Optional
 
-import opengradient as og
-from x402v2.mechanisms.evm.constants import PERMIT2_ADDRESS
 from web3 import Web3
+from x402v2.mechanisms.evm.constants import PERMIT2_ADDRESS
+
+import opengradient as og
 
 BASE_OPG_ADDRESS = "0x240b09731D96979f50B2C649C9CE10FcF9C7987F"
 BASE_SEPOLIA_RPC = "https://sepolia.base.org"
