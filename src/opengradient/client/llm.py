@@ -14,7 +14,7 @@ from x402v2.mechanisms.evm.upto.register import register_upto_evm_client as regi
 
 from ..types import TEE_LLM, StreamChunk, TextGenerationOutput, TextGenerationStream, x402SettlementMode
 from .exceptions import OpenGradientError
-from .opg_token import Permit2ApprovalResult, approve_opg
+from .opg_token import Permit2ApprovalResult, ensure_opg_approval
 
 X402_PROCESSING_HASH_HEADER = "x-processing-hash"
 X402_PLACEHOLDER_API_KEY = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
@@ -53,15 +53,16 @@ class LLM:
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
 
-    def approve_opg(self, opg_amount: float) -> Permit2ApprovalResult:
-        """Approve OPG tokens for Permit2 spending on Base Sepolia.
+    def ensure_opg_approval(self, opg_amount: float) -> Permit2ApprovalResult:
+        """Ensure the Permit2 allowance for OPG is at least ``opg_amount``.
 
         Checks the current Permit2 allowance for the wallet. If the allowance
-        is zero, automatically sends an ERC-20 approve transaction.
+        is already >= the requested amount, returns immediately without sending
+        a transaction. Otherwise, sends an ERC-20 approve transaction.
 
         Args:
-            opg_amount: Number of OPG tokens to approve (e.g. ``5.0`` for
-                5 OPG). Converted to base units (18 decimals) internally.
+            opg_amount: Minimum number of OPG tokens required (e.g. ``5.0``
+                for 5 OPG). Converted to base units (18 decimals) internally.
 
         Returns:
             Permit2ApprovalResult: Contains ``allowance_before``,
@@ -71,7 +72,7 @@ class LLM:
         Raises:
             OpenGradientError: If the approval transaction fails.
         """
-        return approve_opg(self._wallet_account, opg_amount)
+        return ensure_opg_approval(self._wallet_account, opg_amount)
 
     def completion(
         self,

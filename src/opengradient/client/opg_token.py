@@ -51,16 +51,17 @@ class Permit2ApprovalResult:
     tx_hash: Optional[str] = None
 
 
-def approve_opg(wallet_account: LocalAccount, opg_amount: float) -> Permit2ApprovalResult:
-    """Approve OPG tokens for Permit2 spending on Base Sepolia.
+def ensure_opg_approval(wallet_account: LocalAccount, opg_amount: float) -> Permit2ApprovalResult:
+    """Ensure the Permit2 allowance for OPG is at least ``opg_amount``.
 
     Checks the current Permit2 allowance for the wallet. If the allowance
-    is zero, automatically sends an ERC-20 approve transaction.
+    is already >= the requested amount, returns immediately without sending
+    a transaction. Otherwise, sends an ERC-20 approve transaction.
 
     Args:
         wallet_account: The wallet account to check and approve from.
-        opg_amount: Number of OPG tokens to approve (e.g. ``5.0`` for
-            5 OPG). Converted to base units (18 decimals) internally.
+        opg_amount: Minimum number of OPG tokens required (e.g. ``5.0``
+            for 5 OPG). Converted to base units (18 decimals) internally.
 
     Returns:
         Permit2ApprovalResult: Contains ``allowance_before``,
@@ -79,7 +80,7 @@ def approve_opg(wallet_account: LocalAccount, opg_amount: float) -> Permit2Appro
 
     allowance_before = token.functions.allowance(owner, spender).call()
 
-    if allowance_before > 0:
+    if allowance_before >= amount_base:
         return Permit2ApprovalResult(
             allowance_before=allowance_before,
             allowance_after=allowance_before,

@@ -6,7 +6,7 @@ client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
 
-client.llm.approve_opg(opg_amount=5)
+client.llm.ensure_opg_approval(opg_amount=5)
 
 messages = [
     {"role": "user", "content": "What is Python?"},
