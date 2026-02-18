@@ -19,4 +19,4 @@ result = client.llm.chat(
     max_tokens=300,
     x402_settlement_mode=og.x402SettlementMode.SETTLE_METADATA,
 )
-print(f"Response: {result.chat_output['content']}")
+print(result.chat_output['content'])

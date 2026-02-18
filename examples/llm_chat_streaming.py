@@ -5,7 +5,7 @@ import opengradient as og
 client = og.Client(
     private_key=os.environ.get("OG_PRIVATE_KEY"),
 )
-print(f"Approval status: {client.llm.ensure_opg_approval(opg_amount=1)}")
+print(f"$OPG Approval status: {client.llm.ensure_opg_approval(opg_amount=1)}")
 
 messages = [
     {"role": "user", "content": "What is Python?"},
