@@ -55,12 +55,24 @@ result = client.alpha.infer(
 print(result.model_output)
 ```
 
+## Private Keys
+
+The SDK operates across two chains. You can use a single key for both, or provide separate keys:
+
+- **``private_key``** -- pays for LLM inference via x402 on **Base Sepolia** (requires OPG tokens)
+- **``alpha_private_key``** *(optional)* -- pays gas for Alpha Testnet on-chain inference on the **OpenGradient network** (requires testnet gas tokens). Falls back to ``private_key`` when omitted.
+
+```python
+# Separate keys for each chain
+client = og.init(private_key="0xBASE_KEY...", alpha_private_key="0xALPHA_KEY...")
+```
+
 ## Client Namespaces
 
 The [Client](./client/index) object exposes four namespaces:
 
-- **[llm](./client/llm)** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments
-- **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (only available on the Alpha Testnet)
+- **[llm](./client/llm)** -- Verifiable LLM chat and completion via TEE-verified execution with x402 payments (Base Sepolia OPG tokens)
+- **[alpha](./client/alpha)** -- On-chain ONNX model inference, workflow deployment, and scheduled ML model execution (OpenGradient testnet gas tokens)
 - **[model_hub](./client/model_hub)** -- Model repository management
 - **[twins](./client/twins)** -- Digital twins chat via OpenGradient verifiable inference (requires twins API key)
 
@@ -96,7 +108,7 @@ The SDK includes adapters for popular AI frameworks -- see the `agents` submodul
 ### `init()`
 
 ```python
-def init(private_key: str, email: Optional[str] = None, password: Optional[str] = None, **kwargs) ‑> `Client`
+def init(private_key: str, alpha_private_key: Optional[str] = None, email: Optional[str] = None, password: Optional[str] = None, **kwargs) ‑> `Client`
 ```
 Initialize the global OpenGradient client.
 
@@ -105,7 +117,11 @@ and stores it as the global client for convenience.
 
 **Arguments**
 
-* **`private_key`**: Private key for OpenGradient transactions.
+* **`private_key`**: Private key whose wallet holds **Base Sepolia OPG tokens**
+        for x402 LLM payments.
+* **`alpha_private_key`**: Private key whose wallet holds **OpenGradient testnet
+        gas tokens** for on-chain inference. Optional -- falls back to
+        ``private_key`` for backward compatibility.
 * **`email`**: Email for Model Hub authentication. Optional.
 * **`password`**: Password for Model Hub authentication. Optional.
     **kwargs: Additional arguments forwarded to `Client`.
@@ -121,22 +137,33 @@ The newly created `Client` instance.
 Main OpenGradient SDK client.
 
 Provides unified access to all OpenGradient services including LLM inference,
-on-chain model inference, and the Model Hub. Handles authentication via
-blockchain private key and optional Model Hub credentials.
+on-chain model inference, and the Model Hub.
+
+The client operates across two chains:
+
+- **LLM inference** (``client.llm``) settles via x402 on **Base Sepolia**
+  using OPG tokens (funded by ``private_key``).
+- **Alpha Testnet** (``client.alpha``) runs on the **OpenGradient network**
+  using testnet gas tokens (funded by ``alpha_private_key``, or ``private_key``
+  when not provided).
 
 #### Constructor
 
 ```python
-def __init__(private_key: str, email: Optional[str] = None, password: Optional[str] = None, twins_api_key: Optional[str] = None, wallet_address: str = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llm.opengradient.ai')
+def __init__(private_key: str, alpha_private_key: Optional[str] = None, email: Optional[str] = None, password: Optional[str] = None, twins_api_key: Optional[str] = None, wallet_address: str = None, rpc_url: str = 'https://ogevmdevnet.opengradient.ai', api_url: str = 'https://sdk-devnet.opengradient.ai', contract_address: str = '0x8383C9bD7462F12Eb996DD02F78234C0421A6FaE', og_llm_server_url: Optional[str] = 'https://llm.opengradient.ai', og_llm_streaming_server_url: Optional[str] = 'https://llm.opengradient.ai')
 ```
 
 **Arguments**
 
-* **`private_key`**: Private key for OpenGradient transactions.
+* **`private_key`**: Private key whose wallet holds **Base Sepolia OPG tokens**
+        for x402 LLM payments.
+* **`alpha_private_key`**: Private key whose wallet holds **OpenGradient testnet
+        gas tokens** for on-chain inference. Optional -- falls back to
+        ``private_key`` for backward compatibility.
 * **`email`**: Email for Model Hub authentication. Optional.
 * **`password`**: Password for Model Hub authentication. Optional.
 * **`twins_api_key`**: API key for digital twins chat (twin.fun). Optional.
-* **`rpc_url`**: RPC URL for the blockchain network.
+* **`rpc_url`**: RPC URL for the OpenGradient Alpha Testnet.
 * **`api_url`**: API URL for the OpenGradient API.
 * **`contract_address`**: Inference contract address.
 * **`og_llm_server_url`**: OpenGradient LLM server URL.
