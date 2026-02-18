@@ -1,14 +1,3 @@
-## Run non-hosted LLMs with x402 transaction processing through OpenGradient routers
-# Use opengradient version pip install opengradient==0.5.0a3
-
-# This currently only works with model: gpt-4.1-2025-04-14 but we are quickly working on adding
-# more models.
-
-# x402 Settlement Modes:
-# - SETTLE: Individual settlement with input/output hashes only (most privacy-preserving)
-# - SETTLE_BATCH: Batch settlement for multiple inferences (most cost-efficient, default)
-# - SETTLE_METADATA: Full model info, complete input/output data, and all inference metadata
-
 import os
 
 import opengradient as og
