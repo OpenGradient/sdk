@@ -122,3 +122,13 @@ class Client:
 
         if twins_api_key is not None:
             self.twins = Twins(api_key=twins_api_key)
+
+    def close(self) -> None:
+        """Close underlying SDK resources."""
+        self.llm.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        self.close()

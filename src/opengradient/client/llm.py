@@ -2,6 +2,8 @@
 
 import asyncio
 import json
+import threading
+from queue import Queue
 from typing import AsyncGenerator, Dict, List, Optional, Union
 
 import httpx
@@ -61,6 +63,58 @@ class LLM:
         self._wallet_account = wallet_account
         self._og_llm_server_url = og_llm_server_url
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
+
+        signer = EthAccountSignerv2(self._wallet_account)
+        self._x402_client = x402Clientv2()
+        register_exact_evm_clientv2(self._x402_client, signer, networks=[BASE_TESTNET_NETWORK])
+        register_upto_evm_clientv2(self._x402_client, signer, networks=[BASE_TESTNET_NETWORK])
+
+        self._request_client_ctx = None
+        self._request_client = None
+        self._stream_client_ctx = None
+        self._stream_client = None
+        self._closed = False
+
+        self._loop = asyncio.new_event_loop()
+        self._loop_thread = threading.Thread(target=self._run_event_loop, daemon=True)
+        self._loop_thread.start()
+        self._run_coroutine(self._initialize_http_clients())
+
+    def _run_event_loop(self):
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
+
+    def _run_coroutine(self, coroutine):
+        if self._closed:
+            raise OpenGradientError("LLM client is closed.")
+        future = asyncio.run_coroutine_threadsafe(coroutine, self._loop)
+        return future.result()
+
+    async def _initialize_http_clients(self) -> None:
+        if self._request_client is None:
+            self._request_client_ctx = x402HttpxClientv2(self._x402_client)
+            self._request_client = await self._request_client_ctx.__aenter__()
+        if self._stream_client is None:
+            self._stream_client_ctx = x402HttpxClientv2(self._x402_client)
+            self._stream_client = await self._stream_client_ctx.__aenter__()
+
+    async def _close_http_clients(self) -> None:
+        if self._request_client_ctx is not None:
+            await self._request_client_ctx.__aexit__(None, None, None)
+            self._request_client_ctx = None
+            self._request_client = None
+        if self._stream_client_ctx is not None:
+            await self._stream_client_ctx.__aexit__(None, None, None)
+            self._stream_client_ctx = None
+            self._stream_client = None
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._run_coroutine(self._close_http_clients())
+        self._closed = True
+        self._loop.call_soon_threadsafe(self._loop.stop)
+        self._loop_thread.join(timeout=5)
 
     def ensure_opg_approval(self, opg_amount: float) -> Permit2ApprovalResult:
         """Ensure the Permit2 allowance for OPG is at least ``opg_amount``.
@@ -139,45 +193,40 @@ class LLM:
         """
 
         async def make_request_v2():
-            x402_client = x402Clientv2()
-            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
-            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                "X-SETTLEMENT-TYPE": x402_settlement_mode,
+            }
 
-            # Security Fix: verify=True enabled
-            async with x402HttpxClientv2(x402_client) as client:
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
-                }
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
 
-                payload = {
-                    "model": model,
-                    "prompt": prompt,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                }
+            if stop_sequence:
+                payload["stop"] = stop_sequence
 
-                if stop_sequence:
-                    payload["stop"] = stop_sequence
+            try:
+                response = await self._request_client.post(
+                    self._og_llm_server_url + "/v1/completions", json=payload, headers=headers, timeout=60
+                )
 
-                try:
-                    response = await client.post(self._og_llm_server_url + "/v1/completions", json=payload, headers=headers, timeout=60)
+                content = await response.aread()
+                result = json.loads(content.decode())
 
-                    # Read the response content
-                    content = await response.aread()
-                    result = json.loads(content.decode())
+                return TextGenerationOutput(
+                    transaction_hash="external",
+                    completion_output=result.get("completion"),
+                )
 
-                    return TextGenerationOutput(
-                        transaction_hash="external",
-                        completion_output=result.get("completion"),
-                    )
-
-                except Exception as e:
-                    raise OpenGradientError(f"TEE LLM completion request failed: {str(e)}")
+            except Exception as e:
+                raise OpenGradientError(f"TEE LLM completion request failed: {str(e)}")
 
         try:
-            return asyncio.run(make_request_v2())
+            return self._run_coroutine(make_request_v2())
         except OpenGradientError:
             raise
         except Exception as e:
@@ -262,55 +311,50 @@ class LLM:
         """
 
         async def make_request_v2():
-            x402_client = x402Clientv2()
-            register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
-            register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
+                "X-SETTLEMENT-TYPE": x402_settlement_mode,
+            }
 
-            # Security Fix: verify=True enabled
-            async with x402HttpxClientv2(x402_client) as client:
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                    "X-SETTLEMENT-TYPE": x402_settlement_mode,
-                }
+            payload = {
+                "model": model,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
 
-                payload = {
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                }
+            if stop_sequence:
+                payload["stop"] = stop_sequence
 
-                if stop_sequence:
-                    payload["stop"] = stop_sequence
+            if tools:
+                payload["tools"] = tools
+                payload["tool_choice"] = tool_choice or "auto"
 
-                if tools:
-                    payload["tools"] = tools
-                    payload["tool_choice"] = tool_choice or "auto"
+            try:
+                endpoint = "/v1/chat/completions"
+                response = await self._request_client.post(
+                    self._og_llm_server_url + endpoint, json=payload, headers=headers, timeout=60
+                )
 
-                try:
-                    # Non-streaming with x402
-                    endpoint = "/v1/chat/completions"
-                    response = await client.post(self._og_llm_server_url + endpoint, json=payload, headers=headers, timeout=60)
+                content = await response.aread()
+                result = json.loads(content.decode())
 
-                    content = await response.aread()
-                    result = json.loads(content.decode())
+                choices = result.get("choices")
+                if not choices:
+                    raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
 
-                    choices = result.get("choices")
-                    if not choices:
-                        raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
+                return TextGenerationOutput(
+                    transaction_hash="external",
+                    finish_reason=choices[0].get("finish_reason"),
+                    chat_output=choices[0].get("message"),
+                )
 
-                    return TextGenerationOutput(
-                        transaction_hash="external",
-                        finish_reason=choices[0].get("finish_reason"),
-                        chat_output=choices[0].get("message"),
-                    )
-
-                except Exception as e:
-                    raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
+            except Exception as e:
+                raise OpenGradientError(f"TEE LLM chat request failed: {str(e)}")
 
         try:
-            return asyncio.run(make_request_v2())
+            return self._run_coroutine(make_request_v2())
         except OpenGradientError:
             raise
         except Exception as e:
@@ -333,72 +377,44 @@ class LLM:
         Yields StreamChunk objects as they arrive from the background thread.
         NO buffering, NO conversion, just direct pass-through.
         """
-        import threading
-        from queue import Queue
-
         queue = Queue()
-        exception_holder = []
+        sentinel = object()
 
-        def _run_async():
-            """Run async streaming in background thread"""
-            loop = None
+        async def _stream():
             try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-                async def _stream():
-                    try:
-                        async for chunk in self._tee_llm_chat_stream_async(
-                            model=model,
-                            messages=messages,
-                            max_tokens=max_tokens,
-                            stop_sequence=stop_sequence,
-                            temperature=temperature,
-                            tools=tools,
-                            tool_choice=tool_choice,
-                            x402_settlement_mode=x402_settlement_mode,
-                        ):
-                            queue.put(chunk)  # Put chunk immediately
-                    except Exception as e:
-                        exception_holder.append(e)
-                    finally:
-                        queue.put(None)  # Signal completion
-
-                loop.run_until_complete(_stream())
+                async for chunk in self._tee_llm_chat_stream_async(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    stop_sequence=stop_sequence,
+                    temperature=temperature,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                    x402_settlement_mode=x402_settlement_mode,
+                ):
+                    queue.put(chunk)
             except Exception as e:
-                exception_holder.append(e)
-                queue.put(None)
+                queue.put(e)
             finally:
-                if loop:
-                    try:
-                        pending = asyncio.all_tasks(loop)
-                        for task in pending:
-                            task.cancel()
-                        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-                        # Properly close async generators to avoid RuntimeWarning
-                        loop.run_until_complete(loop.shutdown_asyncgens())
-                    finally:
-                        loop.close()
+                queue.put(sentinel)
 
-        # Start background thread
-        thread = threading.Thread(target=_run_async, daemon=True)
-        thread.start()
+        future = asyncio.run_coroutine_threadsafe(_stream(), self._loop)
 
-        # Yield chunks DIRECTLY as they arrive - NO buffering
         try:
             while True:
-                chunk = queue.get()  # Blocks until chunk available
-                if chunk is None:
+                chunk = queue.get()
+                if chunk is sentinel:
                     break
-                yield chunk  # Yield immediately!
-
-            thread.join(timeout=5)
-
-            if exception_holder:
-                raise exception_holder[0]
+                if isinstance(chunk, Exception):
+                    raise chunk
+                yield chunk
         except Exception:
-            thread.join(timeout=1)
+            if not future.done():
+                future.cancel()
             raise
+        finally:
+            if not future.done():
+                future.cancel()
 
     async def _tee_llm_chat_stream_async(
         self,
@@ -474,18 +490,13 @@ class LLM:
                     except json.JSONDecodeError:
                         continue
 
-        x402_client = x402Clientv2()
-        register_exact_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
-        register_upto_evm_clientv2(x402_client, EthAccountSignerv2(self._wallet_account), networks=[BASE_TESTNET_NETWORK])
-
-        async with x402HttpxClientv2(x402_client) as client:
-            endpoint = "/v1/chat/completions"
-            async with client.stream(
-                "POST",
-                self._og_llm_streaming_server_url + endpoint,
-                json=payload,
-                headers=headers,
-                timeout=60,
-            ) as response:
-                async for parsed_chunk in _parse_sse_response(response):
-                    yield parsed_chunk
+        endpoint = "/v1/chat/completions"
+        async with self._stream_client.stream(
+            "POST",
+            self._og_llm_streaming_server_url + endpoint,
+            json=payload,
+            headers=headers,
+            timeout=60,
+        ) as response:
+            async for parsed_chunk in _parse_sse_response(response):
+                yield parsed_chunk
