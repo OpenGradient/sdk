@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.opengradient.client.exceptions import OpenGradientError
-from src.opengradient.client.opg_token import (
+from opengradient.client.exceptions import OpenGradientError
+from opengradient.client.opg_token import (
     Permit2ApprovalResult,
     ensure_opg_approval,
 )
@@ -31,8 +31,8 @@ def mock_web3(monkeypatch):
     mock_web3_cls.to_checksum_address = lambda addr: addr
     mock_web3_cls.HTTPProvider.return_value = MagicMock()
 
-    monkeypatch.setattr("src.opengradient.client.opg_token.Web3", mock_web3_cls)
-    monkeypatch.setattr("src.opengradient.client.opg_token.PERMIT2_ADDRESS", SPENDER_ADDRESS)
+    monkeypatch.setattr("opengradient.client.opg_token.Web3", mock_web3_cls)
+    monkeypatch.setattr("opengradient.client.opg_token.PERMIT2_ADDRESS", SPENDER_ADDRESS)
 
     return mock_w3
 
