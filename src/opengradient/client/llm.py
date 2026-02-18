@@ -124,8 +124,8 @@ class LLM:
         a transaction. Otherwise, sends an ERC-20 approve transaction.
 
         Args:
-            opg_amount: Minimum number of OPG tokens required (e.g. ``5.0``
-                for 5 OPG). Converted to base units (18 decimals) internally.
+            opg_amount: Minimum number of OPG tokens required (e.g. ``0.05``
+                for 0.05 OPG). Must be at least 0.05 OPG.
 
         Returns:
             Permit2ApprovalResult: Contains ``allowance_before``,
@@ -133,8 +133,11 @@ class LLM:
                 was needed).
 
         Raises:
+            ValueError: If the OPG amount is less than 0.05.
             OpenGradientError: If the approval transaction fails.
         """
+        if opg_amount < 0.05:
+            raise ValueError("OPG amount must be at least 0.05.")
         return ensure_opg_approval(self._wallet_account, opg_amount)
 
     def completion(
