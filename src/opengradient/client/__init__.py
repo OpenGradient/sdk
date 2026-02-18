@@ -28,6 +28,9 @@ client = og.init(private_key="0x...")
 # Separate keys: Base Sepolia OPG for LLM, OpenGradient testnet gas for Alpha
 client = og.init(private_key="0xLLM_KEY...", alpha_private_key="0xALPHA_KEY...")
 
+# One-time approval (idempotent — skips if allowance is already sufficient)
+client.llm.ensure_opg_approval(opg_amount=5)
+
 # LLM chat (TEE-verified, streamed)
 for chunk in client.llm.chat(
     model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
@@ -55,6 +58,4 @@ from .client import Client
 
 __all__ = ["Client"]
 
-__pdoc__ = {
-    "x402_auth": False,
-}
+__pdoc__ = {}

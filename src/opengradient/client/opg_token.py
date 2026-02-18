@@ -80,7 +80,8 @@ def ensure_opg_approval(wallet_account: LocalAccount, opg_amount: float) -> Perm
 
     allowance_before = token.functions.allowance(owner, spender).call()
 
-    if allowance_before >= amount_base:
+    # Only approve if the allowance is less than 10% of the requested amount
+    if allowance_before >= amount_base * 0.1:
         return Permit2ApprovalResult(
             allowance_before=allowance_before,
             allowance_after=allowance_before,

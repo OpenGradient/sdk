@@ -15,6 +15,10 @@ from langgraph.prebuilt import create_react_agent
 
 import opengradient as og
 
+# One-time Permit2 approval for OPG spending (idempotent)
+client = og.init(private_key=os.environ.get("OG_PRIVATE_KEY"))
+client.llm.ensure_opg_approval(opg_amount=5)
+
 # Create the OpenGradient LangChain adapter
 llm = og.agents.langchain_adapter(
     private_key=os.environ.get("OG_PRIVATE_KEY"),

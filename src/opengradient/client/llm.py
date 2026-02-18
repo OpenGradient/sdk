@@ -177,7 +177,7 @@ class LLM:
                     raise OpenGradientError(f"TEE LLM completion request failed: {str(e)}")
 
         try:
-            return asyncio.run(make_request())
+            return asyncio.run(make_request_v2())
         except OpenGradientError:
             raise
         except Exception as e:

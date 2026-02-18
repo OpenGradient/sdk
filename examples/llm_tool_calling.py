@@ -50,6 +50,9 @@ messages = [
     {"role": "user", "content": "What's the weather like in Dallas, Texas? Give me the temperature in fahrenheit."},
 ]
 
+# One-time Permit2 approval for OPG spending (idempotent)
+client.llm.ensure_opg_approval(opg_amount=5)
+
 print("Testing Gemini tool calls...")
 print(f"Model: {og.TEE_LLM.GEMINI_2_5_FLASH_LITE}")
 print(f"Messages: {messages}")

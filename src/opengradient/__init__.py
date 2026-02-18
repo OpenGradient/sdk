@@ -19,6 +19,9 @@ import opengradient as og
 # Initialize the client
 client = og.init(private_key="0x...")
 
+# One-time approval (idempotent — skips if allowance is already sufficient)
+client.llm.ensure_opg_approval(opg_amount=5)
+
 # Chat with an LLM (TEE-verified)
 response = client.llm.chat(
     model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
@@ -137,6 +140,7 @@ def init(
     Usage:
         import opengradient as og
         client = og.init(private_key="0x...")
+        client.llm.ensure_opg_approval(opg_amount=5)
         response = client.llm.chat(model=og.TEE_LLM.GPT_4O, messages=[...])
     """
     global global_client
@@ -160,6 +164,9 @@ __all__ = [
     "SchedulerParams",
     "CandleType",
     "CandleOrder",
+    "TextGenerationOutput",
+    "TextGenerationStream",
+    "x402SettlementMode",
     "agents",
     "alphasense",
 ]
