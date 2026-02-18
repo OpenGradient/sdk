@@ -7,7 +7,7 @@ client = og.Client(
 )
 
 approval = client.llm.ensure_opg_approval(opg_amount=5)
-print(f"Approval: {approval}")
+print(f"$OPG Approval Status: {approval}")
 
 messages = [
     {"role": "user", "content": "What is Python?"},
