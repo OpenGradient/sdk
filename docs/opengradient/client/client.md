@@ -47,6 +47,17 @@ def __init__(private_key: str, alpha_private_key: Optional[str] = None, emai
 * **`og_llm_server_url`**: OpenGradient LLM server URL.
 * **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
 
+#### Methods
+
+---
+
+#### `close()`
+
+```python
+def close(self) ‑> None
+```
+Close underlying SDK resources.
+
 #### Variables
 
 * [**`alpha`**](./alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.

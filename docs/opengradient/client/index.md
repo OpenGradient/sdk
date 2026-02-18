@@ -35,6 +35,9 @@ client = og.init(private_key="0x...")
 # Separate keys: Base Sepolia OPG for LLM, OpenGradient testnet gas for Alpha
 client = og.init(private_key="0xLLM_KEY...", alpha_private_key="0xALPHA_KEY...")
 
+# One-time approval (idempotent — skips if allowance is already sufficient)
+client.llm.ensure_opg_approval(opg_amount=5)
+
 # LLM chat (TEE-verified, streamed)
 for chunk in client.llm.chat(
     model=og.TEE_LLM.CLAUDE_3_5_HAIKU,
@@ -66,6 +69,7 @@ repo = client.model_hub.create_model("my-model", "A price prediction model")
 * [model_hub](./model_hub): Model Hub for creating, versioning, and uploading ML models.
 * [opg_token](./opg_token): OPG token Permit2 approval utilities for x402 payments.
 * [twins](./twins): Digital twins chat via OpenGradient verifiable inference.
+* [x402_auth](./x402_auth): X402 Authentication handler for httpx streaming requests.
 
 ## Classes
 
@@ -105,6 +109,17 @@ def __init__(private_key: str, alpha_private_key: Optional[str] = None, emai
 * **`contract_address`**: Inference contract address.
 * **`og_llm_server_url`**: OpenGradient LLM server URL.
 * **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
+
+#### Methods
+
+---
+
+#### `close()`
+
+```python
+def close(self) ‑> None
+```
+Close underlying SDK resources.
 
 #### Variables
 

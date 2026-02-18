@@ -68,6 +68,14 @@ Union[TextGenerationOutput, TextGenerationStream]:
 
 ---
 
+#### `close()`
+
+```python
+def close(self) ‑> None
+```
+
+---
+
 #### `completion()`
 
 ```python

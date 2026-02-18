@@ -6,7 +6,7 @@ opengradient
 
 # Package opengradient
 
-**Version: 0.7.3**
+**Version: 0.7.4**
 
 OpenGradient Python SDK for decentralized AI inference with end-to-end verification.
 
@@ -27,6 +27,9 @@ import opengradient as og
 
 # Initialize the client
 client = og.init(private_key="0x...")
+
+# One-time approval (idempotent — skips if allowance is already sufficient)
+client.llm.ensure_opg_approval(opg_amount=5)
 
 # Chat with an LLM (TEE-verified)
 response = client.llm.chat(
@@ -169,6 +172,17 @@ def __init__(private_key: str, alpha_private_key: Optional[str] = None, emai
 * **`og_llm_server_url`**: OpenGradient LLM server URL.
 * **`og_llm_streaming_server_url`**: OpenGradient LLM streaming server URL.
 
+#### Methods
+
+---
+
+#### `close()`
+
+```python
+def close(self) ‑> None
+```
+Close underlying SDK resources.
+
 #### Variables
 
 * [**`alpha`**](./client/alpha): Alpha Testnet features including on-chain inference, workflow management, and ML model execution.
@@ -212,3 +226,72 @@ auditability and tamper-proof AI inference.
 * static `GROK_4_1_FAST`
 * static `GROK_4_1_FAST_NON_REASONING`
 * static `O4_MINI`
+
+### `TextGenerationOutput`
+
+Output structure for text generation requests.
+
+#### Constructor
+
+```python
+def __init__(transaction_hash: str, finish_reason: Optional[str] = None, chat_output: Optional[Dict] = None, completion_output: Optional[str] = None, payment_hash: Optional[str] = None)
+```
+
+#### Variables
+
+* static `chat_output` : Optional[Dict] - Dictionary of chat response containing role, message content, tool call parameters, etc.. Empty dict if not applicable.
+* static `completion_output` : Optional[str] - Raw text output from completion-style generation. Empty string if not applicable.
+* static `finish_reason` : Optional[str] - Reason for completion (e.g., 'tool_call', 'stop', 'error'). Empty string if not applicable.
+* static `payment_hash` : Optional[str] - Payment hash for x402 transaction
+* static `transaction_hash` : str - Blockchain hash for the transaction.
+
+### `TextGenerationStream`
+
+Iterator wrapper for streaming text generation responses.
+
+Provides a clean interface for iterating over stream chunks with
+automatic parsing of SSE format.
+
+#### Constructor
+
+```python
+def __init__(_iterator: Union[Iterator[str], AsyncIterator[str]])
+```
+
+### `x402SettlementMode`
+
+Settlement modes for x402 payment protocol transactions.
+
+These modes control how inference data is recorded on-chain for payment settlement
+and auditability. Each mode offers different trade-offs between data completeness,
+privacy, and transaction costs.
+
+**Attributes**
+
+* **`SETTLE`**: Individual settlement with input/output hashes only.
+        Also known as SETTLE_INDIVIDUAL in some documentation.
+        Records cryptographic hashes of the inference input and output.
+        Most privacy-preserving option - actual data is not stored on-chain.
+        Suitable for applications where only proof of execution is needed.
+        CLI usage: --settlement-mode settle
+* **`SETTLE_METADATA`**: Individual settlement with full metadata.
+        Also known as SETTLE_INDIVIDUAL_WITH_METADATA in some documentation.
+        Records complete model information, full input and output data,
+        and all inference metadata on-chain.
+        Provides maximum transparency and auditability.
+        Higher gas costs due to larger data storage.
+        CLI usage: --settlement-mode settle-metadata
+* **`SETTLE_BATCH`**: Batch settlement for multiple inferences.
+        Aggregates multiple inference requests into a single settlement transaction
+        using batch hashes.
+        Most cost-efficient for high-volume applications.
+        Reduced per-inference transaction overhead.
+        CLI usage: --settlement-mode settle-batch
+
+#### Variables
+
+* static `SETTLE`
+* static `SETTLE_BATCH`
+* static `SETTLE_INDIVIDUAL`
+* static `SETTLE_INDIVIDUAL_WITH_METADATA`
+* static `SETTLE_METADATA`
