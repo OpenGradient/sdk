@@ -314,7 +314,7 @@ class LLM:
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {X402_PLACEHOLDER_API_KEY}",
-                "X-SETTLEMENT-TYPE": x402_settlement_mode,
+                "X-SETTLEMENT-TYPE": x402_settlement_mode.value,
             }
 
             payload = {
