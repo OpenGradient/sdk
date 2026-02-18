@@ -6,7 +6,7 @@ opengradient
 
 # Package opengradient
 
-**Version: 0.7.1**
+**Version: 0.7.3**
 
 OpenGradient Python SDK for decentralized AI inference with end-to-end verification.
 
