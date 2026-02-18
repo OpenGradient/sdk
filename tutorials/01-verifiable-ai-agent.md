@@ -29,8 +29,9 @@ Ethereum private key works -- you can generate one with any Ethereum wallet.
 export OG_PRIVATE_KEY="0x..."
 ```
 
-> **Faucet:** Get free test tokens at <https://faucet.opengradient.ai/> so your
-> wallet can pay for inference transactions.
+> **Faucet:** Get free OPG tokens on Base Sepolia at <https://faucet.opengradient.ai/>
+> so your wallet can pay for inference transactions. All x402 LLM payments currently
+> settle on Base Sepolia.
 
 ## Step 1: Initialize the Client and LangChain Adapter
 

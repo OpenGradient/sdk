@@ -27,9 +27,10 @@ Export your OpenGradient private key:
 export OG_PRIVATE_KEY="0x..."
 ```
 
-> **Faucet:** Get free testnet tokens at https://faucet.opengradient.ai/
+> **Faucet:** Get free OPG tokens on Base Sepolia at https://faucet.opengradient.ai/
 >
-> If you see x402 payment errors, make sure your wallet has sufficient testnet tokens.
+> All x402 LLM payments currently settle on Base Sepolia using OPG tokens. If you see
+> x402 payment errors, make sure your wallet has sufficient OPG on Base Sepolia.
 
 ## Step 1: Basic Non-Streaming Chat
 
