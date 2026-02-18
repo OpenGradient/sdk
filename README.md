@@ -83,6 +83,16 @@ The client operates across two chains:
 - **LLM inference** (`client.llm`) settles via x402 on **Base Sepolia** using OPG tokens (funded by `private_key`)
 - **Alpha Testnet** (`client.alpha`) runs on the **OpenGradient network** using testnet gas tokens (funded by `alpha_private_key`, or `private_key` when not provided)
 
+### OPG Token Approval
+
+Before making LLM requests, your wallet must approve OPG token spending via the [Permit2](https://github.com/Uniswap/permit2) protocol. Call this once (it's idempotent — no transaction is sent if the allowance already covers the requested amount):
+
+```python
+client.llm.ensure_opg_approval(opg_amount=5)
+```
+
+See [Payment Settlement](#payment-settlement) for details on settlement modes.
+
 ## Core Functionality
 
 ### TEE-Secured LLM Chat
@@ -292,18 +302,6 @@ result = client.llm.chat(
     x402_settlement_mode=og.x402SettlementMode.SETTLE_BATCH,
 )
 ```
-
-### OPG Token Approval
-
-LLM inference payments use OPG tokens via the [Permit2](https://github.com/Uniswap/permit2) protocol. Before making requests, ensure your wallet has approved sufficient OPG for spending:
-
-```python
-# Checks current Permit2 allowance — only sends an on-chain transaction
-# if the allowance is below the requested amount.
-client.llm.ensure_opg_approval(opg_amount=5)
-```
-
-This is idempotent: if your wallet already has an allowance >= the requested amount, no transaction is sent.
 
 ## Examples
 
