@@ -428,36 +428,35 @@ class TEE_LLM(str, Enum):
     Usage:
         # TEE-verified inference
         result = client.llm.chat(
-            model=og.TEE_LLM.GPT_4O,
+            model=og.TEE_LLM.GPT_5,
             messages=[{"role": "user", "content": "Hello"}],
         )
     """
-
-    # Existing (Currently turned off)
-    # META_LLAMA_3_1_70B_INSTRUCT = "meta-llama/Llama-3.1-70B-Instruct"
-
     # OpenAI models via TEE
     GPT_4_1_2025_04_14 = "openai/gpt-4.1-2025-04-14"
-    GPT_4O = "openai/gpt-4o"
     O4_MINI = "openai/o4-mini"
+    GPT_5 = "openai/gpt-5"
+    GPT_5_MINI = "openai/gpt-5-mini"
+    GPT_5_2 = "openai/gpt-5.2"
 
     # Anthropic models via TEE
-    CLAUDE_3_7_SONNET = "anthropic/claude-3.7-sonnet"
-    CLAUDE_3_5_HAIKU = "anthropic/claude-3.5-haiku"
-    CLAUDE_4_0_SONNET = "anthropic/claude-4.0-sonnet"
+    CLAUDE_SONNET_4_5 = "anthropic/claude-sonnet-4-5"
+    CLAUDE_SONNET_4_6 = "anthropic/claude-sonnet-4-6"
+    CLAUDE_HAIKU_4_5 = "anthropic/claude-haiku-4-5"
+    CLAUDE_OPUS_4_5 = "anthropic/claude-opus-4-5"
+    CLAUDE_OPUS_4_6 = "anthropic/claude-opus-4-6"
 
     # Google models via TEE
     GEMINI_2_5_FLASH = "google/gemini-2.5-flash"
     GEMINI_2_5_PRO = "google/gemini-2.5-pro"
-    GEMINI_2_0_FLASH = "google/gemini-2.0-flash"
     GEMINI_2_5_FLASH_LITE = "google/gemini-2.5-flash-lite"
+    GEMINI_3_PRO = "google/gemini-3-pro-preview"
+    GEMINI_3_FLASH = "google/gemini-3-flash-preview"
 
     # xAI Grok models via TEE
-    GROK_3_MINI_BETA = "x-ai/grok-3-mini-beta"
-    GROK_3_BETA = "x-ai/grok-3-beta"
-    GROK_2_1212 = "x-ai/grok-2-1212"
-    GROK_2_VISION_LATEST = "x-ai/grok-2-vision-latest"
-    GROK_4_1_FAST = "x-ai/grok-4.1-fast"
+    GROK_4 = "x-ai/grok-4"
+    GROK_4_FAST = "x-ai/grok-4-fast"
+    GROK_4_1_FAST = "x-ai/grok-4-1-fast"
     GROK_4_1_FAST_NON_REASONING = "x-ai/grok-4-1-fast-non-reasoning"
 
 
