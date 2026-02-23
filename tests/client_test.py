@@ -311,9 +311,9 @@ class TestStreamChunk:
 class TestX402SettlementMode:
     def test_settlement_modes_values(self):
         """Test settlement mode enum values."""
-        assert x402SettlementMode.SETTLE == "settle"
-        assert x402SettlementMode.SETTLE_BATCH == "settle-batch"
-        assert x402SettlementMode.SETTLE_METADATA == "settle-metadata"
+        assert x402SettlementMode.SETTLE == "private"
+        assert x402SettlementMode.SETTLE_BATCH == "batch"
+        assert x402SettlementMode.SETTLE_METADATA == "individual"
 
     def test_settlement_mode_aliases(self):
         """Test settlement mode aliases."""
