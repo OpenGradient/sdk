@@ -49,8 +49,8 @@ class Client:
     alpha: Alpha
     """Alpha Testnet features including on-chain inference, workflow management, and ML model execution."""
 
-    twins: Twins
-    """Digital twins chat via OpenGradient verifiable inference."""
+    twins: Optional[Twins]
+    """Digital twins chat via OpenGradient verifiable inference. ``None`` when no ``twins_api_key`` is provided."""
 
     def __init__(
         self,
@@ -59,7 +59,6 @@ class Client:
         email: Optional[str] = None,
         password: Optional[str] = None,
         twins_api_key: Optional[str] = None,
-        wallet_address: str = None,
         rpc_url: str = DEFAULT_RPC_URL,
         api_url: str = DEFAULT_API_URL,
         contract_address: str = DEFAULT_INFERENCE_CONTRACT_ADDRESS,
@@ -120,8 +119,7 @@ class Client:
             api_url=api_url,
         )
 
-        if twins_api_key is not None:
-            self.twins = Twins(api_key=twins_api_key)
+        self.twins = Twins(api_key=twins_api_key) if twins_api_key is not None else None
 
     def close(self) -> None:
         """Close underlying SDK resources."""
