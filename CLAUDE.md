@@ -34,7 +34,7 @@ make integrationtest
 
 ### Code Quality
 ```bash
-# Run linting and formatting (uses ruff)
+# Run formatting (ruff, line-length=140) and type checking (mypy)
 make check
 
 # Generate documentation
@@ -52,31 +52,32 @@ make completion
 # Test chat functionality
 make chat
 
-# Test tool usage
-make tool
+# Test streaming chat
+make chat-stream
 
-# Test TEE mode
-make tee_completion
-make tee_chat
+# Test tool calling
+make chat-tool
 ```
 
 ## Architecture Overview
 
 ### Core Components
 
-1. **Client (`src/opengradient/client.py`)**: Central client class managing authentication and API interactions
-   - Handles Model Hub authentication (email/password)
-   - Manages blockchain interactions (private key)
-   - Provides high-level APIs for model management and inference
+1. **Client (`src/opengradient/client/`)**: Client package with submodules
+   - `client.py` — Main Client class, authentication, initialization
+   - `llm.py` — LLM chat/completion with TEE and x402 payment support
+   - `model_hub.py` — Model repository management (CRUD, upload)
+   - `twins.py` — Digital twins chat integration (twin.fun)
+   - `alpha.py` — Alpha Testnet on-chain inference and workflows
+   - `opg_token.py` — OPG token Permit2 approval
+   - `exceptions.py` — Custom exception classes
 
 2. **CLI (`src/opengradient/cli.py`)**: Command-line interface using Click
    - Commands: `config`, `infer`, `completion`, `chat`
    - Supports file-based input for messages and tools
 
-3. **LLM Module (`src/opengradient/llm/`)**: Language model specific functionality
-   - Chat completions
-   - Tool calling support
-   - Streaming responses
+3. **Agents (`src/opengradient/agents/`)**: Framework integrations
+   - `og_langchain.py` — LangChain ChatModel adapter
 
 4. **Blockchain Integration**: 
    - Smart contract ABIs in `src/opengradient/abi/`
@@ -85,11 +86,20 @@ make tee_chat
 
 5. **Protocol Buffers (`src/opengradient/proto/`)**: gRPC service definitions for inference
 
+6. **AlphaSense (`src/opengradient/alphasense/`)**: LangChain-compatible tools for AI agents
+   - `run_model_tool.py` — Tool for running on-chain model inference
+   - `read_workflow_tool.py` — Tool for reading workflow results
+
+7. **Workflow Models (`src/opengradient/workflow_models/`)**: Hardcoded price/volatility forecast models for on-chain execution
+
 ### Key Concepts
 
-- **Inference Modes**: VANILLA, TEE (end-to-end verified)
+- **Inference Modes**: VANILLA, TEE (end-to-end verified), ZKML
 - **Model CID**: Content-addressed model identifiers
 - **Dual Authentication**: Model Hub (email/password) + blockchain (private key)
+- **x402 Payments**: Streamed micropayment protocol for LLM inference
+- **Digital Twins**: Chat integration with twin.fun personas
+- **Dual Chain**: Base Sepolia (LLM) + OpenGradient testnet (Alpha on-chain inference)
 
 ## Configuration
 
@@ -102,9 +112,11 @@ User configuration stored via `opengradient config init` wizard.
 
 ## Testing Strategy
 
-- Unit tests: `tests/utils_test.py` using pytest
+- Unit tests in `tests/` using pytest: `utils_test.py`, `client_test.py`, `langchain_adapter_test.py`, `opg_token_test.py`
 - Integration tests: `integrationtest/` for agent and workflow models
+- Stress tests: `stresstest/` for load testing LLM and inference endpoints
 - CLI command testing via Makefile targets
+- Run individual suites: `make client_test`, `make langchain_adapter_test`, `make opg_token_test`
 
 ## Documentation (pdoc)
 
@@ -135,9 +147,11 @@ The template's `linkify` function automatically converts `` `opengradient.x.y.z`
 
 ## Dependencies
 
-Key dependencies (Python >=3.10):
+Key dependencies (Python >=3.11):
 - `web3` & `eth-account`: Blockchain interaction
-- `grpcio`: Service communication
 - `langchain` & `openai`: LLM integrations
 - `click`: CLI framework
 - `firebase-rest-api`: Backend services
+- `pydantic`: Data validation
+- `og-test-v2-x402`: x402 payment protocol
+- `numpy`: Array handling
