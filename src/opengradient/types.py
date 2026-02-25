@@ -19,11 +19,10 @@ class x402SettlementMode(str, Enum):
     privacy, and transaction costs.
 
     Attributes:
-        SETTLE: Individual settlement with input/output hashes only.
-            Also known as SETTLE_INDIVIDUAL in some documentation.
-            Records cryptographic hashes of the inference input and output.
-            Most privacy-preserving option - actual data is not stored on-chain.
-            Suitable for applications where only proof of execution is needed.
+        SETTLE: Most private settlement method.
+            Only the payment is settled on-chain — no input or output hashes are posted to the chain.
+            Your inference data remains completely off-chain, ensuring maximum privacy.
+            Suitable for applications where payment settlement is required without any on-chain record of execution.
             CLI usage: --settlement-mode settle
 
         SETTLE_METADATA: Individual settlement with full metadata.
@@ -48,9 +47,9 @@ class x402SettlementMode(str, Enum):
         'settle'
     """
 
-    SETTLE = "settle"
-    SETTLE_METADATA = "settle-metadata"
-    SETTLE_BATCH = "settle-batch"
+    SETTLE = "private"
+    SETTLE_METADATA = "individual"
+    SETTLE_BATCH = "batch"
 
     # Aliases for backward compatibility with glossary naming
     SETTLE_INDIVIDUAL = SETTLE
