@@ -122,7 +122,6 @@ class LLM:
             _fetch_tls_cert_as_ssl_context(self._og_llm_streaming_server_url) or False
         )
 
-        print(f"Using Wallet Account Address: {self._wallet_account.key.hex()}")
         signer = EthAccountSignerv2(self._wallet_account)
         self._x402_client = x402Clientv2()
         register_exact_evm_clientv2(self._x402_client, signer, networks=[BASE_TESTNET_NETWORK])
@@ -282,6 +281,8 @@ class LLM:
                 return TextGenerationOutput(
                     transaction_hash="external",
                     completion_output=result.get("completion"),
+                    tee_signature=result.get("tee_signature"),
+                    tee_timestamp=result.get("tee_timestamp"),
                 )
 
             except Exception as e:
@@ -419,6 +420,8 @@ class LLM:
                     transaction_hash="external",
                     finish_reason=choices[0].get("finish_reason"),
                     chat_output=message,
+                    tee_signature=result.get("tee_signature"),
+                    tee_timestamp=result.get("tee_timestamp"),
                 )
 
             except Exception as e:

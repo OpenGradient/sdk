@@ -239,12 +239,16 @@ class StreamChunk:
         model: Model identifier
         usage: Token usage information (only in final chunk)
         is_final: Whether this is the final chunk (before [DONE])
+        tee_signature: RSA-PSS signature over the response, present on the final chunk
+        tee_timestamp: ISO timestamp from the TEE at signing time, present on the final chunk
     """
 
     choices: List[StreamChoice]
     model: str
     usage: Optional[StreamUsage] = None
     is_final: bool = False
+    tee_signature: Optional[str] = None
+    tee_timestamp: Optional[str] = None
 
     @classmethod
     def from_sse_data(cls, data: Dict) -> "StreamChunk":
@@ -275,8 +279,14 @@ class StreamChunk:
 
         is_final = any(c.finish_reason is not None for c in choices) or usage is not None
 
-        return cls(choices=choices, model=data.get("model", "unknown"), usage=usage, is_final=is_final)
-
+        return cls(
+            choices=choices,
+            model=data.get("model", "unknown"),
+            usage=usage,
+            is_final=is_final,
+            tee_signature=data.get("tee_signature"),
+            tee_timestamp=data.get("tee_timestamp"),
+        )
 
 @dataclass
 class TextGenerationStream:
@@ -379,6 +389,12 @@ class TextGenerationOutput:
 
     payment_hash: Optional[str] = None
     """Payment hash for x402 transaction"""
+
+    tee_signature: Optional[str] = None
+    """RSA-PSS signature over the response produced by the TEE enclave."""
+
+    tee_timestamp: Optional[str] = None
+    """ISO timestamp from the TEE at signing time."""
 
 
 @dataclass

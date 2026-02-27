@@ -81,7 +81,7 @@ chat-stream:
 	python -m opengradient.cli chat \
 		--model $(MODEL) \
 		--messages '[{"role":"user","content":"Tell me a short story"}]' \
-		--max-tokens 250 \
+		--max-tokens 1250 \
 		--stream
 
 chat-tool:
