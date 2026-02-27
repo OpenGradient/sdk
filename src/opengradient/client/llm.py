@@ -116,10 +116,10 @@ class LLM:
         self._og_llm_streaming_server_url = og_llm_streaming_server_url
 
         self._tls_verify: Union[ssl.SSLContext, bool] = (
-            _fetch_tls_cert_as_ssl_context(self._og_llm_server_url) or False
+            _fetch_tls_cert_as_ssl_context(self._og_llm_server_url) or True
         )
         self._streaming_tls_verify: Union[ssl.SSLContext, bool] = (
-            _fetch_tls_cert_as_ssl_context(self._og_llm_streaming_server_url) or False
+            _fetch_tls_cert_as_ssl_context(self._og_llm_streaming_server_url) or True
         )
 
         signer = EthAccountSignerv2(self._wallet_account)
