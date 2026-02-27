@@ -1,7 +1,7 @@
 # OpenGradient SDK Makefile
 
 # Default model for testing (override with: make chat MODEL=openai/gpt-4o)
-MODEL ?= anthropic/claude-3.7-sonnet
+MODEL ?= google/gemini-3-pro-preview
 
 # ============================================================================
 # Development
@@ -75,7 +75,7 @@ chat:
 	python -m opengradient.cli chat \
 		--model $(MODEL) \
 		--messages '[{"role":"user","content":"Tell me a fun fact"}]' \
-		--max-tokens 150
+		--max-tokens 350
 
 chat-stream:
 	python -m opengradient.cli chat \

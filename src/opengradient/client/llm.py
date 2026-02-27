@@ -407,10 +407,18 @@ class LLM:
                 if not choices:
                     raise OpenGradientError(f"Invalid response: 'choices' missing or empty in {result}")
 
+                message = choices[0].get("message", {})
+                content = message.get("content")
+                if isinstance(content, list):
+                    message["content"] = " ".join(
+                        block.get("text", "") for block in content
+                        if isinstance(block, dict) and block.get("type") == "text"
+                    ).strip()
+
                 return TextGenerationOutput(
                     transaction_hash="external",
                     finish_reason=choices[0].get("finish_reason"),
-                    chat_output=choices[0].get("message"),
+                    chat_output=message,
                 )
 
             except Exception as e:
