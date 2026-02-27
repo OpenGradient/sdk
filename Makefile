@@ -99,5 +99,5 @@ chat-stream-tool:
 		--max-tokens 100 \
 		--stream
 
-.PHONY: install build publish check docs test utils_test client_test integrationtest examples \
+.PHONY: install build publish check docs test utils_test client_test langchain_adapter_test opg_token_test integrationtest examples \
 	infer completion chat chat-stream chat-tool chat-stream-tool
