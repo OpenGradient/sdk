@@ -1,6 +1,6 @@
 # OpenGradient SDK Makefile
 
-# Default model for testing (override with: make chat MODEL=openai/gpt-4o)
+# Default model for testing (override with: make chat MODEL=google/gemini-3-pro-preview)
 MODEL ?= google/gemini-3-pro-preview
 
 # ============================================================================
