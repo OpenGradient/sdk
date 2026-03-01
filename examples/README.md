@@ -8,7 +8,7 @@ Before running any examples, ensure you have:
 
 1. **Installed the SDK**: `pip install opengradient`
 2. **Set up your credentials**: Configure your OpenGradient account using environment variables:
-   - `OG_PRIVATE_KEY`: Private key funded with **Base Sepolia OPG tokens** for x402 LLM payments (can be obtained from out [faucet](https://faucet.opengradient.ai)).
+   - `OG_PRIVATE_KEY`: Private key funded with **Base Sepolia OPG tokens** for x402 LLM payments (can be obtained from our [faucet](https://faucet.opengradient.ai)).
    - `OG_ALPHA_PRIVATE_KEY`: (Optional) Private key funded with **OpenGradient testnet gas tokens** for Alpha Testnet on-chain inference. Falls back to `OG_PRIVATE_KEY` when not set.
    - `OG_MODEL_HUB_EMAIL`: (Optional) Your Model Hub email for model uploads
    - `OG_MODEL_HUB_PASSWORD`: (Optional) Your Model Hub password for model uploads
