@@ -194,7 +194,7 @@ class TestLLMCompletion:
             )
 
             result = client.llm.completion(
-                model=TEE_LLM.GPT_4O,
+                model=TEE_LLM.GPT_5,
                 prompt="Hello",
                 max_tokens=100,
             )
@@ -215,7 +215,7 @@ class TestLLMChat:
             )
 
             result = client.llm.chat(
-                model=TEE_LLM.GPT_4O,
+                model=TEE_LLM.GPT_5,
                 messages=[{"role": "user", "content": "Hello"}],
                 stream=False,
             )
@@ -233,7 +233,7 @@ class TestLLMChat:
             mock_stream.return_value = iter(mock_chunks)
 
             result = client.llm.chat(
-                model=TEE_LLM.GPT_4O,
+                model=TEE_LLM.GPT_5,
                 messages=[{"role": "user", "content": "Hello"}],
                 stream=True,
             )
